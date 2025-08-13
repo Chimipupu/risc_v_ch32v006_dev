@@ -45,11 +45,14 @@
 #define TIMER_MAX_ALARMS      PICO_TIME_DEFAULT_ALARM_POOL_MAX_TIMERS
 
 // [キーボード関連定義]
-#define KEY_ESC         27    // ESCキー
-#define KEY_BACKSPACE   127   // バックスペースキー
-#define KEY_ANSI_ESC    '['   // ANSIエスケープシーケンス
-#define KEY_UP          'A'   // 十字キーの矢印上
-#define KEY_DOWN        'B'   // 十字キーの矢印下
+#define KEY_ESC                 27              // ESCキー
+#define KEY_BACKSPACE           127             // バックスペースキー
+#define KEY_ANSI_ESC            '['             // ANSIエスケープシーケンス
+#define KEY_UP                  'A'             // 十字キーの矢印上
+#define KEY_DOWN                'B'             // 十字キーの矢印下
+#define KEY_LEFT                'D'             // 左矢印キー（ESC[D）
+#define KEY_RIGHT               'C'             // 右矢印キー（ESC[C）
+#define KEY_DELETE              0x7F            // Deleteキー
 
 // ANSI ESC(エスケープシーケンス)
 #define ANSI_ESC_CLS            "\033[2J\033[H" // ANSI ESC 画面クリア

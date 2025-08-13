@@ -10,6 +10,7 @@
  */
 
 #include "drv_uasrt.h"
+#include "app_main.h"
 
 void USART1_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 
@@ -17,6 +18,7 @@ static uint8_t s_rx_buf[USART_RX_BUF_SIZE] = {0}; // UASRT受信リングバッ�
 static uint8_t s_rx_data_size = 0;                // 受信データサイズ
 static uint8_t s_rx_buf_write_idx = 0;            // 受信バッファ書き込みインデックス
 static uint8_t s_rx_buf_read_idx = 0;             // 受信バッファ読み出しインデックス
+static bool s_is_usart_irq_proc_end = false;
 
 /**
  * @brief USART 割り込みハンドラ
@@ -24,12 +26,23 @@ static uint8_t s_rx_buf_read_idx = 0;             // 受信バッファ読み出
  */
 void USART1_IRQHandler(void)
 {
-    USART_ClearITPendingBit(USART1, USART_IT_RXNE);
+    uint16_t tmp;
 
-    // 受信データをリングバッファに詰める
-    s_rx_buf[s_rx_buf_write_idx] = (uint8_t)(USART1->DATAR & 0x00FF);
-    s_rx_data_size++;
-    s_rx_buf_write_idx = (s_rx_buf_write_idx + 1) % USART_RX_BUF_SIZE;
+    tmp = USART1->STATR;
+    tmp &= USART_STATR_RXNE;
+
+    while(tmp == USART_STATR_RXNE){
+        // 受信データをリングバッファに詰める
+        s_rx_buf[s_rx_buf_write_idx] = (uint8_t)(USART1->DATAR & 0x00FF);
+        s_rx_data_size = (s_rx_data_size + 1) % USART_RX_BUF_SIZE;
+        s_rx_buf_write_idx = (s_rx_buf_write_idx + 1) % USART_RX_BUF_SIZE;
+
+        tmp = USART1->STATR;
+        tmp &= USART_STATR_RXNE;
+    }
+
+    s_is_usart_irq_proc_end = true;
+    USART_ClearITPendingBit(USART1, USART_IT_RXNE);
 }
 
 /**
@@ -133,7 +146,8 @@ uint8_t hw_usart_get_char(void)
 {
     volatile uint8_t val = 0;
 
-    if (s_rx_data_size > 0) {
+    if((s_is_usart_irq_proc_end != false) && (s_rx_data_size > 0)) {
+        s_is_usart_irq_proc_end = false;
         val = s_rx_buf[s_rx_buf_read_idx];
         s_rx_buf_read_idx = (s_rx_buf_read_idx + 1) % USART_RX_BUF_SIZE;
         s_rx_data_size--;

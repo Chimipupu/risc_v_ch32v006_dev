@@ -80,7 +80,7 @@ static void cmd_system(dbg_cmd_args_t *p_args)
 
     // マイコン
     printf("MCU : %s\n", MCU_NAME);
-    printf("CPU : RISC-V  RV32EC (QingKe V2)\n");
+    printf("CPU : RISC-V RV32EmC (QingKe V2C)\n");
 
     // ROM/RAM
     printf("\n[Mem Info]\n");

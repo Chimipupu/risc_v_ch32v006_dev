@@ -19,7 +19,7 @@
 
 #include <ch32v00x.h>
 
-#define USART_RX_BUF_SIZE       32
+#define USART_RX_BUF_SIZE   128
 
 bool hw_usart_get_byte(uint8_t *p_val);
 void hw_usart_init(void);

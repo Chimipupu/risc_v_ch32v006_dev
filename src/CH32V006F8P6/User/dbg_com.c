@@ -11,10 +11,6 @@
 #include "dbg_com.h"
 #include "ansi_esc.h"
 
-#define KEY_LEFT    'D'    // 左矢印キー（ESC[D）
-#define KEY_RIGHT   'C'    // 右矢印キー（ESC[C）
-#define KEY_DELETE  0x7F   // Deleteキー
-
 // コマンド履歴
 static char s_cmd_history[CMD_HISTORY_MAX][DBG_CMD_MAX_LEN];
 static uint8_t s_history_count = 0;  // コマンド履歴の数
