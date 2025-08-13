@@ -25,6 +25,7 @@ static void dbg_com_init_msg(dbg_cmd_args_t *p_args);
 void cmd_help(dbg_cmd_args_t *p_args);
 static void cmd_cls(dbg_cmd_args_t *p_args);
 static void cmd_system(dbg_cmd_args_t *p_args);
+static void cmd_mem_dump(dbg_cmd_args_t *p_args);
 
 // コマンドテーブル
 const dbg_cmd_info_t g_cmd_tbl[] = {
@@ -32,6 +33,7 @@ const dbg_cmd_info_t g_cmd_tbl[] = {
     {"help",    CMD_HELP,       &cmd_help,        0,    0,    "Command All Show"},
     {"cls",     CMD_CLS,        &cmd_cls,         0,    0,    "Display Clear"},
     {"sys",     CMD_SYSTEM,     &cmd_system,      0,    0,    "Show System Information"},
+    {"memd",    CMD_MEM_DUMP,   &cmd_mem_dump,    2,    2,    "Memory Dump Command. args -> (#address, #length)"},
 };
 
 // コマンドテーブルのコマンド数(const)
@@ -85,4 +87,29 @@ static void cmd_system(dbg_cmd_args_t *p_args)
     // クロック関連
     printf("\n[Clock Info]\n");
     printf("SystemClk:%d\r\n", SystemCoreClock);
+}
+
+static void cmd_mem_dump(dbg_cmd_args_t *p_args)
+{
+    uint32_t addr;
+    uint32_t length;
+
+    if (p_args->argc != 3) {
+        printf("Error: Invalid number of arguments. Usage: mem_dump <address> <length>\n");
+        return;
+    }
+
+    // アドレスを16進数文字列から数値に変換
+    if (sscanf(p_args->p_argv[1], "#%x", &addr) != 1) {
+        printf("Error: Invalid address format. Use hexadecimal with # prefix (e.g., #F0000000)\n");
+        return;
+    }
+
+    // 長さを16進数文字列から数値に変換
+    if (sscanf(p_args->p_argv[2], "#%x", &length) != 1) {
+        printf("Error: Invalid length format. Use hexadecimal with # prefix (e.g., #10)\n");
+        return;
+    }
+
+    show_mem_dump(addr, length);
 }

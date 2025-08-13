@@ -18,6 +18,7 @@
 #include <math.h>
 
 #include "drv_uasrt.h"
+#include "app_main.h"
 
 // #define DEBUG_DBG_COM      // デバッグ用
 
