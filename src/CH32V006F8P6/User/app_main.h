@@ -51,5 +51,7 @@ __attribute__( ( always_inline ) ) static inline void _EI(void)
 void show_mem_dump(uint32_t dump_addr, uint32_t dump_size);
 void i2c_slave_scan(uint8_t i2c_port);
 void proc_exec_time(void (*p_func)(void), const char* p_func_name, ...);
+void app_main_init(void);
+void app_main(void);
 
 #endif // APP_MAIN_H

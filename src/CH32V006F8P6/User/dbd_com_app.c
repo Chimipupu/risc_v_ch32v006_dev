@@ -11,6 +11,7 @@
 
 #include "dbg_com.h"
 #include "ansi_esc.h"
+#include "drv_tim.h"
 
 #define MCU_NAME               "CH32V006F8P6"
 #define PCB_NAME               "DEV PCB"
@@ -70,6 +71,8 @@ static void cmd_cls(dbg_cmd_args_t *p_args)
 
 static void cmd_system(dbg_cmd_args_t *p_args)
 {
+    volatile uint16_t start_time = drv_get_tim_cnt();
+
     printf("\n[System Information]\n");
 
     // 基板
@@ -87,6 +90,9 @@ static void cmd_system(dbg_cmd_args_t *p_args)
     // クロック関連
     printf("\n[Clock Info]\n");
     printf("SystemClk:%d\r\n", SystemCoreClock);
+
+    volatile uint16_t end_time = drv_get_tim_cnt();
+    printf("proc time : %u us\n", end_time - start_time);
 }
 
 static void cmd_mem_dump(dbg_cmd_args_t *p_args)

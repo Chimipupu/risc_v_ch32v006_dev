@@ -9,7 +9,10 @@
  * 
  */
 #include "app_main.h"
+#include "drv_tim.h"
 #include "dbg_com.h"
+
+extern bool g_is_tim_cnt_up;
 
 /**
  * @brief メモリダンプ(16進HEX & Ascii)
@@ -123,17 +126,39 @@ void i2c_slave_scan(uint8_t port)
  */
 void proc_exec_time(void (*func)(void), const char* func_name, ...)
 {
-#if 0
     _DI();
-    volatile uint32_t start_time = time_us_32();
+    volatile uint16_t start_time = drv_get_tim_cnt();
     _EI();
 
     func();
 
     _DI();
-    volatile uint32_t end_time = time_us_32();
+    volatile uint16_t end_time = drv_get_tim_cnt();
     _EI();
 
     printf("proc time %s: %u us\n", func_name, end_time - start_time);
-#endif
+}
+
+/**
+ * @brief アプリメイン初期化
+ * 
+ */
+void app_main_init(void)
+{
+    // デバッグモニタ 初期化
+    dbg_com_init();
+}
+
+/**
+ * @brief アプリメイン
+ * 
+ */
+void app_main(void)
+{
+    if(g_is_tim_cnt_up != false) {
+        g_is_tim_cnt_up = false;
+    }
+
+    // デバッグモニタ メイン
+    dbg_com_main();
 }
