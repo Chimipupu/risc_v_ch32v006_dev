@@ -19,10 +19,15 @@
 
 //#define SYSCLK_FREQ_8MHz_HSI    8000000
 //#define SYSCLK_FREQ_24MHZ_HSI   HSI_VALUE
-#define SYSCLK_FREQ_48MHZ_HSI   48000000
+// #define SYSCLK_FREQ_48MHZ_HSI   48000000
 //#define SYSCLK_FREQ_8MHz_HSE    8000000
-//#define SYSCLK_FREQ_24MHz_HSE   HSE_VALUE
-//#define SYSCLK_FREQ_48MHz_HSE   48000000
+// #define SYSCLK_FREQ_24MHz_HSE   HSE_VALUE
+#define SYSCLK_FREQ_48MHz_HSE   48000000
+
+#if defined(SYSCLK_FREQ_24MHz_HSE) || (SYSCLK_FREQ_48MHz_HSE)
+// "注意! CH32V006の基板の場合は最初にクロック源の外部クロック(HSE)24MHz水晶発振子を使うならR4,R5を0Ωか短絡すること!"
+#warning "Caution! For CH32V006 boards, if you are using an external clock (HSE) 24 MHz crystal oscillator as the clock source, set R4 and R5 to 0 ohm or short-circuit them!"
+#endif
 
 /* Clock Definitions */
 #ifdef SYSCLK_FREQ_8MHz_HSI
@@ -151,11 +156,11 @@ void SystemCoreClockUpdate (void)
  */
 static void SetSysClock(void)
 {
-RCC->PB2PCENR |= RCC_PB2Periph_GPIOD;
-GPIOD->CFGLR&=(~0xF0);
-GPIOD->CFGLR|=0x80;
-GPIOD->BSHR =0x2;
-GPIO_IPD_Unused();
+    RCC->PB2PCENR |= RCC_PB2Periph_GPIOD;
+    GPIOD->CFGLR &=(~0xF0);
+    GPIOD->CFGLR |=0x80;
+    GPIOD->BSHR =0x2;
+    GPIO_IPD_Unused();
 #ifdef SYSCLK_FREQ_8MHz_HSI
     SetSysClockTo_8MHz_HSI();
 #elif defined SYSCLK_FREQ_24MHZ_HSI

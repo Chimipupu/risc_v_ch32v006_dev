@@ -11,7 +11,7 @@ WCH製 RISC-Vマイコン CH32V006の評価F/W個人開発リポジトリ
 
 - マイコン ... 型番:[CH32V006F8P6](https://www.wch-ic.com/downloads/CH32V006DS0_PDF.html)🔗
   - CPU ... [QingKeV2C (32bit RV32EmC RISC-V)]
-  - ROM ... 64KB
+  - ROM ... 62KB
   - RAM ... 8KB
   - Clock ... 48MHz
   - GPIO ... 18本

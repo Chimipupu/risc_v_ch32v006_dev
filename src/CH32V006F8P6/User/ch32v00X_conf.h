@@ -30,8 +30,6 @@
 #include <ch32v00X_wwdg.h>
 #include <ch32v00X_opa.h>
 
-
-
 #endif /* __CH32V00X_CONF_H */
 
 
