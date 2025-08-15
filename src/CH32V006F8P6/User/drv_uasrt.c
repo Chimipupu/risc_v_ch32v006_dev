@@ -18,7 +18,26 @@ static uint8_t s_rx_buf[USART_RX_BUF_SIZE] = {0}; // UASRT受信リングバッ�
 static uint8_t s_rx_data_size = 0;                // 受信データサイズ
 static uint8_t s_rx_buf_write_idx = 0;            // 受信バッファ書き込みインデックス
 static uint8_t s_rx_buf_read_idx = 0;             // 受信バッファ読み出しインデックス
-static bool s_is_usart_irq_proc_end = false;
+bool g_is_usart_irq_proc_end = false;
+
+#if 0
+static bool uart_rx_data_check(void);
+
+static bool uart_rx_data_check(void)
+{
+    bool ret = false;
+    uint16_t tmp;
+
+    tmp = USART1->STATR;
+    tmp &= USART_STATR_RXNE;
+
+    if(tmp == USART_STATR_RXNE) {
+        tmp = true;
+    }
+
+    return ret;
+}
+#endif
 
 /**
  * @brief USART 割り込みハンドラ
@@ -26,22 +45,20 @@ static bool s_is_usart_irq_proc_end = false;
  */
 void USART1_IRQHandler(void)
 {
-    uint16_t tmp;
+    ITStatus tmp;
 
-    tmp = USART1->STATR;
-    tmp &= USART_STATR_RXNE;
+    tmp = USART_GetITStatus(USART1, USART_IT_RXNE);
 
-    while(tmp == USART_STATR_RXNE){
-        // 受信データをリングバッファに詰める
+    // 受信データをリングバッファに詰める
+    while(tmp == SET)
+    {
         s_rx_buf[s_rx_buf_write_idx] = (uint8_t)(USART1->DATAR & 0x00FF);
         s_rx_data_size = (s_rx_data_size + 1) % USART_RX_BUF_SIZE;
         s_rx_buf_write_idx = (s_rx_buf_write_idx + 1) % USART_RX_BUF_SIZE;
-
-        tmp = USART1->STATR;
-        tmp &= USART_STATR_RXNE;
+        tmp = USART_GetITStatus(USART1, USART_IT_RXNE);
     }
 
-    s_is_usart_irq_proc_end = true;
+    g_is_usart_irq_proc_end = true;
     USART_ClearITPendingBit(USART1, USART_IT_RXNE);
 }
 
@@ -130,25 +147,16 @@ void hw_usart_rx_data_print(void)
 }
 
 /**
- * @brief USART受信ラッパー
- * 
- * @param p_val データポインタ
- * @return true 受信データあり
- * @return false 受信データなし
- */
-
-/**
  * @brief get_char()と同じ機能のAPI
  * 
- * @return uint8_t 
+ * @return int32_t UART受信データ
  */
-uint8_t hw_usart_get_char(void)
+int32_t hw_usart_get_char(void)
 {
-    volatile uint8_t val = 0;
+    volatile int32_t val = 0;
 
-    if((s_is_usart_irq_proc_end != false) && (s_rx_data_size > 0)) {
-        s_is_usart_irq_proc_end = false;
-        val = s_rx_buf[s_rx_buf_read_idx];
+    if(s_rx_data_size > 0) {
+        val = (int32_t)s_rx_buf[s_rx_buf_read_idx];
         s_rx_buf_read_idx = (s_rx_buf_read_idx + 1) % USART_RX_BUF_SIZE;
         s_rx_data_size--;
     }

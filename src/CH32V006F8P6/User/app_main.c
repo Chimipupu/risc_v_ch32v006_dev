@@ -13,6 +13,7 @@
 #include "dbg_com.h"
 
 extern bool g_is_tim_cnt_up;
+extern bool g_is_usart_irq_proc_end;
 
 /**
  * @brief メモリダンプ(16進HEX & Ascii)

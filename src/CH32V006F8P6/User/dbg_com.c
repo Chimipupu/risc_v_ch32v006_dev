@@ -15,7 +15,7 @@
 static char s_cmd_history[CMD_HISTORY_MAX][DBG_CMD_MAX_LEN];
 static uint8_t s_history_count = 0;  // コマンド履歴の数
 static int8_t s_history_pos = -1;    // 現在の履歴位置（-1は最新）
-static int32_t s_cursor_pos = 0;  // カーソル位置（0からs_cmd_indexの範囲）
+static int32_t s_cursor_pos = 0;     // カーソル位置（0からs_cmd_indexの範囲）
 
 static void dbg_com_execute_cmd(dbg_cmd_t cmd, dbg_cmd_args_t *p_args);
 
@@ -325,10 +325,16 @@ void dbg_com_main(void)
     } else if (c == KEY_DELETE) {
         // Delete処理
         delete_char_at_cursor();
-    } else if (c == KEY_ESC) { // ESC
+    } else if (c == KEY_ESC) {  // ESC
+        // CH32V006は1byte毎にRXNEをいれてくるでの次のデータまで待ち
+        Delay_Ms(10);
         c = hw_usart_get_char();
+
         if (c == KEY_ANSI_ESC) { // ANSI escape sequence
+            // CH32V006は1byte毎にRXNEをいれてくるでの次のデータまで待ち
+            Delay_Ms(10);
             c = hw_usart_get_char();
+
             if (c == KEY_UP) { // キーボードの上矢印
                 if (s_history_pos < s_history_count - 1) {
                     // 現在の入力バッファをクリア
