@@ -14,8 +14,9 @@
 #include "drv_tim.h"
 
 #define MCU_NAME               "CH32V006F8P6"
-#define PCB_NAME               "DEV PCB"
-#define MCU_FLASH_SIZE         64
+// #define PCB_NAME               "DEV PCB"
+#define PCB_NAME               "CH32V003F4P6-R0-1V1"
+#define MCU_FLASH_SIZE         62
 #define MCU_RAM_SIZE           8
 #define FW_VERSION_MAJOR       0
 #define FW_VERSION_MINOR       0
@@ -27,6 +28,7 @@ void cmd_help(dbg_cmd_args_t *p_args);
 static void cmd_cls(dbg_cmd_args_t *p_args);
 static void cmd_system(dbg_cmd_args_t *p_args);
 static void cmd_mem_dump(dbg_cmd_args_t *p_args);
+static void cmd_reg(dbg_cmd_args_t *p_args);
 
 // コマンドテーブル
 const dbg_cmd_info_t g_cmd_tbl[] = {
@@ -35,6 +37,7 @@ const dbg_cmd_info_t g_cmd_tbl[] = {
     {"cls",     CMD_CLS,        &cmd_cls,         0,    0,    "Display Clear"},
     {"sys",     CMD_SYSTEM,     &cmd_system,      0,    0,    "Show System Information"},
     {"memd",    CMD_MEM_DUMP,   &cmd_mem_dump,    2,    2,    "Memory Dump Command. args -> (#address, #length)"},
+    {"reg",     CMD_REG,        &cmd_reg,         3,    4,    "Register R/W. exp(reg #addr r|w bits #val)"},
 };
 
 // コマンドテーブルのコマンド数(const)
@@ -73,10 +76,10 @@ static void cmd_system(dbg_cmd_args_t *p_args)
 {
     volatile uint32_t start_cnt = (uint32_t)drv_get_tim_cnt();
 
-    printf("\n[System Information]\n");
+    // printf("\n[System Information]\n");
 
     // 基板
-    printf("\n[PCB Info]\nPCB Name : %s\n", PCB_NAME);
+    printf("\n[PCB Info]\nPCB : %s\n", PCB_NAME);
 
     // マイコン
     printf("MCU : %s\n", MCU_NAME);
@@ -119,4 +122,57 @@ static void cmd_mem_dump(dbg_cmd_args_t *p_args)
     }
 
     show_mem_dump(addr, length);
+}
+
+/**
+ * @brief レジスタR/Wコマンド関数
+ * 
+ * @param p_args コマンド引数の構造体ポインタ
+ */
+static void cmd_reg(dbg_cmd_args_t *p_args)
+{
+    uint32_t wval = 0;
+    uint32_t val = 0;
+    uint32_t addr = 0;
+
+    if (p_args->argc != 4 && p_args->argc != 5) {
+        printf("Error: Usage: reg #ADDR r|w BITS [#VAL]\n");
+        printf("  e.g. reg #F000FF00 r 8\n");
+        printf("  e.g. reg #F000FF00 w 32 #FFDC008F\n");
+        return;
+    }
+
+    if (sscanf(p_args->p_argv[1], "#%x", &addr) != 1) {
+        printf("Error: Invalid address format. Use #HEX (e.g. #F000FF00)\n");
+        return;
+    }
+    char rw = p_args->p_argv[2][0];
+    int bits = atoi(p_args->p_argv[3]);
+    if (!(bits == 8 || bits == 16 || bits == 32)) {
+        printf("Error: Bit width must be 8, 16, or 32\n");
+        return;
+    }
+    if (rw == 'r') { // 読み取り
+        if (p_args->argc != 4) {
+            printf("Error: Read usage: reg #ADDR r BITS\n");
+            return;
+        }
+        // app_main.hのマクロを使用
+        if (bits == 8) val = REG_READ_BYTE(0, addr);
+        else if (bits == 16) val = REG_READ_WORD(0, addr);
+        else if (bits == 32) val = REG_READ_DWORD(0, addr);
+        printf("[REG] Read %dbit @ 0x%08X = 0x%08X\n", bits, addr, val);
+    } else if (rw == 'w') { // 書き込み
+        sscanf(p_args->p_argv[4], "#%x", &wval);
+        if (bits == 8) {
+            REG_WRITE_BYTE(0, addr, (uint8_t)wval);
+        } else if (bits == 16) {
+            REG_WRITE_WORD(0, addr, (uint16_t)wval);
+        } else if (bits == 32) {
+            REG_WRITE_DWORD(0, addr, (uint32_t)wval);
+        }
+            printf("[REG] Write %dbit @ 0x%08X = 0x%08X\n", bits, addr, wval);
+    } else {
+            printf("Error: 2nd arg must be 'r' or 'w'\n");
+    }
 }
