@@ -71,7 +71,7 @@ static void cmd_cls(dbg_cmd_args_t *p_args)
 
 static void cmd_system(dbg_cmd_args_t *p_args)
 {
-    volatile uint16_t start_time = drv_get_tim_cnt();
+    volatile uint32_t start_cnt = (uint32_t)drv_get_tim_cnt();
 
     printf("\n[System Information]\n");
 
@@ -89,10 +89,11 @@ static void cmd_system(dbg_cmd_args_t *p_args)
 
     // クロック関連
     printf("\n[Clock Info]\n");
-    printf("SystemClk:%d\r\n", SystemCoreClock);
+    printf("System Clock : %d MHz\r\n", SystemCoreClock / 1000000);
 
-    volatile uint16_t end_time = drv_get_tim_cnt();
-    printf("proc time : %u us\n", end_time - start_time);
+    volatile uint32_t end_cnt = (uint32_t)drv_get_tim_cnt();
+    volatile uint32_t proc_time = get_proc_time(start_cnt, end_cnt);
+    printf("proc time : %u us\n", proc_time);
 }
 
 static void cmd_mem_dump(dbg_cmd_args_t *p_args)

@@ -141,6 +141,26 @@ void proc_exec_time(void (*func)(void), const char* func_name, ...)
 }
 
 /**
+ * @brief 処理時間取得関数(単位:us)
+ * 
+ * @param start_us_cnt 計測開始時の1usタイマーのカウント
+ * @param end_us_cnt 計測終了時の1usタイマーのカウント
+ * @return uint32_t 処理時間 us
+ */
+uint32_t get_proc_time(uint32_t start_us_cnt, uint32_t end_us_cnt)
+{
+    uint32_t proc_time_us;
+
+    if(end_us_cnt < start_us_cnt) {
+        end_us_cnt += 65535;
+    }
+
+    proc_time_us = end_us_cnt - start_us_cnt;
+
+    return proc_time_us;
+}
+
+/**
  * @brief アプリメイン初期化
  * 
  */
