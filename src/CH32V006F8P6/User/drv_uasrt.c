@@ -20,25 +20,6 @@ static uint8_t s_rx_buf_write_idx = 0;            // 受信バッファ書き込
 static uint8_t s_rx_buf_read_idx = 0;             // 受信バッファ読み出しインデックス
 bool g_is_usart_irq_proc_end = false;
 
-#if 0
-static bool uart_rx_data_check(void);
-
-static bool uart_rx_data_check(void)
-{
-    bool ret = false;
-    uint16_t tmp;
-
-    tmp = USART1->STATR;
-    tmp &= USART_STATR_RXNE;
-
-    if(tmp == USART_STATR_RXNE) {
-        tmp = true;
-    }
-
-    return ret;
-}
-#endif
-
 /**
  * @brief USART 割り込みハンドラ
  * 
@@ -63,26 +44,21 @@ void USART1_IRQHandler(void)
 }
 
 /**
- * @brief USART受信ラッパー
+ * @brief get_char()と同じ機能のAPI
  * 
- * @param p_val データポインタ
- * @return true 受信データあり
- * @return false 受信データなし
+ * @return int32_t UART受信データ
  */
-bool hw_usart_get_byte(uint8_t *p_val)
+int32_t hw_usart_get_char(void)
 {
-    bool ret = false;
-    volatile uint8_t val = 0;
+    volatile int32_t val = 0;
 
-    if (s_rx_data_size > 0) {
-        val = s_rx_buf[s_rx_buf_read_idx];
-        *p_val = val;
+    if(s_rx_data_size > 0) {
+        val = (int32_t)s_rx_buf[s_rx_buf_read_idx];
         s_rx_buf_read_idx = (s_rx_buf_read_idx + 1) % USART_RX_BUF_SIZE;
         s_rx_data_size--;
-        ret = true;
     }
 
-    return ret;
+    return val;
 }
 
 void hw_usart_init(void)
@@ -125,41 +101,4 @@ void hw_usart_init(void)
     nvic.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&nvic);
     USART_Cmd(USART1, ENABLE);
-}
-
-/**
- * @brief USART 受信文字列 表示関数
- * 
- */
-void hw_usart_rx_data_print(void)
-{
-    bool ret;
-    uint8_t val;
-    uint16_t tx_val;
-
-    ret = hw_usart_get_byte(&val);
-
-    if(ret != false) {
-        tx_val = (uint16_t)val;
-        USART_SendData(USART1, tx_val);
-        ret = false;
-    }
-}
-
-/**
- * @brief get_char()と同じ機能のAPI
- * 
- * @return int32_t UART受信データ
- */
-int32_t hw_usart_get_char(void)
-{
-    volatile int32_t val = 0;
-
-    if(s_rx_data_size > 0) {
-        val = (int32_t)s_rx_buf[s_rx_buf_read_idx];
-        s_rx_buf_read_idx = (s_rx_buf_read_idx + 1) % USART_RX_BUF_SIZE;
-        s_rx_data_size--;
-    }
-
-    return val;
 }
