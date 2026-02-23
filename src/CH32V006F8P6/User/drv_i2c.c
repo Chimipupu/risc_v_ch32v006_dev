@@ -28,34 +28,34 @@ void I2C1_EV_IRQHandler(void )
 #if (I2C_MODE == HOST_MODE)
     // I2C_IT_SB ... Start bit Flag (Host Mode)
     if( I2C_GetITStatus( I2C1, I2C_IT_SB ) != RESET ) {
-        if(master_sate == 0 ) {
-            master_sate = 1;
-            I2C_Send7bitAddress( I2C1, 0x02, I2C_Direction_Transmitter );
+        if(master_sate == I2C_STATE_START) {
+            master_sate = I2C_STATE_AFTER_START;
+            I2C_Send7bitAddress( I2C1, RTC_RX8900_I2C_SLAVE_ADDR, I2C_Direction_Transmitter );
         } else {
-            master_sate = 4;
-            I2C_Send7bitAddress( I2C1, 0x02, I2C_Direction_Receiver );
+            master_sate = I2C_STATE_AFTER_REPEAT_START;
+            I2C_Send7bitAddress( I2C1, RTC_RX8900_I2C_SLAVE_ADDR, I2C_Direction_Receiver );
         }
     }
 
-    // I2C_IT_ADDR ... Address sent (Master Mode) / Address matched (Slave Mode)
+    // I2C_IT_ADDR ... Address sent (Master Mode)
     else if( I2C_GetITStatus( I2C1, I2C_IT_ADDR ) != RESET ) {
-        if(master_sate == 1) {
-            master_sate = 2;
+        if(master_sate == I2C_STATE_AFTER_START) {
+            master_sate = I2C_STATE_AFTER_WRITE_ADDR;
         }
-        if(master_sate == 4) {
-            master_sate = 5;
+        if(master_sate == I2C_STATE_AFTER_REPEAT_START) {
+            master_sate = I2C_STATE_AFTER_READ_ADDR;
         }
         ((void)I2C_ReadRegister(I2C1, I2C_Register_STAR2));
     }
 
-    // I2C_IT_TXE ... Data Register Empty (送信) / Byte Transfer Finished (受信)
+    // I2C_IT_TXE ... Data Register Empty (送信)
     else if( I2C_GetITStatus( I2C1, I2C_IT_TXE ) != RESET ) {
-        if(master_sate == 2) {
-            if(master_send_len<6) {
+        if(master_sate == I2C_STATE_AFTER_WRITE_ADDR) {
+            if(master_send_len < 6) {
                 // I2C_SendData( I2C1, TxData[master_send_len] );
                 master_send_len++;
             } else {
-                master_sate = 3;
+                master_sate = I2C_STATE_END_OF_SEND_DATA;
                 I2C_GenerateSTART(I2C1, ENABLE);
                 I2C_SendData( I2C1, 0xff ); // dummy byte, to prevent next TxE
             }
@@ -64,7 +64,7 @@ void I2C1_EV_IRQHandler(void )
 
     // I2C_IT_RXNE ... Data Register Not Empty (受信)
     else if( I2C_GetITStatus( I2C1, I2C_IT_RXNE ) != RESET ) {
-        if(master_sate == 5) {
+        if(I2C_STATE_AFTER_READ_ADDR) {
             if(master_recv_len < 6) {
                 // RxData[master_recv_len] = I2C_ReceiveData(I2C1);
                 master_recv_len++;
@@ -72,14 +72,14 @@ void I2C1_EV_IRQHandler(void )
                     I2C_NACKPositionConfig(I2C1,I2C_NACKPosition_Next); // clear ack
                     I2C_GenerateSTOP( I2C1, ENABLE );
                 }
-                if(master_recv_len==6) {
-                    master_sate = 0xff;
+                if(master_recv_len == 6) {
+                    master_sate = I2C_STATE_END;
                 }
             } else {
                 // TODO:
             }
         }
-        }
+    }
 #elif (I2C_MODE == SLAVE_MODE)
     // I2C_IT_ADDR ... Address matched flag (Slave mode)"ENDAD"
     if( I2C_GetITStatus( I2C1, I2C_IT_ADDR ) != RESET ) {
@@ -144,7 +144,7 @@ void I2C1_ER_IRQHandler(void)
 #endif
 }
 //*********************************************************************
-void IIC_Init(u32 bound, u16 address)
+void drc_i2c_Init(u32 bound, u16 address)
 {
     GPIO_InitTypeDef GPIO_InitStructure = {0};
     I2C_InitTypeDef I2C_InitTSturcture  = {0};

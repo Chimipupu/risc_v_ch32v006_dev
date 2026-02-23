@@ -9,9 +9,11 @@
  * 
  */
 #include "app_main.h"
+#include "drv_i2c.h"
 #include "drv_tim.h"
 
-extern bool g_is_tim_cnt_up;
+// -----------------------------------------------------------
+// [DEBUG関連]
 
 #ifdef DEBUG_APP
 volatile uint16_t g_dbg_start_timer_cnt = 0;
@@ -21,151 +23,55 @@ volatile uint16_t g_dbg_end_timer_cnt = 0;
 #ifdef DEBUG_UART_USE
 #include "dbg_com.h"
 extern bool g_is_usart_irq_proc_end;
-
-/**
- * @brief メモリダンプ(16進HEX & Ascii)
- * 
- * @param dump_addr ダンプするメモリの32bitアドレス
- * @param dump_size ダンプするサイズ(Byte)
- */
-void show_mem_dump(uint32_t dump_addr, uint32_t dump_size)
-{
-    printf("\n[Memory Dump '(addr:0x%04X)]\n", dump_addr);
-
-    // ヘッダー行を表示
-    printf("Address  ");
-    for (int i = 0; i < 16; i++)
-    {
-        printf("%02X ", i);
-    }
-    printf("| ASCII\n");
-    printf("-------- ");
-    for (int i = 0; i < 16; i++)
-    {
-        printf("---");
-    }
-    printf("| ------\n");
-
-    // 16バイトずつダンプ
-    for (uint32_t offset = 0; offset < dump_size; offset += 16)
-    {
-        printf("%08X: ", dump_addr + offset);
-
-        // 16バイト分のデータを表示
-        for (int i = 0; i < 16; i++)
-        {
-            if (offset + i < dump_size) {
-                uint8_t data = *((volatile uint8_t*)(dump_addr + offset + i));
-                printf("%02X ", data);
-            } else {
-                printf("   ");
-            }
-        }
-
-        // ASCII表示
-        printf("| ");
-        for (int i = 0; i < 16; i++)
-        {
-            if (offset + i < dump_size) {
-                uint8_t data = *((volatile uint8_t*)(dump_addr + offset + i));
-                // 表示可能なASCII文字のみ表示
-                printf("%c", (data >= 32 && data <= 126) ? data : '.');
-            } else {
-                printf(" ");  // データがない場合は空白を表示
-            }
-        }
-        printf("\n");
-    }
-}
 #endif
 
-#if 0
-/*/**
- * @brief 
- * 
- */
- * 
- * @param port I2Cポート番号 (0 or 1)
- */
-void i2c_slave_scan(uint8_t port)
+// -----------------------------------------------------------
+// [Private]
+
+#define APP_PROC_EXEC    0x00
+#define APP_PROC_END     0x01
+
+extern bool g_is_tim_cnt_up;
+
+typedef uint8_t (*p_func_app_main)(void *p_arg);
+static uint8_t _i2c_proc(void *p_arg);
+static uint8_t _debug_proc(void *p_arg);
+
+p_func_app_main g_app_func_tbl[] = {
+    _i2c_proc,
+    _debug_proc,
+};
+const uint8_t g_app_func_tbl_cnt = sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0]);
+
+static uint8_t s_func_tbl_idx = 0;
+// -----------------------------------------------------------
+// [Static関数]
+
+static uint8_t _i2c_proc(void *p_arg)
 {
-    int32_t ret = 0xFF;
-    uint8_t addr, dummy = 0x00;
-    uint8_t slave_count = 0;
-    uint8_t slave_addr_buf[128] = {0};
+    uint8_t ret = APP_PROC_END;
 
-    memset(&slave_addr_buf[0], 0x00, sizeof(slave_addr_buf));
-    i2c_inst_t *i2c_port = (port == 0) ? I2C_0_PORT : I2C_1_PORT;
-
-    // 7bitのI2Cスレーブアドレス(0x00～0x7F)をスキャン
-    printf("Scanning I2C%d bus...\n", port);
-    printf("       0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\n");
-    for (addr = 0; addr <= 0x7F; addr++)
-    {
-        if ((addr & 0x0F) == 0) {
-            printf("0x%02X: ", addr & 0xF0);
-        }
-
-        ret = i2c_write_blocking(i2c_port, addr, &dummy, 1, false);
-        if (ret >= 0) {
-            printf(" * ");
-            slave_addr_buf[slave_count] = addr;
-            slave_count++;
-        } else {
-            printf(" - ");
-        }
-
-        if ((addr & 0x0F) == 0x0F) {
-            printf("\n");
-        }
+    if(I2C_GetFlagStatus( I2C1, I2C_FLAG_BUSY ) != RESET) {
+        I2C_GenerateSTART(I2C1, ENABLE);
     }
 
-    printf("\nI2C Scan complete! (Slave:%d", slave_count);
-    for (uint8_t i = 0; i < slave_count; i++) {
-        printf(", 0x%02X", slave_addr_buf[i]);
-    }
-    printf(")\n");
+    return ret;
 }
-#endif
 
-#if 0
-/**
- * @brief 関数の実行時間を計測する
- * 
- * @param func 計測対象の関数ポインタ
- * @param func_name 関数名（表示用）
- * @param ... 関数に渡す引数（可変長）
- */
-void proc_exec_time(void (*func)(void), const char* func_name, ...)
+static uint8_t _debug_proc(void *p_arg)
 {
-    volatile uint16_t start_time = drv_get_tim_cnt();
-    func();
-    volatile uint16_t end_time = drv_get_tim_cnt();
+    uint8_t ret = APP_PROC_END;
+
 #ifdef DEBUG_UART_USE
-    printf("proc time %s: %u us\n", func_name, end_time - start_time);
-#endif
+    // デバッグモニタ メイン
+    dbg_com_main();
+#endif //DEBUG_UART_USE
+
+    return ret;
 }
-#endif
 
-/**
- * @brief 処理時間取得関数(単位:us)
- * 
- * @param start_us_cnt 計測開始時の1usタイマーのカウント
- * @param end_us_cnt 計測終了時の1usタイマーのカウント
- * @return uint32_t 処理時間 us
- */
-uint32_t get_proc_time(uint32_t start_us_cnt, uint32_t end_us_cnt)
-{
-    uint32_t proc_time_us;
-
-    if(end_us_cnt < start_us_cnt) {
-        end_us_cnt += 65535;
-    }
-
-    proc_time_us = end_us_cnt - start_us_cnt;
-
-    return proc_time_us;
-}
+// -----------------------------------------------------------
+// [API]
 
 /**
  * @brief アプリメイン初期化
@@ -185,8 +91,10 @@ void app_main_init(void)
  */
 void app_main(void)
 {
+    uint8_t ret;
+
 #ifdef DEBUG_APP
-        g_dbg_start_timer_cnt = drv_get_tim_cnt();
+    // g_dbg_start_timer_cnt = drv_get_tim_cnt();
 #endif // DEBUG_APP
 
     // タイマーがカウントUP ... 65.535ms
@@ -194,15 +102,13 @@ void app_main(void)
         g_is_tim_cnt_up = false;
     }
 
-#ifdef DEBUG_UART_USE
-    // デバッグモニタ メイン
-    dbg_com_main();
-#endif //DEBUG_UART_USE
-
-    // Delay_Ms(1000);
+    // アプリのコールバック関数実行
+    ret = g_app_func_tbl[s_func_tbl_idx](NULL);
+    if(ret == APP_PROC_END) {
+        s_func_tbl_idx = (s_func_tbl_idx + 1) % g_app_func_tbl_cnt;
+    }
 
 #ifdef DEBUG_APP
-    g_dbg_end_timer_cnt = drv_get_tim_cnt();
-    // printf("[DEBUG] Proc time: %u us\r\n", get_proc_time(g_dbg_start_timer_cnt, g_dbg_end_timer_cnt));
+    // g_dbg_end_timer_cnt = drv_get_tim_cnt();
 #endif // DEBUG_APP
 }

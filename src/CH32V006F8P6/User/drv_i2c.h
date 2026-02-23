@@ -18,21 +18,14 @@
 
 #include <ch32v00x.h>
 
-#define HOST_MODE   0
-#define SLAVE_MODE   1
+#define HOST_MODE     0
+#define SLAVE_MODE    1
 
 #define I2C_MODE   HOST_MODE
 //#define I2C_MODE   SLAVE_MODE
 
-/*
- * 0 - start
- * 1 - After sending the start signal
- * 2 - After sending the write address
- * 3 - End of send data
- * 4 - After sending the repeat start signal
- * 5 - After sending the read address
- * 0xff - end
- * */
+#define RTC_RX8900_I2C_SLAVE_ADDR    0x02
+
 typedef enum {
     I2C_STATE_START = 0x00,
 #if (I2C_MODE == HOST_MODE)
@@ -44,5 +37,7 @@ typedef enum {
 #endif
     I2C_STATE_END = 0xFF
 } e_i2c_state;
+
+void drc_i2c_Init(u32 bound, u16 address);
 
 #endif // DRV_I2C_H
