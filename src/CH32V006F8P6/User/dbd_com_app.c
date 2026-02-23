@@ -10,6 +10,8 @@
  */
 
 #include "dbg_com.h"
+
+#ifdef DEBUG_UART_USE
 #include "ansi_esc.h"
 #include "drv_tim.h"
 
@@ -176,3 +178,4 @@ static void cmd_reg(dbg_cmd_args_t *p_args)
             printf("Error: 2nd arg must be 'r' or 'w'\n");
     }
 }
+#endif

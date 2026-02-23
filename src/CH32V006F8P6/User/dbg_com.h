@@ -11,6 +11,9 @@
 #ifndef DBG_COM_H
 #define DBG_COM_H
 
+#include "app_main.h"
+
+#ifdef DEBUG_UART_USE
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -18,7 +21,6 @@
 #include <math.h>
 
 #include "drv_uasrt.h"
-#include "app_main.h"
 
 // #define DEBUG_DBG_COM      // デバッグ用
 
@@ -114,5 +116,5 @@ typedef struct {
 
 void dbg_com_init(void);
 void dbg_com_main(void);
-
+#endif
 #endif // DBG_COM_H

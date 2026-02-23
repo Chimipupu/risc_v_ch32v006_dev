@@ -24,14 +24,16 @@ int main(void)
     Delay_Init();
 
     // タイマー初期化
-    drv_tim_init(65535, 48); // TIM1 周期 @1us、カウントアップ @65.535ms間隔
+    drv_tim_init(65535, 48); // TIM1 @1us周期、カウントアップ @65.535ms
 
+#ifdef DEBUG_UART_USE
     // USRAT初期化 115200 8N1(TX=PD5ピン, RX=PD6ピン)
     hw_usart_init();
 
     printf("[DEBUG] CH32V006F8P6 Develop\r\n");
     printf("SystemClk:%d\r\n",SystemCoreClock);
-    printf( "ChipID:%08x\r\n", DBGMCU_GetCHIPID() );
+    printf("ChipID:%08x\r\n", DBGMCU_GetCHIPID() );
+#endif //DEBUG_UART_USE
 
     // アプリメイン初期化
     app_main_init();

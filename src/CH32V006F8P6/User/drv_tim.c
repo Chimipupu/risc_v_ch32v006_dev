@@ -43,6 +43,9 @@ void drv_tim_init(uint16_t arr, uint16_t psc)
     NVIC_InitTypeDef NVIC_InitStructure = {0};
     TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStructure = {0};
 
+    // -----------------------------------------------------------
+    // TIM1 @1us周期、カウントアップ @65.535ms
+    // -----------------------------------------------------------
     RCC_PB2PeriphClockCmd(RCC_PB2Periph_TIM1, ENABLE);
 
     TIM_TimeBaseInitStructure.TIM_Period = arr;
@@ -51,15 +54,14 @@ void drv_tim_init(uint16_t arr, uint16_t psc)
     TIM_TimeBaseInitStructure.TIM_CounterMode = TIM_CounterMode_Up;
     TIM_TimeBaseInitStructure.TIM_RepetitionCounter = 50;
     TIM_TimeBaseInit(TIM1, &TIM_TimeBaseInitStructure);
+    // -----------------------------------------------------------
 
     TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
-
     NVIC_InitStructure.NVIC_IRQChannel = TIM1_UP_IRQn;
     NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
     NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
     NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&NVIC_InitStructure);
-
     TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);
 
 #if 1

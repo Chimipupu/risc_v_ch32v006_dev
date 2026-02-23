@@ -299,7 +299,7 @@
 					"multiplication_subset_of_the_M_extension": true,
 					"integer_ABI": "ilp32e",
 					"floating_point_ABI": "none",
-					"tuning": "default",
+					"tuning": "size",
 					"code_model": "default",
 					"small_data_limit": 0,
 					"align": "default",

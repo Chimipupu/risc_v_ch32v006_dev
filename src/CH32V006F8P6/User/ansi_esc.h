@@ -11,6 +11,7 @@
 #ifndef ANSI_ESC_H
 #define ANSI_ESC_H
 
+#ifdef DEBUG_UART_USE
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -95,5 +96,5 @@
 // 画面バッファ切替（主/副）
 #define ANSI_ESC_ALT_SCREEN_ON          "\x1b[?1049h"
 #define ANSI_ESC_ALT_SCREEN_OFF         "\x1b[?1049l"
-
+#endif
 #endif // ANSI_ESC_H

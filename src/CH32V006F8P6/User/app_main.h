@@ -14,7 +14,10 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdarg.h>
-#include <math.h>
+// #include <math.h>
+
+// コンパイルスイッチ
+// #define DEBUG_UART_USE // デバッグ用のUARTコンパイルスイッチ(約10KB増える)
 
 // レジスタを8/16/32bitでR/Wするマクロ
 #define REG_READ_BYTE(base, offset)         (*(volatile uint8_t  *)((base) + (offset)))
@@ -49,7 +52,7 @@ __attribute__( ( always_inline ) ) static inline void _EI(void)
 }
 
 void show_mem_dump(uint32_t dump_addr, uint32_t dump_size);
-void i2c_slave_scan(uint8_t i2c_port);
+// void i2c_slave_scan(uint8_t i2c_port);
 void proc_exec_time(void (*p_func)(void), const char* p_func_name, ...);
 uint32_t get_proc_time(uint32_t start_us_cnt, uint32_t end_us_cnt);
 void app_main_init(void);

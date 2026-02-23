@@ -9,6 +9,7 @@
  * 
  */
 #include "dbg_com.h"
+#ifdef DEBUG_UART_USE
 #include "ansi_esc.h"
 
 // コマンド履歴
@@ -376,3 +377,4 @@ void dbg_com_main(void)
         insert_char_at_cursor(c);
     }
 }
+#endif

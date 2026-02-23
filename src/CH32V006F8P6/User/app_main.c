@@ -10,10 +10,13 @@
  */
 #include "app_main.h"
 #include "drv_tim.h"
-#include "dbg_com.h"
 
 extern bool g_is_tim_cnt_up;
 extern bool g_is_usart_irq_proc_end;
+
+#ifdef DEBUG_UART_USE
+
+#include "dbg_com.h"
 
 /**
  * @brief メモリダンプ(16進HEX & Ascii)
@@ -70,15 +73,18 @@ void show_mem_dump(uint32_t dump_addr, uint32_t dump_size)
         printf("\n");
     }
 }
+#endif
 
-/**
- * @brief i2Cスレーブデバイスのスキャン関数
+#if 0
+/*/**
+ * @brief 
+ * 
+ */
  * 
  * @param port I2Cポート番号 (0 or 1)
  */
 void i2c_slave_scan(uint8_t port)
 {
-#if 0
     int32_t ret = 0xFF;
     uint8_t addr, dummy = 0x00;
     uint8_t slave_count = 0;
@@ -115,8 +121,8 @@ void i2c_slave_scan(uint8_t port)
         printf(", 0x%02X", slave_addr_buf[i]);
     }
     printf(")\n");
-#endif
 }
+#endif
 
 /**
  * @brief 関数の実行時間を計測する
@@ -127,17 +133,12 @@ void i2c_slave_scan(uint8_t port)
  */
 void proc_exec_time(void (*func)(void), const char* func_name, ...)
 {
-    _DI();
     volatile uint16_t start_time = drv_get_tim_cnt();
-    _EI();
-
     func();
-
-    _DI();
     volatile uint16_t end_time = drv_get_tim_cnt();
-    _EI();
-
+#ifdef DEBUG_UART_USE
     printf("proc time %s: %u us\n", func_name, end_time - start_time);
+#endif
 }
 
 /**
@@ -166,8 +167,10 @@ uint32_t get_proc_time(uint32_t start_us_cnt, uint32_t end_us_cnt)
  */
 void app_main_init(void)
 {
+#ifdef DEBUG_UART_USE
     // デバッグモニタ 初期化
     dbg_com_init();
+#endif //DEBUG_UART_USE
 }
 
 /**
@@ -176,10 +179,13 @@ void app_main_init(void)
  */
 void app_main(void)
 {
+    // タイマーがカウントUP ... 65.535ms
     if(g_is_tim_cnt_up != false) {
         g_is_tim_cnt_up = false;
     }
 
+#ifdef DEBUG_UART_USE
     // デバッグモニタ メイン
     dbg_com_main();
+#endif //DEBUG_UART_USE
 }
