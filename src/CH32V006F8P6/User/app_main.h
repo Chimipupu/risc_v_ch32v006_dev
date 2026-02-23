@@ -18,6 +18,7 @@
 
 // コンパイルスイッチ
 // #define DEBUG_UART_USE // デバッグ用のUARTコンパイルスイッチ(約10KB増える)
+#define DEBUG_APP
 
 // レジスタを8/16/32bitでR/Wするマクロ
 #define REG_READ_BYTE(base, offset)         (*(volatile uint8_t  *)((base) + (offset)))

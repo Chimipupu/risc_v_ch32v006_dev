@@ -12,11 +12,15 @@
 #include "drv_tim.h"
 
 extern bool g_is_tim_cnt_up;
-extern bool g_is_usart_irq_proc_end;
+
+#ifdef DEBUG_APP
+volatile uint16_t g_dbg_start_timer_cnt = 0;
+volatile uint16_t g_dbg_end_timer_cnt = 0;
+#endif // DEBUG_APP
 
 #ifdef DEBUG_UART_USE
-
 #include "dbg_com.h"
+extern bool g_is_usart_irq_proc_end;
 
 /**
  * @brief メモリダンプ(16進HEX & Ascii)
@@ -124,6 +128,7 @@ void i2c_slave_scan(uint8_t port)
 }
 #endif
 
+#if 0
 /**
  * @brief 関数の実行時間を計測する
  * 
@@ -140,6 +145,7 @@ void proc_exec_time(void (*func)(void), const char* func_name, ...)
     printf("proc time %s: %u us\n", func_name, end_time - start_time);
 #endif
 }
+#endif
 
 /**
  * @brief 処理時間取得関数(単位:us)
@@ -179,6 +185,10 @@ void app_main_init(void)
  */
 void app_main(void)
 {
+#ifdef DEBUG_APP
+        g_dbg_start_timer_cnt = drv_get_tim_cnt();
+#endif // DEBUG_APP
+
     // タイマーがカウントUP ... 65.535ms
     if(g_is_tim_cnt_up != false) {
         g_is_tim_cnt_up = false;
@@ -188,4 +198,8 @@ void app_main(void)
     // デバッグモニタ メイン
     dbg_com_main();
 #endif //DEBUG_UART_USE
+
+#ifdef DEBUG_APP
+        g_dbg_end_timer_cnt = drv_get_tim_cnt();
+#endif // DEBUG_APP
 }

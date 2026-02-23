@@ -21,11 +21,7 @@
 
 inline __attribute__((always_inline)) uint16_t drv_get_tim_cnt(void)
 {
-    uint16_t cnt;
-
-    cnt = TIM_GetCounter(TIM1);
-
-    return cnt;
+    return TIM_GetCounter(TIM1);
 }
 
 void drv_tim_init(uint16_t arr, uint16_t psc);

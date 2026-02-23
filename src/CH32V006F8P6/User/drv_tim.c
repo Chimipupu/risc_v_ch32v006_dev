@@ -24,11 +24,9 @@ void TIM1_UP_IRQHandler(void)
     ITStatus ret;
 
     ret = TIM_GetITStatus(TIM1, TIM_IT_Update);
-
     if(ret == SET) {
         g_is_tim_cnt_up = true;
     }
-
     TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
 }
 
