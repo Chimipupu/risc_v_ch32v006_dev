@@ -7,11 +7,13 @@
 			"toolchain": "RISC-V",
 			"series": "CH32V006",
 			"rtos": "NoneOS",
-			"mcu": "CH32V006F8P6",
+			"mcu": "CH32V006F8P",
 			"description": "Website: https://www.wch.cn/products/CH32V006.html\\nThe CH32V00X series is an industrial-grade general-purpose microcontroller based on the 32-bit RISC-V instruction set and architecture. Using highland barley V2C kernel, RV32EmC instruction set, support level 2 interrupt nesting. This series of products is loaded with a wealth of peripheral interfaces and functional modules. Its internal organizational structure meets low cost and low power embedded application scenarios.",
+			"artifactType": "executable",
 			"link": "WCH-Link",
 			"peripheral_version": "1.4",
-			"calibrateSupport": false
+			"calibrateSupport": false,
+			"calibrateCommand": ""
 		},
 		"linkedFolders": [],
 		"removedResources": [
@@ -285,6 +287,7 @@
 					"show_totals": false,
 					"other_flags": ""
 				},
+				"configVariables": [],
 				"riscvTargetProcessor": {
 					"architecture": "rv32e",
 					"multiply_extension": false,
@@ -304,8 +307,7 @@
 					"other_target_flags": ""
 				},
 				"component_toolchain": "${WCH:Toolchain:GCC12}",
-				"name": "obj",
-				"configVariables": []
+				"name": "obj"
 			}
 		]
 	},
@@ -391,7 +393,7 @@
 			"showDebugOutputTimestamps": true
 		},
 		"reserve": {
-			"PROGRAM_NAME": "obj\\CH32V006F8P6.elf",
+			"PROGRAM_NAME": "obj/CH32V006F8P6.elf",
 			"PROJECT_ATTR": "CH32V006F8P6",
 			"PROJECT_BUILD_CONFIG_AUTO_ATTR": true,
 			"PROJECT_BUILD_CONFIG_ID_ATTR": "",

@@ -1,13 +1,18 @@
-# RISC-Vマイコン CH32V006評価F/W開発
+# RISC-Vマイコン CH32V006 評価F/W開発
 WCH製 RISC-Vマイコン CH32V006の評価F/W個人開発リポジトリ
 
 ## 開発環境
 
+### S/W
+
+- IDE/SDK/コンパイラ
+  - [MounRiver Studio (MRS) V2.2.0](https://www.mounriver.com/download)🔗
+
 ### H/W
 
-- 評価基板
+<!-- - 評価基板
   - `CH32V00xEVT(CH32V003F4P6-R0-1V1)`
-  - ※基板からCH32V003F4P6を剥がしてCH32V006F8P6を実装済み
+  - ※基板からC`H32V003F4P6`を剥がして`CH32V006F8P6`に貼り替え済み -->
 
 - マイコン ... 型番:[CH32V006F8P6](https://www.wch-ic.com/downloads/CH32V006DS0_PDF.html)🔗
   - CPU ... [QingKeV2C (32bit RV32EmC RISC-V)]
@@ -28,28 +33,44 @@ WCH製 RISC-Vマイコン CH32V006の評価F/W個人開発リポジトリ
   - ADC ... 12bit 3Msps SAR x8ch
   - OPA ... x3ch
 
-### S/W
+<div align="center">
+  <img src="/doc/CH32V006_pinout.png">
+</div>
 
-- IDE/SDK/コンパイラ
-  - [MounRiver Studio (MRS) V2.2.0](https://www.mounriver.com/download)🔗
 
-### デバッガ
+#### デバッガ
 
 - [WCH-LinkE Ver1.3](https://akizukidenshi.com/catalog/g/g118065)🔗
 
-### デバッグ
-
-#### SDI
+#### デバッグ()SDI
 
 - SDI ... WCHの1線式デバッグ
 
-- [WCH-LinkE <--> 評価基板]
-  - SWDIO <--> PD1ピン
-  - GND <--> GND
+| WCH-LinkE | CH32V006F8P6 |
+|-|-|
+| SWDIO | PD1|
+| GND | GND |
 
 #### UART
 
-- [WCH-LinkE <--> 評価基板]
-  - RX <--> PD5ピン(TX)
-  - TX <--> PD6ピン(RX)
-  - GND <--> GND
+| WCH-LinkE | CH32V006F8P6 |
+|-|-|
+| TX | PD6 (RX)|
+| RX | PD5 (TX)|
+| GND | GND |
+
+#### I2C
+
+| I2C | CH32V006F8P6 |
+|-|-|
+| SDA | PC1 (SDA)|
+| SCL | PC2 (SCL)|
+
+#### SPI
+
+| SPI | CH32V006F8P6 |
+|-|-|
+| CS   | 任意のGPIO  |
+| SCK  | PC5 (SCK)  |
+| MOSI | PC6 (MOSI) |
+| MISO | PC7 (MISO) |
