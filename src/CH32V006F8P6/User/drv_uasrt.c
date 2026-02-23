@@ -12,6 +12,7 @@
 #include "drv_uasrt.h"
 #include "app_main.h"
 
+#ifdef DEBUG_UART_USE
 void USART1_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 
 static uint8_t s_rx_buf[USART_RX_BUF_SIZE] = {0}; // UASRT受信リングバッファ
@@ -102,3 +103,4 @@ void hw_usart_init(void)
     NVIC_Init(&nvic);
     USART_Cmd(USART1, ENABLE);
 }
+#endif
