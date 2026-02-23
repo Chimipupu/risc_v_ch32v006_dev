@@ -19,10 +19,10 @@
 
 //#define SYSCLK_FREQ_8MHz_HSI    8000000
 //#define SYSCLK_FREQ_24MHZ_HSI   HSI_VALUE
-// #define SYSCLK_FREQ_48MHZ_HSI   48000000
+#define SYSCLK_FREQ_48MHZ_HSI   48000000
 //#define SYSCLK_FREQ_8MHz_HSE    8000000
 // #define SYSCLK_FREQ_24MHz_HSE   HSE_VALUE
-#define SYSCLK_FREQ_48MHz_HSE   48000000
+// #define SYSCLK_FREQ_48MHz_HSE   48000000
 
 #if defined(SYSCLK_FREQ_24MHz_HSE) || (SYSCLK_FREQ_48MHz_HSE)
 // "注意! CH32V006の基板の場合は最初にクロック源の外部クロック(HSE)24MHz水晶発振子を使うならR4,R5を0Ωか短絡すること!"
@@ -43,7 +43,7 @@
 #elif defined SYSCLK_FREQ_48MHz_HSE
   uint32_t SystemCoreClock         = SYSCLK_FREQ_48MHz_HSE;        /* System Clock Frequency (Core Clock) */
 #else
-  uint32_t SystemCoreClock         = HSI_VALUE;
+    uint32_t SystemCoreClock         = HSI_VALUE;
 #endif
 
 __I uint8_t HBPrescTable[16] = {1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8};

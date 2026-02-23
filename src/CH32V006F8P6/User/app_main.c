@@ -199,7 +199,10 @@ void app_main(void)
     dbg_com_main();
 #endif //DEBUG_UART_USE
 
+    // Delay_Ms(1000);
+
 #ifdef DEBUG_APP
-        g_dbg_end_timer_cnt = drv_get_tim_cnt();
+    g_dbg_end_timer_cnt = drv_get_tim_cnt();
+    // printf("[DEBUG] Proc time: %u us\r\n", get_proc_time(g_dbg_start_timer_cnt, g_dbg_end_timer_cnt));
 #endif // DEBUG_APP
 }
