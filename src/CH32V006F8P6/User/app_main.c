@@ -51,7 +51,8 @@ static uint8_t _i2c_proc(void *p_arg)
 {
     uint8_t ret = APP_PROC_END;
 
-    if(I2C_GetFlagStatus( I2C1, I2C_FLAG_BUSY ) != RESET) {
+    // if(I2C_GetFlagStatus( I2C1, I2C_FLAG_BUSY ) != RESET)
+    {
         I2C_GenerateSTART(I2C1, ENABLE);
     }
 

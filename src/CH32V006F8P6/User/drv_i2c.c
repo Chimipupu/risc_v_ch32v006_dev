@@ -121,10 +121,10 @@ void I2C1_EV_IRQHandler(void )
         ((void)(I2C1->STAR1));
     }
 #endif
-    else{
-        printf( "unknown i2c event \n" );
-        printf("sr1 %x \nsr2 %x \n",I2C1->STAR1,I2C1->STAR2);
-    }
+    // else{
+    //     printf( "unknown i2c event \n" );
+    //     printf("sr1 %x \nsr2 %x \n",I2C1->STAR1,I2C1->STAR2);
+    // }
 }
 
 void I2C1_ER_IRQHandler(void)

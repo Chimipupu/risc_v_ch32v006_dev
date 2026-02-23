@@ -24,7 +24,11 @@
 #define I2C_MODE   HOST_MODE
 //#define I2C_MODE   SLAVE_MODE
 
-#define RTC_RX8900_I2C_SLAVE_ADDR    0x02
+#if 1
+#define RTC_RX8900_I2C_SLAVE_ADDR    0x32
+#else
+#define RTC_RX8900_I2C_SLAVE_ADDR    (0x32 << 1)
+#endif
 
 typedef enum {
     I2C_STATE_START = 0x00,

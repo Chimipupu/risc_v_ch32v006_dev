@@ -29,7 +29,6 @@ int main(void)
 
     // I2C初期化
     drc_i2c_Init(400000, RTC_RX8900_I2C_SLAVE_ADDR); // I2C マスター 400KHz
-    // IIdrc_i2c_Init_Init(400000, RTC_RX8900_I2C_SLAVE_ADDR); //  // I2C マスター 400KHz
 
     // UART初期化
 #if (SDI_PRINT == SDI_PR_OPEN)
