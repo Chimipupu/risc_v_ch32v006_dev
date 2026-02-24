@@ -29,6 +29,14 @@ extern bool g_is_usart_irq_proc_end;
 #define APP_PROC_EXEC    0x00
 #define APP_PROC_END     0x01
 
+// アプリメイン用ステートマシーンの各処理ステップ
+typedef enum {
+    STEP_I2C_INIT = 0x00, // 初期化ステップ
+    STEP_I2C_SEND,        // 送信ステップ
+    STEP_I2C_RECV,        // 受信ステップ
+    STEP_I2C_RESULT       // 処理結果ステップ
+} app_i2c_step;
+
 extern bool g_is_tim_cnt_up;
 
 volatile const uint8_t g_dbg_i2c_send_data_buf[2] = {RTC_RX8900_REG_CTRL, 0x01};
@@ -52,27 +60,31 @@ static uint8_t _i2c_proc(void *p_arg)
 {
     uint8_t ret = APP_PROC_EXEC;
     drv_i2c_ret drv_ret;
-    static app_main_step s_step = 0;
+    static app_i2c_step s_step = 0;
 
     switch (s_step)
     {
-        case STEP_INIT:
+        case STEP_I2C_INIT:
+            memset((void *)&g_app_i2c_recv_data_buf[0], 0x00, 16);
+            s_step++;
+            // no break
+
+        case STEP_I2C_SEND:
             drv_ret = drc_i2c_send((uint8_t *)&g_dbg_i2c_send_data_buf[0], 2);
             if(drv_ret == I2C_RET_END) {
-                memset((void *)&g_app_i2c_recv_data_buf[0], 0x00, 16);
                 s_step++;
             }
             break;
 
-        case STEP_EXEC:
+        case STEP_I2C_RECV:
             drv_ret = drc_i2c_recv((uint8_t *)&g_app_i2c_recv_data_buf[0], 2);
             if(drv_ret == I2C_RET_END) {
                 s_step++;
             }
             break;
 
-        case STEP_RESULT:
-            s_step = STEP_INIT;
+        case STEP_I2C_RESULT:
+            s_step = STEP_I2C_INIT;
             ret = APP_PROC_END;
             break;
 

@@ -34,9 +34,9 @@
 
 // アプリメイン用ステートマシーンの各処理ステップ
 typedef enum {
-    STEP_INIT = 0x00, // 初期化ステップ
-    STEP_EXEC,        // 処理実行ステップ
-    STEP_RESULT       // 処理結果ステップ
+    STEP_APP_INIT = 0x00, // 初期化ステップ
+    STEP_APP_EXEC,        // 処理実行ステップ
+    STEP_APP_RESULT       // 処理結果ステップ
 } app_main_step;
 
 // NOP
