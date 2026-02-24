@@ -11,7 +11,7 @@
 #include "app_main.h"
 #include "drv_i2c.h"
 #include "drv_tim.h"
-
+#include "drv_rtc_rx8900.h"
 // -----------------------------------------------------------
 // [DEBUG関連]
 
@@ -31,6 +31,19 @@ extern bool g_is_usart_irq_proc_end;
 #define APP_PROC_EXEC    0x00
 #define APP_PROC_END     0x01
 
+#if (I2C_MODE == HOST_MODE)
+extern volatile e_i2c_state g_i2c_master_sate;
+extern uint8_t g_i2c_send_buf[I2C_SEND_BUF_SIZE];
+extern uint8_t g_i2c_recv_buf[I2C_RECV_BUF_SIZE];
+#else
+extern volatile uint8_t g_i2c_slave_state;
+extern volatile uint16_t g_i2c_slave_recv_len;
+extern volatile uint16_t g_i2c_slave_send_len;
+#endif
+
+volatile uint8_t g_req_i2c_send_data_len; // I2Cで送信したいデータ数
+volatile uint8_t g_req_i2c_recv_data_len; // I2Cで受信したいデータ数
+
 extern bool g_is_tim_cnt_up;
 
 typedef uint8_t (*p_func_app_main)(void *p_arg);
@@ -49,26 +62,45 @@ static uint8_t s_func_tbl_idx = 0;
 
 static uint8_t _i2c_proc(void *p_arg)
 {
-    uint8_t ret = APP_PROC_END;
-
-    // if(I2C_GetFlagStatus( I2C1, I2C_FLAG_BUSY ) != RESET)
-    {
-        I2C_GenerateSTART(I2C1, ENABLE);
+    if (g_i2c_master_sate == I2C_STATE_END || g_i2c_master_sate == I2C_STATE_START) {
+        if (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY) == RESET) {
+            memset(g_i2c_send_buf, 0x00, I2C_SEND_BUF_SIZE);
+            memset(g_i2c_recv_buf, 0x00, I2C_RECV_BUF_SIZE);
+            g_req_i2c_send_data_len = 16;
+            g_req_i2c_recv_data_len = 16;
+            g_i2c_send_buf[0] = RTC_RX8900_REG_SEC         ;
+            g_i2c_send_buf[1] = RTC_RX8900_REG_MIN         ;
+            g_i2c_send_buf[2] = RTC_RX8900_REG_HOUR        ;
+            g_i2c_send_buf[3] = RTC_RX8900_REG_WEEK        ;
+            g_i2c_send_buf[4] = RTC_RX8900_REG_DAY         ;
+            g_i2c_send_buf[5] = RTC_RX8900_REG_MONTH       ;
+            g_i2c_send_buf[6] = RTC_RX8900_REG_YEAR        ;
+            g_i2c_send_buf[7] = RTC_RX8900_REG_RAM         ;
+            g_i2c_send_buf[8] = RTC_RX8900_REG_MIN_ALM     ;
+            g_i2c_send_buf[9] = RTC_RX8900_REG_HOUR_ALM    ;
+            g_i2c_send_buf[10] = RTC_RX8900_REG_WEEK_DAY_ALM;
+            g_i2c_send_buf[11] = RTC_RX8900_REG_TIMER_CNT_0 ;
+            g_i2c_send_buf[12] = RTC_RX8900_REG_TIMER_CNT_1 ;
+            g_i2c_send_buf[13] = RTC_RX8900_REG_EXTENSION   ;
+            g_i2c_send_buf[14] = RTC_RX8900_REG_FLAG        ;
+            g_i2c_send_buf[15] = RTC_RX8900_REG_CTRL        ;
+            I2C_AcknowledgeConfig(I2C1, ENABLE);
+            g_i2c_master_sate = I2C_STATE_START;
+            I2C_GenerateSTART(I2C1, ENABLE);
+        }
     }
 
-    return ret;
+    return APP_PROC_END;
 }
 
 static uint8_t _debug_proc(void *p_arg)
 {
-    uint8_t ret = APP_PROC_END;
-
 #ifdef DEBUG_UART_USE
     // デバッグモニタ メイン
     dbg_com_main();
 #endif //DEBUG_UART_USE
 
-    return ret;
+    return APP_PROC_END;
 }
 
 // -----------------------------------------------------------
@@ -76,7 +108,6 @@ static uint8_t _debug_proc(void *p_arg)
 
 /**
  * @brief アプリメイン初期化
- * 
  */
 void app_main_init(void)
 {
@@ -88,7 +119,6 @@ void app_main_init(void)
 
 /**
  * @brief アプリメイン
- * 
  */
 void app_main(void)
 {

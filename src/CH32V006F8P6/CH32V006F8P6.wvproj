@@ -126,7 +126,8 @@
 							"${project}/Debug",
 							"${project}/Core",
 							"${project}/User",
-							"${project}/Peripheral/inc"
+							"${project}/Peripheral/inc",
+							"${project}/Library/drv_rtc_rx8900"
 						],
 						"include_system_paths": [],
 						"include_files": []

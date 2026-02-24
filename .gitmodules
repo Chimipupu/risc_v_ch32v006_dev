@@ -1,0 +1,3 @@
+[submodule "src/CH32V006F8P6/Library/drv_rtc_rx8900"]
+	path = src/CH32V006F8P6/Library/drv_rtc_rx8900
+	url = https://github.com/Chimipupu/drv_rtc_rx8900.git
