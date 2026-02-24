@@ -24,8 +24,8 @@
 #define I2C_MODE   HOST_MODE
 //#define I2C_MODE   SLAVE_MODE
 
-#define I2C_SEND_BUF_SIZE    16
-#define I2C_RECV_BUF_SIZE    16
+#define I2C_SEND_BUF_SIZE    32
+#define I2C_RECV_BUF_SIZE    32
 
 #if 1
 // NOTE: 8bitアドレスなので左に1bitシフトする
@@ -47,9 +47,33 @@ typedef enum {
     I2C_STATE_END = 0xFF
 } e_i2c_state;
 
-void drc_i2c_Init(u32 bound, u16 address);
+typedef enum {
+    I2C_RET_BUSY = 0,   // Busy
+    I2C_RET_EXEC,       // 処理中
+    I2C_RET_END,        // 処理完了
+    I2C_RET_ERR = 0xFF, // エラー
+} drv_i2c_ret;
 
-extern uint8_t g_i2c_send_buf[16];
-extern uint8_t g_i2c_recv_buf[16];
+//*********************************************************************]
+// [API]
+
+void drc_i2c_Init(uint32_t bound, uint16_t address);
+// ----------------------------------------------------------------------
+/**
+ * @brief I2C 送信API
+ * @param p_send_data_buf 送信データバッファポインタ
+ * @param data_len 送信したいデータバイト数
+ * @return drv_i2c_ret 処理結果
+ */
+drv_i2c_ret drc_i2c_send(uint8_t *p_send_data_buf, uint8_t data_len);
+// ----------------------------------------------------------------------
+/**
+ * @brief I2C 受信API
+ * @param p_recv_data_buf 受信データバッファポインタ
+ * @param data_len 受信したいデータバイト数
+ * @return drv_i2c_ret処理結果
+ */
+drv_i2c_ret drc_i2c_recv(uint8_t *p_recv_data_buf, uint8_t data_len);
+//*********************************************************************
 
 #endif // DRV_I2C_H

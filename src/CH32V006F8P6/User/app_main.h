@@ -3,10 +3,8 @@
  * @author Chimipupu(https://github.com/Chimipupu)
  * @brief アプリメインのヘッダ
  * @version 0.1
- * @date 2025-07-19
- * 
- * @copyright Copyright (c) 2025 Chimipupu All Rights Reserved.
- * 
+ * @date 2026-02-25
+ * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  */
 #ifndef APP_MAIN_H
 #define APP_MAIN_H
@@ -33,6 +31,13 @@
 #define REG_BIT_CLR(reg, bit)               ((reg) &= ~(1UL << (bit))) // レジスタのビットをクリア
 #define REG_BIT_TGL(reg, bit)               ((reg) ^=  (1UL << (bit))) // レジスタのビットをトグル
 #define REG_BIT_CHK(reg, bit)               ((reg) &   (1UL << (bit))) // レジスタのビットチェック
+
+// アプリメイン用ステートマシーンの各処理ステップ
+typedef enum {
+    STEP_INIT = 0x00, // 初期化ステップ
+    STEP_EXEC,        // 処理実行ステップ
+    STEP_RESULT       // 処理結果ステップ
+} app_main_step;
 
 // NOP
 __attribute__( ( always_inline ) ) static inline void NOP(void)

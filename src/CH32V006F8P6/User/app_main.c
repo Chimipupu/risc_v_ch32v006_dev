@@ -3,10 +3,8 @@
  * @author Chimipupu(https://github.com/Chimipupu)
  * @brief アプリメイン
  * @version 0.1
- * @date 2025-06-13
- * 
- * @copyright Copyright (c) 2025 Chimipupu All Rights Reserved.
- * 
+ * @date 2026-02-25
+ * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  */
 #include "app_main.h"
 #include "drv_i2c.h"
@@ -31,20 +29,10 @@ extern bool g_is_usart_irq_proc_end;
 #define APP_PROC_EXEC    0x00
 #define APP_PROC_END     0x01
 
-#if (I2C_MODE == HOST_MODE)
-extern volatile e_i2c_state g_i2c_master_sate;
-extern uint8_t g_i2c_send_buf[I2C_SEND_BUF_SIZE];
-extern uint8_t g_i2c_recv_buf[I2C_RECV_BUF_SIZE];
-#else
-extern volatile uint8_t g_i2c_slave_state;
-extern volatile uint16_t g_i2c_slave_recv_len;
-extern volatile uint16_t g_i2c_slave_send_len;
-#endif
-
-volatile uint8_t g_req_i2c_send_data_len; // I2Cで送信したいデータ数
-volatile uint8_t g_req_i2c_recv_data_len; // I2Cで受信したいデータ数
-
 extern bool g_is_tim_cnt_up;
+
+volatile const uint8_t g_dbg_i2c_send_data_buf[2] = {RTC_RX8900_REG_CTRL, 0x01};
+volatile uint8_t g_app_i2c_recv_data_buf[16] = {0};
 
 typedef uint8_t (*p_func_app_main)(void *p_arg);
 static uint8_t _i2c_proc(void *p_arg);
@@ -62,35 +50,38 @@ static uint8_t s_func_tbl_idx = 0;
 
 static uint8_t _i2c_proc(void *p_arg)
 {
-    if (g_i2c_master_sate == I2C_STATE_END || g_i2c_master_sate == I2C_STATE_START) {
-        if (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY) == RESET) {
-            memset(g_i2c_send_buf, 0x00, I2C_SEND_BUF_SIZE);
-            memset(g_i2c_recv_buf, 0x00, I2C_RECV_BUF_SIZE);
-            g_req_i2c_send_data_len = 16;
-            g_req_i2c_recv_data_len = 16;
-            g_i2c_send_buf[0] = RTC_RX8900_REG_SEC         ;
-            g_i2c_send_buf[1] = RTC_RX8900_REG_MIN         ;
-            g_i2c_send_buf[2] = RTC_RX8900_REG_HOUR        ;
-            g_i2c_send_buf[3] = RTC_RX8900_REG_WEEK        ;
-            g_i2c_send_buf[4] = RTC_RX8900_REG_DAY         ;
-            g_i2c_send_buf[5] = RTC_RX8900_REG_MONTH       ;
-            g_i2c_send_buf[6] = RTC_RX8900_REG_YEAR        ;
-            g_i2c_send_buf[7] = RTC_RX8900_REG_RAM         ;
-            g_i2c_send_buf[8] = RTC_RX8900_REG_MIN_ALM     ;
-            g_i2c_send_buf[9] = RTC_RX8900_REG_HOUR_ALM    ;
-            g_i2c_send_buf[10] = RTC_RX8900_REG_WEEK_DAY_ALM;
-            g_i2c_send_buf[11] = RTC_RX8900_REG_TIMER_CNT_0 ;
-            g_i2c_send_buf[12] = RTC_RX8900_REG_TIMER_CNT_1 ;
-            g_i2c_send_buf[13] = RTC_RX8900_REG_EXTENSION   ;
-            g_i2c_send_buf[14] = RTC_RX8900_REG_FLAG        ;
-            g_i2c_send_buf[15] = RTC_RX8900_REG_CTRL        ;
-            I2C_AcknowledgeConfig(I2C1, ENABLE);
-            g_i2c_master_sate = I2C_STATE_START;
-            I2C_GenerateSTART(I2C1, ENABLE);
-        }
+    uint8_t ret = APP_PROC_EXEC;
+    drv_i2c_ret drv_ret;
+    static app_main_step s_step = 0;
+
+    switch (s_step)
+    {
+        case STEP_INIT:
+            drv_ret = drc_i2c_send((uint8_t *)&g_dbg_i2c_send_data_buf[0], 2);
+            if(drv_ret == I2C_RET_END) {
+                memset((void *)&g_app_i2c_recv_data_buf[0], 0x00, 16);
+                s_step++;
+            }
+            break;
+
+        case STEP_EXEC:
+            drv_ret = drc_i2c_recv((uint8_t *)&g_app_i2c_recv_data_buf[0], 2);
+            if(drv_ret == I2C_RET_END) {
+                s_step++;
+            }
+            break;
+
+        case STEP_RESULT:
+            s_step = STEP_INIT;
+            ret = APP_PROC_END;
+            break;
+
+        default:
+            // NOP
+            break;
     }
 
-    return APP_PROC_END;
+    return ret;
 }
 
 static uint8_t _debug_proc(void *p_arg)

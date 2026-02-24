@@ -10,26 +10,32 @@
  */
 #include "drv_i2c.h"
 
-extern volatile uint8_t g_req_i2c_send_data_len;
-extern volatile uint8_t g_req_i2c_recv_data_len;
-
 #if (I2C_MODE == HOST_MODE)
 volatile e_i2c_state g_i2c_master_sate = I2C_STATE_START;
-volatile uint16_t g_i2c_master_recv_len = 0;
-volatile uint16_t g_i2c_master_send_len = 0;
+volatile uint16_t g_i2c_master_recv_len = 0; // ドライバで送信したデータバイト数
+volatile uint16_t g_i2c_master_send_len = 0; // ドライバで受信したデータバイト数
 #else
 volatile e_i2c_state g_i2c_slave_state = 0;
-volatile uint16_t g_i2c_slave_recv_len = 0;
-volatile uint16_t g_i2c_slave_send_len = 0;
+volatile uint16_t g_i2c_slave_recv_len = 0; // ドライバで送信したデータバイト数
+volatile uint16_t g_i2c_slave_send_len = 0; // ドライバで受信したデータバイト数
 #endif
 
-uint8_t g_i2c_send_buf[I2C_SEND_BUF_SIZE] = {0};
-uint8_t g_i2c_recv_buf[I2C_RECV_BUF_SIZE] = {0};
 
+volatile uint8_t g_i2c_send_buf[I2C_SEND_BUF_SIZE] = {0};
+volatile uint8_t g_i2c_recv_buf[I2C_RECV_BUF_SIZE] = {0};
+volatile uint8_t g_idx_i2c_send_buf = 0;
+volatile uint8_t g_idx_i2c_recv_buf = 0;
+static bool s_is_send_req = false;
+static bool s_is_recv_req = false;
+static bool s_is_send_done = false;
+static bool s_is_recv_done = false;
+volatile uint8_t g_req_i2c_send_data_len; // 呼び元の送信要求データバイト数
+volatile uint8_t g_req_i2c_recv_data_len; // 呼び元の受信要求データバイト数
 
 void I2C1_EV_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 void I2C1_ER_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 
+//*********************************************************************
 void I2C1_EV_IRQHandler(void )
 {
 #if (I2C_MODE == HOST_MODE)
@@ -60,7 +66,7 @@ void I2C1_EV_IRQHandler(void )
         ((void)I2C_ReadRegister(I2C1, I2C_Register_STAR2));
     }
     // -------------------------------------------------------------
-    // TXE (Transmit Data Reg Empty): 送信データレジスタ空
+    // TXE (Transmit Data Reg Empty): 送信データレジスタが空でっせ
     // -------------------------------------------------------------
     else if( I2C_GetITStatus( I2C1, I2C_IT_TXE ) != RESET ) {
         if(g_i2c_master_sate == I2C_STATE_AFTER_WRITE_ADDR) {
@@ -68,6 +74,7 @@ void I2C1_EV_IRQHandler(void )
                 I2C_SendData( I2C1, g_i2c_send_buf[g_i2c_master_send_len] );
                 g_i2c_master_send_len++;
             } else {
+                s_is_send_done = true;
                 g_i2c_master_sate = I2C_STATE_END_OF_SEND_DATA;
                 I2C_ITConfig( I2C1, I2C_IT_BUF, DISABLE );
                 I2C_GenerateSTART(I2C1, ENABLE);
@@ -75,7 +82,7 @@ void I2C1_EV_IRQHandler(void )
         }
     }
     // -------------------------------------------------------------
-    // RXNE (Receive Data Reg Not Empty): 受信データレジスタにデータあり
+    // RXNE (Receive Data Reg Not Empty): 受信データレジスタになんかデータあるで
     // -------------------------------------------------------------
     else if( I2C_GetITStatus( I2C1, I2C_IT_RXNE ) != RESET ) {
         if(g_i2c_master_sate == I2C_STATE_AFTER_READ_ADDR) {
@@ -88,6 +95,7 @@ void I2C1_EV_IRQHandler(void )
                 g_i2c_master_recv_len++;
 
                 if(g_i2c_master_recv_len == g_req_i2c_recv_data_len) {
+                    s_is_recv_done = true;
                     g_i2c_master_sate = I2C_STATE_END;
                     I2C_ITConfig( I2C1, I2C_IT_BUF, DISABLE );
                 }
@@ -113,8 +121,10 @@ void I2C1_ER_IRQHandler(void)
     }
 #endif
 }
-//*********************************************************************
-void drc_i2c_Init(u32 bound, u16 address)
+//*********************************************************************]
+// [API]
+
+void drc_i2c_Init(uint32_t bound, uint16_t address)
 {
     GPIO_InitTypeDef GPIO_InitStructure = {0};
     I2C_InitTypeDef I2C_InitTSturcture  = {0};
@@ -165,10 +175,68 @@ void drc_i2c_Init(u32 bound, u16 address)
     I2C_ITConfig( I2C1, I2C_IT_EVT, ENABLE );
     I2C_ITConfig( I2C1, I2C_IT_ERR, ENABLE );
     // ----------------------------------------------------------------------
-    // バッファ初期化
-    memset(g_i2c_send_buf, 0x00, I2C_SEND_BUF_SIZE);
-    memset(g_i2c_recv_buf, 0x00, I2C_RECV_BUF_SIZE);
-    // ----------------------------------------------------------------------
+}
+
+/**
+ * @brief I2C 送信API
+ * @param p_send_data_buf 送信データバッファポインタ
+ * @param data_len 送信したいデータバイト数
+ * @return drv_i2c_ret 処理結果
+ */
+drv_i2c_ret drc_i2c_send(uint8_t *p_send_data_buf, uint8_t data_len)
+{
+    if((s_is_send_req == true) || (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY) != RESET)) {
+        return I2C_RET_BUSY;
+    }
+
+    if((p_send_data_buf == NULL) || (data_len == 0)) {
+        return I2C_RET_ERR;
+    }
+
+    if(s_is_send_done != true) {
+        memset((void *)&g_i2c_send_buf[0], 0x00, I2C_SEND_BUF_SIZE);
+        memcpy((void *)&g_i2c_send_buf[0], p_send_data_buf, data_len);
+        g_req_i2c_send_data_len = data_len;
+        g_idx_i2c_send_buf = 0;
+        s_is_send_req = true;
+
+        I2C_AcknowledgeConfig(I2C1, ENABLE);
+        g_i2c_master_sate = I2C_STATE_START;
+        I2C_GenerateSTART(I2C1, ENABLE);
+
+        return I2C_RET_EXEC;
+    } else {
+        s_is_send_done = false;
+        return I2C_RET_END;
+    }
+}
+
+/**
+ * @brief I2C 受信API
+ * @param p_recv_data_buf 受信データバッファポインタ
+ * @param data_len 受信したいデータバイト数
+ * @return drv_i2c_ret処理結果
+ */
+drv_i2c_ret drc_i2c_recv(uint8_t *p_recv_data_buf, uint8_t data_len)
+{
+    if((p_recv_data_buf == NULL) || (data_len == 0)) {
+        return I2C_RET_ERR;
+    }
+
+    if(s_is_recv_req == true) {
+        return I2C_RET_BUSY;
+    }
+
+    if(s_is_recv_done != true) {
+        memset((void *)&g_i2c_recv_buf[0], 0x00, I2C_RECV_BUF_SIZE);
+        g_req_i2c_recv_data_len = data_len;
+        g_idx_i2c_recv_buf = 0;
+        s_is_recv_req = true;
+        return I2C_RET_EXEC;
+    } else {
+        s_is_recv_done = false;
+        return I2C_RET_END;
+    }
 }
 
 //*********************************************************************
