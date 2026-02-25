@@ -77,7 +77,7 @@ static uint8_t _i2c_proc(void *p_arg)
             break;
 
         case STEP_I2C_RECV:
-            drv_ret = drc_i2c_recv((uint8_t *)&g_app_i2c_recv_data_buf[0], 2);
+            drv_ret = drc_i2c_recv((uint8_t *)&g_app_i2c_recv_data_buf[0], 1);
             if(drv_ret == I2C_RET_END) {
                 s_step++;
             }

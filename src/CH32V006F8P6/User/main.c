@@ -28,7 +28,7 @@ int main(void)
     drv_tim_init(65535, 48); // TIM1 @1us周期、カウントアップ @65.535ms
 
     // I2C初期化
-    drc_i2c_Init(400000, RTC_RX8900_I2C_SLAVE_ADDR); // I2C マスター 400KHz
+    drc_i2c_Init(400000, 0x32); // I2C マスター 400KHz
 
     // UART初期化
 #if (SDI_PRINT == SDI_PR_OPEN)
