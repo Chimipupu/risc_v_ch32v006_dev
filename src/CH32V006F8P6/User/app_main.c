@@ -58,42 +58,17 @@ static uint8_t s_func_tbl_idx = 0;
 
 static uint8_t _i2c_proc(void *p_arg)
 {
+#if 0
     uint8_t ret = APP_PROC_EXEC;
     drv_i2c_ret drv_ret;
     static app_i2c_step s_step = 0;
 
-    switch (s_step)
-    {
-        case STEP_I2C_INIT:
-            memset((void *)&g_app_i2c_recv_data_buf[0], 0x00, 16);
-            s_step++;
-            // no break
+    memset((void *)&g_app_i2c_recv_data_buf[0], 0x00, 16);
+    drc_i2c_send(0x00, 1);
+    drc_i2c_recv((uint8_t *)&g_app_i2c_recv_data_buf[0], 0x0F);
+#endif
 
-        case STEP_I2C_SEND:
-            drv_ret = drc_i2c_send((uint8_t *)&g_dbg_i2c_send_data_buf[0], 2);
-            if(drv_ret == I2C_RET_END) {
-                s_step++;
-            }
-            break;
-
-        case STEP_I2C_RECV:
-            drv_ret = drc_i2c_recv((uint8_t *)&g_app_i2c_recv_data_buf[0], 1);
-            if(drv_ret == I2C_RET_END) {
-                s_step++;
-            }
-            break;
-
-        case STEP_I2C_RESULT:
-            s_step = STEP_I2C_INIT;
-            ret = APP_PROC_END;
-            break;
-
-        default:
-            // NOP
-            break;
-    }
-
-    return ret;
+    return APP_PROC_END;
 }
 
 static uint8_t _debug_proc(void *p_arg)
