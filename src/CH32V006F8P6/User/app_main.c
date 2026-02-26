@@ -65,7 +65,7 @@ static uint8_t _i2c_proc(void *p_arg)
 
     memset((void *)&g_app_i2c_recv_data_buf[0], 0x00, 16);
     drc_i2c_send(0x00, 1);
-    drc_i2c_recv((uint8_t *)&g_app_i2c_recv_data_buf[0], 0x0F);
+    drc_i2c_recv((uint8_t *)&g_app_i2c_recv_data_buf[0], 0x0F, false);
 #endif
 
     return APP_PROC_END;

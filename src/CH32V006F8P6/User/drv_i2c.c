@@ -109,9 +109,10 @@ drv_i2c_ret drc_i2c_send(uint8_t slave_addr, uint8_t *p_send_data_buf, uint8_t d
  * @param slave_addr 通信相手のスレーブ 7bitアドレス(※左に1ビットシフトする前のアドレス)
  * @param p_recv_data_buf 受信データバッファポインタ
  * @param data_len 受信したいデータバイト数
+ * @param nack_opt 最後のデータ - 1のときにNACKを出すか否か
  * @return drv_i2c_ret処理結果
  */
-drv_i2c_ret drc_i2c_recv(uint8_t slave_addr, uint8_t *p_recv_data_buf, uint8_t data_len)
+drv_i2c_ret drc_i2c_recv(uint8_t slave_addr, uint8_t *p_recv_data_buf, uint8_t data_len, bool nack_opt)
 {
     uint8_t i;
     uint8_t *p_data;
@@ -138,15 +139,17 @@ drv_i2c_ret drc_i2c_recv(uint8_t slave_addr, uint8_t *p_recv_data_buf, uint8_t d
     I2C_Send7bitAddress(I2C1, slave_addr << 1, I2C_Direction_Receiver);
     while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED) != READY);
 
+    // データ受信
     for(i = 0; i < data_len; i++)
     {
         while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED) != READY);
         *p_data = I2C_ReceiveData(I2C1);
         p_data++;
-        // if(i == (data_len - 1)) {
-        //     I2C_AcknowledgeConfig(I2C1, DISABLE); // NACK
-        // } else
-        {
+
+        // 最後のデータ - 1のときにNACKを出すか否か
+        if((nack_opt != false) && (i == (data_len - 1))) {
+            I2C_AcknowledgeConfig(I2C1, DISABLE); // NACK
+        } else {
             I2C_AcknowledgeConfig(I2C1, ENABLE); // ACK
         }
     }

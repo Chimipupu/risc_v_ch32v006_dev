@@ -47,7 +47,7 @@ int main(void)
     {
         memset((uint8_t *)&dbg_rx_data[0], 0x00, 32);
         drc_i2c_send(I2C_ADDR_RTC_DS3231, 0x00, 1);
-        drc_i2c_recv(I2C_ADDR_RTC_DS3231, (uint8_t *)&dbg_rx_data[0], 0x12);
+        drc_i2c_recv(I2C_ADDR_RTC_DS3231, (uint8_t *)&dbg_rx_data[0], 0x12, false);
         Delay_Ms(1000);
     }
 #else
@@ -55,7 +55,7 @@ int main(void)
     volatile const uint8_t dbg_tx_data[] = {RTC_RX8900_REG_CTRL, 0x00, 0x00, 0x00};
     drc_i2c_send((uint8_t *)&dbg_tx_data[0], sizeof(dbg_tx_data));
     drc_i2c_send(0x00, 1);
-    drc_i2c_recv((uint8_t *)&dbg_rx_data[0], 0x0F);
+    drc_i2c_recv((uint8_t *)&dbg_rx_data[0], 0x0F, false);
 #endif
 
 #if 0
