@@ -39,7 +39,7 @@ int main(void)
     drv_tim_init(65535, 48); // TIM1 @1us周期、カウントアップ @65.535ms
 
     // I2C初期化
-    drc_i2c_Init(400000, I2C_ADDR_RTC_DS3231 << 1); // I2C マスター 400KHz
+    drc_i2c_Init(I2C_CLOCK_400_KHZ); // I2C マスター 400KHz
 
 #if 1
     // DS3231の全アドレス0x00~0x12を一括読み出し

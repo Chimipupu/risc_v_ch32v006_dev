@@ -18,20 +18,21 @@
 
 #include <ch32v00x.h>
 
-#define HOST_MODE     0
-#define SLAVE_MODE    1
+#define I2C_HOST_MODE     0
+#define I2C_SLAVE_MODE    1
 
-#define I2C_MODE   HOST_MODE
-//#define I2C_MODE   SLAVE_MODE
+#define I2C_MODE   I2C_HOST_MODE
+//#define I2C_MODE   I2C_SLAVE_MODE
 
-#if 0
-#define I2C_ADDR_E2P_AT24C32    0x50
-#else
+#if (I2C_MODE == I2C_HOST_MODE)
+#define I2C_CLOCK_100_KHZ    100000
+#define I2C_CLOCK_400_KHZ    400000
+#define I2C_CLOCK_1_MHZ      1000000
+
 #define I2C_ADDR_E2P_AT24C32    0x57
-#endif
-
 #define I2C_ADDR_RTC_RX8900     0x32
 #define I2C_ADDR_RTC_DS3231     0x68
+#endif // I2C_HOST_MODE
 
 typedef enum {
     I2C_RET_BUSY = 0,   // Busy
@@ -43,7 +44,11 @@ typedef enum {
 //*********************************************************************]
 // [API]
 
+#if (I2C_MODE == I2C_SLAVE_MODE)
 void drc_i2c_Init(uint32_t bound, uint16_t address);
+#else
+void drc_i2c_Init(uint32_t bound);
+#endif
 // ----------------------------------------------------------------------
 /**
  * @brief I2C 送信API

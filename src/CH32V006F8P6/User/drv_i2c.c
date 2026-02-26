@@ -23,7 +23,11 @@ volatile uint8_t g_idx_i2c_recv_buf = 0;
 //*********************************************************************]
 // [API]
 
+#if (I2C_MODE == I2C_SLAVE_MODE)
 void drc_i2c_Init(uint32_t bound, uint16_t address)
+#else
+void drc_i2c_Init(uint32_t bound)
+#endif
 {
     GPIO_InitTypeDef GPIO_InitStructure = {0};
     I2C_InitTypeDef I2C_InitTSturcture  = {0};
@@ -48,7 +52,14 @@ void drc_i2c_Init(uint32_t bound, uint16_t address)
     I2C_InitTSturcture.I2C_ClockSpeed = bound;
     I2C_InitTSturcture.I2C_Mode = I2C_Mode_I2C;
     I2C_InitTSturcture.I2C_DutyCycle = I2C_DutyCycle_16_9;
+
+    // スレーブモードのときはアドレスを設定、マスターモードのときは0x00固定
+#if (I2C_MODE == I2C_SLAVE_MODE)
     I2C_InitTSturcture.I2C_OwnAddress1 = address;
+#else
+    I2C_InitTSturcture.I2C_OwnAddress1 = 0x00;
+#endif
+
     I2C_InitTSturcture.I2C_Ack = I2C_Ack_Enable;
     I2C_InitTSturcture.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
     I2C_Init( I2C1, &I2C_InitTSturcture );
