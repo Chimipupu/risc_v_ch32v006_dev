@@ -15,7 +15,7 @@
 // #include <math.h>
 
 // コンパイルスイッチ
-// #define DEBUG_UART_USE // NOTE: デバッグ用にUART関連...ROM 約10KB増える
+#define DEBUG_UART_USE // NOTE: デバッグ用にUART関連...ROM 約10KB増える
 #define DEBUG_APP
 
 // レジスタを8/16/32bitでR/Wするマクロ

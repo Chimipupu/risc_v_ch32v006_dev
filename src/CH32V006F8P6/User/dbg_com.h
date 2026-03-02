@@ -13,9 +13,10 @@
 
 #include "app_main.h"
 
+// #define DBG_COM_USE
 // #define DEBUG_DBG_COM      // デバッグ用
 
-#ifdef DEBUG_UART_USE
+#if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>

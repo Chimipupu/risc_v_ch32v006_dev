@@ -79,6 +79,13 @@ static uint8_t _i2c_proc(void *p_arg)
     drv_recv_ret = drc_i2c_recv(I2C_ADDR_RTC_RX8900, (uint8_t *)&dbg_rx_data[0], 0x0F, false);
 #endif
 
+#ifdef DEBUG_UART_USE
+    if((drv_send_ret != I2C_RET_BUSY) && (drv_recv_ret != I2C_RET_BUSY)) {
+        printf("[DEBUG] RTC: %02X:%02X:%02X\r\n", dbg_rx_data[2], dbg_rx_data[1], dbg_rx_data[0]);
+        Delay_Ms(1000);
+    }
+#endif
+
     return APP_PROC_END;
 }
 
@@ -88,7 +95,7 @@ static uint8_t _debug_proc(void *p_arg)
 //     printf("[DEBUG] UART  Master Proc\r\n");
 // #endif
 
-#ifdef DEBUG_UART_USE
+#if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
     // デバッグモニタ メイン
     dbg_com_main();
 #endif //DEBUG_UART_USE
@@ -104,7 +111,7 @@ static uint8_t _debug_proc(void *p_arg)
  */
 void app_main_init(void)
 {
-#ifdef DEBUG_UART_USE
+#if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
     // デバッグモニタ 初期化
     dbg_com_init();
 #endif //DEBUG_UART_USE

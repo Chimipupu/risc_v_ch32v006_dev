@@ -9,7 +9,7 @@
  * 
  */
 #include "dbg_com.h"
-#ifdef DEBUG_UART_USE
+#if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
 #include "ansi_esc.h"
 
 // コマンド履歴

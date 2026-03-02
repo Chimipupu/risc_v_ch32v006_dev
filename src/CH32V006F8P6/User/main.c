@@ -17,10 +17,10 @@
 #include "debug.h"
 
 // My App
+#include "app_main.h"
 #include "drv_tim.h"
 #include "drv_i2c.h"
 #include "drv_uasrt.h"
-#include "app_main.h"
 
 // My Lib
 #include "drv_rtc_rx8900.h"
