@@ -1,5 +1,18 @@
 # RISC-Vマイコン CH32V006 評価F/W開発
+
 WCH製 RISC-Vマイコン CH32V006の評価F/W個人開発リポジトリ
+
+## メモリ使用量
+
+最適化:- `-O0` (無し)、UART:未使用
+
+- ROM 13.92 % (8776 Byte)
+- RAM 8.79 % (720 Byte)
+
+最適化:- `-O0` (無し)、UART:使用
+
+- ROM 19.16 % (12100 Byte)
+- RAM 8.79 % (720 Byte)
 
 ## 開発環境
 
@@ -7,6 +20,8 @@ WCH製 RISC-Vマイコン CH32V006の評価F/W個人開発リポジトリ
 
 - IDE/SDK/コンパイラ
   - [MounRiver Studio (MRS) V2.2.0](https://www.mounriver.com/download)🔗
+- 最適化
+  - `-O0` (無し)
 
 ### H/W
 

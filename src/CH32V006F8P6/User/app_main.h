@@ -14,9 +14,11 @@
 #include <stdarg.h>
 // #include <math.h>
 
-// コンパイルスイッチ
-#define DEBUG_UART_USE // NOTE: デバッグ用にUART関連...ROM 約10KB増える
+// ----------------------------------------------------------------------
+// [コンパイルスイッチ]
+#define DEBUG_UART_USE
 #define DEBUG_APP
+// ----------------------------------------------------------------------
 
 // レジスタを8/16/32bitでR/Wするマクロ
 #define REG_READ_BYTE(base, offset)         (*(volatile uint8_t  *)((base) + (offset)))
@@ -31,6 +33,7 @@
 #define REG_BIT_CLR(reg, bit)               ((reg) &= ~(1UL << (bit))) // レジスタのビットをクリア
 #define REG_BIT_TGL(reg, bit)               ((reg) ^=  (1UL << (bit))) // レジスタのビットをトグル
 #define REG_BIT_CHK(reg, bit)               ((reg) &   (1UL << (bit))) // レジスタのビットチェック
+// ----------------------------------------------------------------------
 
 // アプリメイン用ステートマシーンの各処理ステップ
 typedef enum {
@@ -56,6 +59,8 @@ __attribute__( ( always_inline ) ) static inline void _EI(void)
 {
     __asm__ __volatile__("csrsi mstatus, 0x8");
 }
+
+// ----------------------------------------------------------------------
 
 void app_main_init(void);
 void app_main(void);
