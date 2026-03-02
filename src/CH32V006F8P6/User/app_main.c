@@ -58,15 +58,17 @@ static uint8_t s_func_tbl_idx = 0;
 
 static uint8_t _i2c_proc(void *p_arg)
 {
-#if 0
-    uint8_t ret = APP_PROC_EXEC;
-    drv_i2c_ret drv_ret;
-    static app_i2c_step s_step = 0;
+    volatile uint8_t dbg_rx_data[32] = {0};
 
-    memset((void *)&g_app_i2c_recv_data_buf[0], 0x00, 16);
-    drc_i2c_send(0x00, 1);
-    drc_i2c_recv((uint8_t *)&g_app_i2c_recv_data_buf[0], 0x0F, false);
-#endif
+    // DS3231の全アドレス0x00~0x12を一括読み出し
+    memset((uint8_t *)&dbg_rx_data[0], 0x00, 32);
+    drc_i2c_send(I2C_ADDR_RTC_DS3231, 0x00, 1);
+    drc_i2c_recv(I2C_ADDR_RTC_DS3231, (uint8_t *)&dbg_rx_data[0], 0x12, false);
+
+    // RX8900の全アドレス0x00~0x0Fを一括読み出し
+    memset((uint8_t *)&dbg_rx_data[0], 0x00, 32);
+    drc_i2c_send(I2C_ADDR_RTC_RX8900, 0x00, 1);
+    drc_i2c_recv(I2C_ADDR_RTC_RX8900, (uint8_t *)&dbg_rx_data[0], 0x0F, false);
 
     return APP_PROC_END;
 }

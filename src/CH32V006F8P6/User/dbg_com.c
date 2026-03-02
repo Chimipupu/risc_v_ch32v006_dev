@@ -298,7 +298,7 @@ void dbg_com_main(void)
         s_cursor_pos = 0;
     }
 
-    c = hw_usart_get_char();
+    c = drv_uart_get_char();
 
     // デリミタでCRかLFが来たらコマンドの受付を終わる
     if (c == '\r' || c == '\n') {
@@ -331,13 +331,13 @@ void dbg_com_main(void)
         // CH32V006は1byte毎にRXNEをいれてくるでの次のデータまで待ち
         Delay_Ms(1);
 
-        c = hw_usart_get_char();
+        c = drv_uart_get_char();
         if (c == KEY_ANSI_ESC) { // ANSI escape sequence
 
             // CH32V006は1byte毎にRXNEをいれてくるでの次のデータまで待ち
             Delay_Ms(1);
 
-            c = hw_usart_get_char();
+            c = drv_uart_get_char();
             if (c == KEY_UP) { // キーボードの上矢印
                 if (s_history_pos < s_history_count - 1) {
                     // 現在の入力バッファをクリア

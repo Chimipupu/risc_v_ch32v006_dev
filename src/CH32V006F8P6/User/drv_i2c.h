@@ -30,8 +30,8 @@
 #define I2C_CLOCK_1_MHZ      1000000
 
 #define I2C_ADDR_E2P_AT24C32    0x57
-#define I2C_ADDR_RTC_RX8900     0x32
 #define I2C_ADDR_RTC_DS3231     0x68
+#define I2C_ADDR_RTC_RX8900     0x32
 #endif // I2C_HOST_MODE
 
 typedef enum {

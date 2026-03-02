@@ -79,13 +79,7 @@ drv_i2c_ret drc_i2c_send(uint8_t slave_addr, uint8_t *p_send_data_buf, uint8_t d
     uint8_t i;
     uint8_t *p_data;
 
-#if 1
     while(I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY) != RESET);
-#else
-    if(I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY) != RESET) {
-        return I2C_RET_BUSY;
-    }
-#endif
 
     if((p_send_data_buf == NULL) || (data_len == 0)) {
         return I2C_RET_ERR;
@@ -128,13 +122,7 @@ drv_i2c_ret drc_i2c_recv(uint8_t slave_addr, uint8_t *p_recv_data_buf, uint8_t d
     uint8_t i;
     uint8_t *p_data;
 
-#if 1
     while(I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY) != RESET);
-#else
-    if(I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY) != RESET) {
-        return I2C_RET_BUSY;
-    }
-#endif
 
     if((p_recv_data_buf == NULL) || (data_len == 0)) {
         return I2C_RET_ERR;
