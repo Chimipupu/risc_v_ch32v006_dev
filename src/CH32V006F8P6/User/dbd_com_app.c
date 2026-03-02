@@ -76,8 +76,6 @@ static void cmd_cls(dbg_cmd_args_t *p_args)
 
 static void cmd_system(dbg_cmd_args_t *p_args)
 {
-    volatile uint32_t start_cnt = (uint32_t)drv_get_tim_cnt();
-
     // printf("\n[System Information]\n");
 
     // 基板
@@ -95,10 +93,6 @@ static void cmd_system(dbg_cmd_args_t *p_args)
     // クロック関連
     printf("\n[Clock Info]\n");
     printf("System Clock : %d MHz\r\n", SystemCoreClock / 1000000);
-
-    volatile uint32_t end_cnt = (uint32_t)drv_get_tim_cnt();
-    volatile uint32_t proc_time = get_proc_time(start_cnt, end_cnt);
-    printf("proc time : %u us\n", proc_time);
 }
 
 static void cmd_mem_dump(dbg_cmd_args_t *p_args)
@@ -122,8 +116,6 @@ static void cmd_mem_dump(dbg_cmd_args_t *p_args)
         printf("Error: Invalid length format. Use hexadecimal with # prefix (e.g., #10)\n");
         return;
     }
-
-    show_mem_dump(addr, length);
 }
 
 /**

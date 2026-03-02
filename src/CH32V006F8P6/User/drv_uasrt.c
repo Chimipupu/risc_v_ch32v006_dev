@@ -44,8 +44,7 @@ void USART1_IRQHandler(void)
 }
 
 /**
- * @brief get_char()と同じ機能のAPI
- * 
+ * @brief UART 1文字受信API
  * @return int32_t UART受信データ
  */
 int32_t drv_uart_get_char(void)

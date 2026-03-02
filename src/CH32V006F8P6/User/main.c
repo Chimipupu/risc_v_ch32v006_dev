@@ -45,7 +45,8 @@ int main(void)
     // USRAT初期化 115200 8N1(TX=PD5ピン, RX=PD6ピン)
     drv_uart_init();
 #endif //DEBUG_UART_USE
-#if 0
+
+#if (SDI_PRINT == SDI_PR_OPEN) || defined(DEBUG_UART_USE)
     printf("[DEBUG] CH32V006F8P6 Develop\r\n");
     printf("SystemClk:%d\r\n",SystemCoreClock);
     printf("ChipID:%08x\r\n", DBGMCU_GetCHIPID() );

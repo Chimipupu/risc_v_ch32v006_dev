@@ -59,22 +59,39 @@ static uint8_t s_func_tbl_idx = 0;
 static uint8_t _i2c_proc(void *p_arg)
 {
     volatile uint8_t dbg_rx_data[32] = {0};
+    volatile drv_i2c_ret drv_ret;
 
+// #if (SDI_PRINT == SDI_PR_OPEN) || defined(DEBUG_UART_USE)
+//     printf("[DEBUG] I2C Master Proc\r\n");
+// #endif
+
+#if 1
     // DS3231の全アドレス0x00~0x12を一括読み出し
     memset((uint8_t *)&dbg_rx_data[0], 0x00, 32);
-    drc_i2c_send(I2C_ADDR_RTC_DS3231, 0x00, 1);
+    drv_ret = drc_i2c_send(I2C_ADDR_RTC_DS3231, 0x00, 1);
     drc_i2c_recv(I2C_ADDR_RTC_DS3231, (uint8_t *)&dbg_rx_data[0], 0x12, false);
+#endif
 
+#if 0
     // RX8900の全アドレス0x00~0x0Fを一括読み出し
     memset((uint8_t *)&dbg_rx_data[0], 0x00, 32);
-    drc_i2c_send(I2C_ADDR_RTC_RX8900, 0x00, 1);
-    drc_i2c_recv(I2C_ADDR_RTC_RX8900, (uint8_t *)&dbg_rx_data[0], 0x0F, false);
+    drv_ret = drc_i2c_send(I2C_ADDR_RTC_RX8900, 0x00, 1);
+    if(drv_ret != I2C_RET_BUSY) {
+        drc_i2c_recv(I2C_ADDR_RTC_RX8900, (uint8_t *)&dbg_rx_data[0], 0x0F, false);
+    }
+#endif
+
+
 
     return APP_PROC_END;
 }
 
 static uint8_t _debug_proc(void *p_arg)
 {
+// #if (SDI_PRINT == SDI_PR_OPEN) || defined(DEBUG_UART_USE)
+//     printf("[DEBUG] UART  Master Proc\r\n");
+// #endif
+
 #ifdef DEBUG_UART_USE
     // デバッグモニタ メイン
     dbg_com_main();

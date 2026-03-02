@@ -13,6 +13,8 @@
 
 #include "app_main.h"
 
+// #define DEBUG_DBG_COM      // デバッグ用
+
 #ifdef DEBUG_UART_USE
 #include <stdio.h>
 #include <stdint.h>
@@ -21,8 +23,6 @@
 #include <math.h>
 
 #include "drv_uasrt.h"
-
-// #define DEBUG_DBG_COM      // デバッグ用
 
 // コマンド関連のマクロ
 #define DBG_CMD_MAX_LEN         32 // コマンドの最大長
