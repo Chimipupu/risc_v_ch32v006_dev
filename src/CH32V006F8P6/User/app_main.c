@@ -138,7 +138,7 @@ void app_main_init(void)
     // 96bitのUID読み出し
     util_chip_uid_read((uint32_t *)&g_chip_uid[0]);
 #ifdef DEBUG_UART_USE
-    printf("[DEBUG] Chip UID(96bit): 0x%08X%08X%08X\r\n", g_chip_uid[2], g_chip_uid[1], g_chip_uid[0]);
+    printf("[DEBUG] Chip UID(96bit): 0x%08X 0x%08X 0x%08X\r\n", g_chip_uid[2], g_chip_uid[1], g_chip_uid[0]);
 #endif
 
 #if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)

@@ -19,7 +19,7 @@
 
 #include <ch32v00x.h>
 
-inline __attribute__((always_inline)) uint16_t drv_get_tim_cnt(void)
+__attribute__((always_inline)) static inline uint16_t drv_get_tim_cnt(void)
 {
     return TIM_GetCounter(TIM1);
 }
