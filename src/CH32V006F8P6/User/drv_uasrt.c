@@ -18,7 +18,6 @@ static uint8_t s_rx_buf[USART_RX_BUF_SIZE] = {0}; // UASRT受信リングバッ�
 static uint8_t s_rx_data_size = 0;                // 受信データサイズ
 static uint8_t s_rx_buf_write_idx = 0;            // 受信バッファ書き込みインデックス
 static uint8_t s_rx_buf_read_idx = 0;             // 受信バッファ読み出しインデックス
-bool g_is_usart_irq_proc_end = false;
 
 /**
  * @brief USART 割り込みハンドラ
@@ -39,7 +38,6 @@ void USART1_IRQHandler(void)
         tmp = USART_GetITStatus(USART1, USART_IT_RXNE);
     }
 
-    g_is_usart_irq_proc_end = true;
     USART_ClearITPendingBit(USART1, USART_IT_RXNE);
 }
 

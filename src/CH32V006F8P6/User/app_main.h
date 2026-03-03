@@ -16,23 +16,33 @@
 
 // ----------------------------------------------------------------------
 // [コンパイルスイッチ]
-#define DEBUG_UART_USE
+// #define DEBUG_UART_USE
 #define DEBUG_APP
 // ----------------------------------------------------------------------
+// [マクロ]
 
 // レジスタを8/16/32bitでR/Wするマクロ
-#define REG_READ_BYTE(base, offset)         (*(volatile uint8_t  *)((base) + (offset)))
-#define REG_READ_WORD(base, offset)         (*(volatile uint16_t *)((base) + (offset)))
-#define REG_READ_DWORD(base, offset)        (*(volatile uint32_t *)((base) + (offset)))
-#define REG_WRITE_BYTE(base, offset, val)   (*(volatile uint8_t  *)((base) + (offset)) = (val))
-#define REG_WRITE_WORD(base, offset, val)   (*(volatile uint16_t *)((base) + (offset)) = (val))
-#define REG_WRITE_DWORD(base, offset, val)  (*(volatile uint32_t *)((base) + (offset)) = (val))
+#define REG_READ_BYTE(base, offset)           (*(volatile uint8_t  *)((base) + (offset)))
+#define REG_READ_WORD(base, offset)           (*(volatile uint16_t *)((base) + (offset)))
+#define REG_READ_DWORD(base, offset)          (*(volatile uint32_t *)((base) + (offset)))
+#define REG_WRITE_BYTE(base, offset, val)     (*(volatile uint8_t  *)((base) + (offset)) = (val))
+#define REG_WRITE_WORD(base, offset, val)     (*(volatile uint16_t *)((base) + (offset)) = (val))
+#define REG_WRITE_DWORD(base, offset, val)    (*(volatile uint32_t *)((base) + (offset)) = (val))
 
-// レジスタビット操作
-#define REG_BIT_SET(reg, bit)               ((reg) |=  (1UL << (bit))) // レジスタのビットをセット
-#define REG_BIT_CLR(reg, bit)               ((reg) &= ~(1UL << (bit))) // レジスタのビットをクリア
-#define REG_BIT_TGL(reg, bit)               ((reg) ^=  (1UL << (bit))) // レジスタのビットをトグル
-#define REG_BIT_CHK(reg, bit)               ((reg) &   (1UL << (bit))) // レジスタのビットチェック
+// レジスタビット操作マクロ
+#define REG_BIT_SET(reg, bit)                 ((reg) |=  (1UL << (bit))) // レジスタのビットをセット
+#define REG_BIT_CLR(reg, bit)                 ((reg) &= ~(1UL << (bit))) // レジスタのビットをクリア
+#define REG_BIT_TGL(reg, bit)                 ((reg) ^=  (1UL << (bit))) // レジスタのビットをトグル
+#define REG_BIT_CHK(reg, bit)                 ((reg) &   (1UL << (bit))) // レジスタのビットチェック
+
+// ----------------------------------------------------------------------
+// [define]
+
+#define REG_ADDR_R16_ESIG_FLACAP              0x1FFFF7E0
+#define REG_ADDR_R32_ESIG_UNIID1              0x1FFFF7E8
+#define REG_ADDR_R32_ESIG_UNIID2              0x1FFFF7EC
+#define REG_ADDR_R32_ESIG_UNIID3              0x1FFFF7F0
+
 // ----------------------------------------------------------------------
 
 // アプリメイン用ステートマシーンの各処理ステップ
@@ -62,6 +72,7 @@ __attribute__( ( always_inline ) ) static inline void _EI(void)
 
 // ----------------------------------------------------------------------
 
+void util_chip_uid_read(uint32_t *p_buf);
 void app_main_init(void);
 void app_main(void);
 

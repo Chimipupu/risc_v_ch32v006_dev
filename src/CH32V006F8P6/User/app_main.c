@@ -14,13 +14,12 @@
 // [DEBUG関連]
 
 #ifdef DEBUG_APP
-volatile uint16_t g_dbg_start_timer_cnt = 0;
-volatile uint16_t g_dbg_end_timer_cnt = 0;
+// volatile uint16_t g_dbg_start_timer_cnt = 0;
+// volatile uint16_t g_dbg_end_timer_cnt = 0;
 #endif // DEBUG_APP
 
-#ifdef DEBUG_UART_USE
+#if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
 #include "dbg_com.h"
-extern bool g_is_usart_irq_proc_end;
 #endif
 
 // -----------------------------------------------------------
@@ -41,6 +40,7 @@ extern bool g_is_tim_cnt_up;
 
 volatile const uint8_t g_dbg_i2c_send_data_buf[2] = {RTC_RX8900_REG_CTRL, 0x01};
 volatile uint8_t g_app_i2c_recv_data_buf[16] = {0};
+volatile uint32_t g_chip_uid[3] = {0};
 
 typedef uint8_t (*p_func_app_main)(void *p_arg);
 static uint8_t _i2c_proc(void *p_arg);
@@ -107,10 +107,40 @@ static uint8_t _debug_proc(void *p_arg)
 // [API]
 
 /**
+ * @brief マイコンのユニークID(96bit)読み出し
+ * @param p_buf 96bit分のバッファポインタ(32bit x 3 = 96bit)
+ */
+void util_chip_uid_read(uint32_t *p_buf)
+{
+    uint32_t *p_ptr;
+
+    if(p_buf == NULL) {
+        return;
+    }
+
+    p_ptr = p_buf;
+
+    // UID 0~31 bit
+    *p_ptr = *((uint32_t *) REG_ADDR_R32_ESIG_UNIID1);
+    p_ptr++;
+    // UID 32~63 bit
+    *p_ptr = *((uint32_t *) REG_ADDR_R32_ESIG_UNIID2);
+    p_ptr++;
+    // UID 64~95bit
+    *p_ptr = *((uint32_t *) REG_ADDR_R32_ESIG_UNIID3);
+}
+
+/**
  * @brief アプリメイン初期化
  */
 void app_main_init(void)
 {
+    // 96bitのUID読み出し
+    util_chip_uid_read((uint32_t *)&g_chip_uid[0]);
+#ifdef DEBUG_UART_USE
+    printf("[DEBUG] Chip UID(96bit): 0x%08X%08X%08X\r\n", g_chip_uid[2], g_chip_uid[1], g_chip_uid[0]);
+#endif
+
 #if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
     // デバッグモニタ 初期化
     dbg_com_init();
