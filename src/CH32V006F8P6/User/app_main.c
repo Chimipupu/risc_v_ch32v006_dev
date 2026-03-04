@@ -64,7 +64,7 @@ static uint8_t _i2c_proc(void *p_arg)
     volatile uint32_t tmp_u32;
     volatile uint8_t tx_data = 0;
     volatile uint8_t rtc_read_buf[16] = {0};
-    volatile uint8_t aht20_read_buf[6] = {0};
+    volatile uint8_t aht20_read_buf[8] = {0};
     volatile float aht20_humdity_data;
     volatile float aht20_temp_data;
     volatile drv_i2c_ret drv_send_ret = I2C_RET_END;
@@ -72,28 +72,32 @@ static uint8_t _i2c_proc(void *p_arg)
 
 #if 1
     // [AHT20から温度と湿度を読み出し]
-    memset((uint8_t *)&aht20_read_buf[0], 0x00, 6);
+    memset((uint8_t *)&aht20_read_buf[0], 0x00, 8);
     // AHT20に測定コマンドを送信(0xAC, 0x33, 0x00の順番)
     drv_send_ret = drc_i2c_send(I2C_ADDR_SENSOR_AHT20, (uint8_t *)&g_aht20_cmd[0], 3);
     // AHT20が測定完了するまで80ms以上待つ
     Delay_Ms(100);
+
     // AHT20から6Byte一括読み出し
-    drv_recv_ret = drc_i2c_recv(I2C_ADDR_SENSOR_AHT20, (uint8_t *)&aht20_read_buf[0], 6, false);
+    drv_recv_ret = drc_i2c_recv(I2C_ADDR_SENSOR_AHT20, (uint8_t *)&aht20_read_buf[0], 7, false);
     if(drv_recv_ret == I2C_RET_END) {
-        // 20bit 湿度を取得
-        tmp_u32 = ((uint32_t)aht20_read_buf[0]) << 16;        // 1バイト目 ... 湿度データのBit[19:16]
-        tmp_u32 |= ((uint32_t)aht20_read_buf[1]) << 8;        // 2バイト目 ... 湿度データのBit[15:8]
-        tmp_u32 |= ((aht20_read_buf[2] & 0xF0) >> 4);         // 3バイト目の上位4ビット ... 湿度データのBit[7:4]
-        aht20_humdity_data = ((float)tmp_u32 / 1048576.0f) * 100.0f; // 1048576 = 2^20
-        // 20bit 温度を計算
-        tmp_u32 = ((uint32_t)aht20_read_buf[2] & 0x0F) << 16; // 3バイト目の下位4ビット ... 温度データのBit[19:16]
-        tmp_u32 |= ((uint32_t)aht20_read_buf[3]) << 8;        // 4バイト目 ... 温度データのBit[15:8]
-        tmp_u32 |= ((uint32_t)aht20_read_buf[4]);             // 5バイト目 ... 温度データのBit[7:0]
-        aht20_temp_data = ((float)tmp_u32 / 1048576.0f) * 200.0f - 50.0f; // 1048576 = 2^20
+        // ステータスのBit7が1のBusyでないか?
+        if(REG_BIT_CHK(g_aht20_cmd[0], 7) != 1) {
+            // 20bit 湿度を取得
+            tmp_u32 = ((uint32_t)aht20_read_buf[1]) << 8;         // 1バイト目 ... 湿度データのBit[19:16]
+            tmp_u32 |= ((uint32_t)aht20_read_buf[2]) << 4;        // 2バイト目 ... 湿度データのBit[15:8]
+            tmp_u32 |= ((aht20_read_buf[3] & 0xF0) >> 4);         // 3バイト目の上位4ビット ... 湿度データのBit[7:4]
+            aht20_humdity_data = ((float)tmp_u32 / 1048576.0f) * 100.0f; // 1048576 = 2^20
+            // 20bit 温度を取得
+            tmp_u32 = ((uint32_t)aht20_read_buf[3] & 0x0F) << 8; // 3バイト目の下位4ビット ... 温度データのBit[19:16]
+            tmp_u32 |= ((uint32_t)aht20_read_buf[4]) << 8;        // 4バイト目 ... 温度データのBit[15:8]
+            tmp_u32 |= ((uint32_t)aht20_read_buf[5]);             // 5バイト目 ... 温度データのBit[7:0]
+            aht20_temp_data = ((float)tmp_u32 / 1048576.0f) * 200.0f - 50.0f; // 1048576 = 2^20
+        }
     }
     #ifdef DEBUG_UART_USE
-        // 温度と湿度の整数部分だけpintf()
-        printf("[DEBUG] AHT20: Temp = %d C, Humdity = %d %%\r\n", (int)aht20_temp_data, (int)aht20_humdity_data);
+        // floatの温度と湿度の整数部分だけpintf()
+        printf("[DEBUG] AHT20: Temp = %d C, Humdity = %d %%\r\n", (uint32_t)aht20_temp_data, (uint32_t)aht20_humdity_data);
     #endif
 #endif
 
