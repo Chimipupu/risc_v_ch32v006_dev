@@ -77,22 +77,22 @@ static uint8_t _i2c_proc(void *p_arg)
     drv_send_ret = drc_i2c_send(I2C_ADDR_SENSOR_AHT20, (uint8_t *)&g_aht20_cmd[0], 3);
     // AHT20が測定完了するまで80ms以上待つ
     Delay_Ms(100);
-
     // AHT20から6Byte一括読み出し
-    drv_recv_ret = drc_i2c_recv(I2C_ADDR_SENSOR_AHT20, (uint8_t *)&aht20_read_buf[0], 7, false);
+    drv_recv_ret = drc_i2c_recv(I2C_ADDR_SENSOR_AHT20, (uint8_t *)&aht20_read_buf[0], 6, false);
     if(drv_recv_ret == I2C_RET_END) {
         // ステータスのBit7が1のBusyでないか?
-        if(REG_BIT_CHK(g_aht20_cmd[0], 7) != 1) {
+        if(REG_BIT_CHK(aht20_read_buf[0], 7) == 0) {
             // 20bit 湿度を取得
-            tmp_u32 = ((uint32_t)aht20_read_buf[1]) << 8;         // 1バイト目 ... 湿度データのBit[19:16]
-            tmp_u32 |= ((uint32_t)aht20_read_buf[2]) << 4;        // 2バイト目 ... 湿度データのBit[15:8]
-            tmp_u32 |= ((aht20_read_buf[3] & 0xF0) >> 4);         // 3バイト目の上位4ビット ... 湿度データのBit[7:4]
-            aht20_humdity_data = ((float)tmp_u32 / 1048576.0f) * 100.0f; // 1048576 = 2^20
+            tmp_u32 = ((uint32_t)aht20_read_buf[1]) << 12;        // 湿度のBit[19:12]
+            tmp_u32 |= ((uint32_t)aht20_read_buf[2]) << 4;        // 湿度のBit[11:4]
+            tmp_u32 |= (aht20_read_buf[3] >> 4);                  // 湿度のBit[3:0]
+            aht20_humdity_data = ((float)tmp_u32 / 1048576.0f) * 100.0f;
+
             // 20bit 温度を取得
-            tmp_u32 = ((uint32_t)aht20_read_buf[3] & 0x0F) << 8; // 3バイト目の下位4ビット ... 温度データのBit[19:16]
-            tmp_u32 |= ((uint32_t)aht20_read_buf[4]) << 8;        // 4バイト目 ... 温度データのBit[15:8]
-            tmp_u32 |= ((uint32_t)aht20_read_buf[5]);             // 5バイト目 ... 温度データのBit[7:0]
-            aht20_temp_data = ((float)tmp_u32 / 1048576.0f) * 200.0f - 50.0f; // 1048576 = 2^20
+            tmp_u32 = ((uint32_t)(aht20_read_buf[3] & 0x0F)) << 16; // 温度のBit[19:16]
+            tmp_u32 |= ((uint32_t)aht20_read_buf[4]) << 8;          // 温度のBit[15:8]
+            tmp_u32 |= ((uint32_t)aht20_read_buf[5]);               // 温度のBit[7:0]
+            aht20_temp_data = ((float)tmp_u32 / 1048576.0f) * 200.0f - 50.0f;
         }
     }
     #ifdef DEBUG_UART_USE
