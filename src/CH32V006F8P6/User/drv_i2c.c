@@ -5,7 +5,7 @@
  * @version 0.1
  * @date 2026-02-23
  * 
- * @copyright Copyright (c) 2025 Chimipupu All Rights Reserved.
+ * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  * 
  */
 #include "drv_i2c.h"

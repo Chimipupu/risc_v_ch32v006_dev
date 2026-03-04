@@ -46,6 +46,7 @@ typedef uint8_t (*p_func_app_main)(void *p_arg);
 static uint8_t _i2c_proc(void *p_arg);
 static uint8_t _debug_proc(void *p_arg);
 
+// アプリコールバック関数テーブル
 p_func_app_main g_app_func_tbl[] = {
     _i2c_proc,
     _debug_proc,
@@ -55,33 +56,61 @@ const uint8_t g_app_func_tbl_cnt = sizeof(g_app_func_tbl) / sizeof(g_app_func_tb
 static uint8_t s_func_tbl_idx = 0;
 // -----------------------------------------------------------
 // [Static関数]
+volatile const uint8_t g_aht20_cmd[3] = {0xAC, 0x33, 0x00};
 
 static uint8_t _i2c_proc(void *p_arg)
 {
-    volatile uint8_t dbg_rx_data[32] = {0};
+    volatile uint8_t tmp_u8;
+    volatile uint32_t tmp_u32;
     volatile uint8_t tx_data = 0;
+    volatile uint8_t rtc_read_buf[16] = {0};
+    volatile uint8_t aht20_read_buf[6] = {0};
+    volatile float aht20_humdity_data;
+    volatile float aht20_temp_data;
     volatile drv_i2c_ret drv_send_ret = I2C_RET_END;
     volatile drv_i2c_ret drv_recv_ret = I2C_RET_END;
 
-// #if (SDI_PRINT == SDI_PR_OPEN) || defined(DEBUG_UART_USE)
-//     printf("[DEBUG] I2C Master Proc\r\n");
-// #endif
-
 #if 1
-    // DS3231の全アドレス0x00~0x12を一括読み出し
-    memset((uint8_t *)&dbg_rx_data[0], 0x00, 32);
+    // [AHT20から温度と湿度を読み出し]
+    memset((uint8_t *)&aht20_read_buf[0], 0x00, 6);
+    // AHT20に測定コマンドを送信(0xAC, 0x33, 0x00の順番)
+    drv_send_ret = drc_i2c_send(I2C_ADDR_SENSOR_AHT20, (uint8_t *)&g_aht20_cmd[0], 3);
+    // AHT20が測定完了するまで80ms以上待つ
+    Delay_Ms(100);
+    // AHT20から6Byte一括読み出し
+    drv_recv_ret = drc_i2c_recv(I2C_ADDR_SENSOR_AHT20, (uint8_t *)&aht20_read_buf[0], 6, false);
+    if(drv_recv_ret == I2C_RET_END) {
+        // 20bit 湿度を取得
+        tmp_u32 = ((uint32_t)aht20_read_buf[0]) << 16;        // 1バイト目 ... 湿度データのBit[19:16]
+        tmp_u32 |= ((uint32_t)aht20_read_buf[1]) << 8;        // 2バイト目 ... 湿度データのBit[15:8]
+        tmp_u32 |= ((aht20_read_buf[2] & 0xF0) >> 4);         // 3バイト目の上位4ビット ... 湿度データのBit[7:4]
+        aht20_humdity_data = ((float)tmp_u32 / 1048576.0f) * 100.0f; // 1048576 = 2^20
+        // 20bit 温度を計算
+        tmp_u32 = ((uint32_t)aht20_read_buf[2] & 0x0F) << 16; // 3バイト目の下位4ビット ... 温度データのBit[19:16]
+        tmp_u32 |= ((uint32_t)aht20_read_buf[3]) << 8;        // 4バイト目 ... 温度データのBit[15:8]
+        tmp_u32 |= ((uint32_t)aht20_read_buf[4]);             // 5バイト目 ... 温度データのBit[7:0]
+        aht20_temp_data = ((float)tmp_u32 / 1048576.0f) * 200.0f - 50.0f; // 1048576 = 2^20
+    }
+    #ifdef DEBUG_UART_USE
+        // 温度と湿度の整数部分だけpintf()
+        printf("[DEBUG] AHT20: Temp = %d C, Humdity = %d %%\r\n", (int)aht20_temp_data, (int)aht20_humdity_data);
+    #endif
+#endif
+
+    memset((uint8_t *)&rtc_read_buf[0], 0x00, 16);
+#if 1
+    // [DS3231の全アドレス0x00~0x12を一括読み出し]
     drv_send_ret = drc_i2c_send(I2C_ADDR_RTC_DS3231, (uint8_t *)&tx_data, 1);
-    drv_recv_ret = drc_i2c_recv(I2C_ADDR_RTC_DS3231, (uint8_t *)&dbg_rx_data[0], 0x12, false);
+    drv_recv_ret = drc_i2c_recv(I2C_ADDR_RTC_DS3231, (uint8_t *)&rtc_read_buf[0], 0x12, false);
 #else
-    // RX8900の全アドレス0x00~0x0Fを一括読み出し
-    memset((uint8_t *)&dbg_rx_data[0], 0x00, 32);
+    // [RX8900の全アドレス0x00~0x0Fを一括読み出し]
     drv_send_ret = drc_i2c_send(I2C_ADDR_RTC_RX8900, (uint8_t *)&tx_data, 1);
-    drv_recv_ret = drc_i2c_recv(I2C_ADDR_RTC_RX8900, (uint8_t *)&dbg_rx_data[0], 0x0F, false);
+    drv_recv_ret = drc_i2c_recv(I2C_ADDR_RTC_RX8900, (uint8_t *)&rtc_read_buf[0], 0x0F, false);
 #endif
 
 #ifdef DEBUG_UART_USE
     if((drv_send_ret != I2C_RET_BUSY) && (drv_recv_ret != I2C_RET_BUSY)) {
-        printf("[DEBUG] RTC: %02X:%02X:%02X\r\n", dbg_rx_data[2], dbg_rx_data[1], dbg_rx_data[0]);
+        printf("[DEBUG] RTC: %02X:%02X:%02X\r\n", rtc_read_buf[2], rtc_read_buf[1], rtc_read_buf[0]);
         Delay_Ms(1000);
     }
 #endif
@@ -91,10 +120,6 @@ static uint8_t _i2c_proc(void *p_arg)
 
 static uint8_t _debug_proc(void *p_arg)
 {
-// #if (SDI_PRINT == SDI_PR_OPEN) || defined(DEBUG_UART_USE)
-//     printf("[DEBUG] UART  Master Proc\r\n");
-// #endif
-
 #if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
     // デバッグモニタ メイン
     dbg_com_main();

@@ -5,7 +5,7 @@
  * @version 0.1
  * @date 2026-02-23
  * 
- * @copyright Copyright (c) 2025 Chimipupu All Rights Reserved.
+ * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  * 
  */
 #ifndef DRV_I2C_H
@@ -18,6 +18,7 @@
 
 #include <ch32v00x.h>
 
+// -----------------------------------------------------------
 #define I2C_HOST_MODE     0
 #define I2C_SLAVE_MODE    1
 
@@ -25,15 +26,19 @@
 //#define I2C_MODE   I2C_SLAVE_MODE
 
 #if (I2C_MODE == I2C_HOST_MODE)
-#define I2C_CLOCK_100_KHZ    100000
-#define I2C_CLOCK_400_KHZ    400000
-#define I2C_CLOCK_1_MHZ      1000000
+// [I2Cクロック]
+#define I2C_CLOCK_100_KHZ             100000
+#define I2C_CLOCK_400_KHZ             400000
+#define I2C_CLOCK_1_MHZ               1000000
 
-#define I2C_ADDR_E2P_AT24C32    0x57
-#define I2C_ADDR_RTC_DS3231     0x68
-#define I2C_ADDR_RTC_RX8900     0x32
+// [I2Cスレーブアドレス]
+#define I2C_ADDR_RTC_RX8900           0x32 // RTC RX8900 I2Cスレーブアドレス
+#define I2C_ADDR_SENSOR_AHT20         0x38 // AHT20 湿温度センサ I2Cスレーブアドレス
+#define I2C_ADDR_E2P_AT24C32          0x57 // EEPROM AT24C32 I2Cスレーブアドレス
+#define I2C_ADDR_RTC_DS3231           0x68 // RTC DS3231 I2Cスレーブアドレス
 #endif // I2C_HOST_MODE
 
+// -----------------------------------------------------------
 typedef enum {
     I2C_RET_BUSY = 0,   // Busy
     I2C_RET_EXEC,       // 処理中

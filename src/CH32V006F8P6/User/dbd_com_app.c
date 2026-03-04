@@ -5,7 +5,7 @@
  * @version 0.1
  * @date 2025-08-02
  * 
- * @copyright Copyright (c) 2025 Chimipupu All Rights Reserved.
+ * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  * 
  */
 
@@ -51,7 +51,7 @@ static void dbg_com_init_msg(dbg_cmd_args_t *p_args)
                                                         FW_VERSION_MAJOR,
                                                         FW_VERSION_MINOR,
                                                         FW_VERSION_REVISION);
-    printf("Copyright (c) 2025 Chimipupu All Rights Reserved.\n");
+    printf("Copyright (c) 2026 Chimipupu All Rights Reserved.\n");
     printf("Type 'help' for available commands\n");
 #ifdef _WDT_ENABLE_
     printf("[INFO] Wanning! WDT Enabled: %dms\n", _WDT_OVF_TIME_MS_);
