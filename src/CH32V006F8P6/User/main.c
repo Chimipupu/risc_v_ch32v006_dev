@@ -34,6 +34,7 @@ int main(void)
     // [タイマー初期化]
 #if 1
     // TIM1 @1ms周期、カウントアップ @65.535秒
+    // 1ms周期 = (48MHz / div) / psc = (48MHz / 1) / 48000 = 1ms
     drv_tim_init(65535, 48000, TIM_CKD_DIV1);
 #else
     // TIM1 @1us周期、カウントアップ @65.535ms

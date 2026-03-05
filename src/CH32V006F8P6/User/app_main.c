@@ -43,14 +43,16 @@ volatile uint32_t g_chip_uid[3] = {0};
 typedef uint8_t (*p_func_app_main)(void *p_arg);
 static uint8_t _i2c_proc(void *p_arg);
 static uint8_t _debug_proc(void *p_arg);
-
+typedef struct {
+    p_func_app_main pfunc; // コールバック関数ポインタ
+    uint16_t interval_ms;  // コールバック関数の実行周期(ms)
+} app_main_func_tbl_t;
 // アプリコールバック関数テーブル
-p_func_app_main g_app_func_tbl[] = {
-    _i2c_proc,
-    // _debug_proc,
+app_main_func_tbl_t g_app_func_tbl[] = {
+    {_i2c_proc,   1000},
+    {_debug_proc, 3000},
 };
 const uint8_t g_app_func_tbl_cnt = sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0]);
-static uint8_t s_func_tbl_idx = 0;
 
 volatile const uint8_t g_aht20_cmd[3] = {0xAC, 0x33, 0x00};
 volatile const uint8_t g_bmp280_reset_data[2] = {BMP280_REG_ADDR_RESET, BMP280_RESET_REG_EXP_VAL};
@@ -164,15 +166,18 @@ static void rtc_time_read(void)
 
 static uint8_t _i2c_proc(void *p_arg)
 {
+    printf("[DEBUG] I2C Proc\r\n");
+
     rtc_time_read();
-    Delay_Ms(8000);
     env_sensor_read();
-    Delay_Ms(1000);
+
     return APP_PROC_END;
 }
 
 static uint8_t _debug_proc(void *p_arg)
 {
+    printf("[DEBUG] Debug Proc\r\n");
+
 #if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
     // デバッグモニタ メイン
     dbg_com_main();
@@ -233,19 +238,26 @@ void app_main_init(void)
  */
 void app_main(void)
 {
-    uint8_t ret;
+    uint8_t cbK_ret;
+    static uint16_t s_tim_cnt_ms = 0;
+    static uint8_t s_func_tbl_idx = 0;
+    static bool s_is_cbk_interval_time = false;
 
-#ifdef DEBUG_APP
-    // g_dbg_start_timer_cnt = drv_get_tim_cnt();
-#endif // DEBUG_APP
-
-    // アプリのコールバック関数実行
-    ret = g_app_func_tbl[s_func_tbl_idx](NULL);
-    if(ret == APP_PROC_END) {
-        s_func_tbl_idx = (s_func_tbl_idx + 1) % g_app_func_tbl_cnt;
+    if(s_is_cbk_interval_time != true) {
+        s_tim_cnt_ms += drv_get_tim_cnt();
+        if(s_tim_cnt_ms == g_app_func_tbl[s_func_tbl_idx].interval_ms) {
+            s_is_cbk_interval_time = true;
+            s_tim_cnt_ms = 0;
+        }
+    } else {
+        cbK_ret = g_app_func_tbl[s_func_tbl_idx].pfunc(NULL);
+        if(cbK_ret == APP_PROC_END) {
+            s_is_cbk_interval_time = false;
+            if(s_func_tbl_idx == (g_app_func_tbl_cnt - 1)) {
+                s_func_tbl_idx = 0;
+            } else {
+                s_func_tbl_idx++;
+            }
+        }
     }
-
-#ifdef DEBUG_APP
-    // g_dbg_end_timer_cnt = drv_get_tim_cnt();
-#endif // DEBUG_APP
 }
