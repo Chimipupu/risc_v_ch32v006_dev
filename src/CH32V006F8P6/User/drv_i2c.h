@@ -36,6 +36,28 @@
 #define I2C_ADDR_SENSOR_AHT20         0x38 // AHT20 湿温度センサ I2Cスレーブアドレス
 #define I2C_ADDR_E2P_AT24C32          0x57 // EEPROM AT24C32 I2Cスレーブアドレス
 #define I2C_ADDR_RTC_DS3231           0x68 // RTC DS3231 I2Cスレーブアドレス
+// #define I2C_ADDR_SENSOR_BMP280        0x76 // BMP280 温度+気圧センサ I2Cスレーブアドレス
+#define I2C_ADDR_SENSOR_BMP280        0x77 // BMP280 温度+気圧センサ I2Cスレーブアドレス
+
+// [BMP280 レジスタアドレス]
+#define BMP280_REG_ADDR_TEMP_XLSB     0xFC
+#define BMP280_REG_ADDR_TEMP_LSB      0xFB
+#define BMP280_REG_ADDR_TEMP_MSB      0xFA
+#define BMP280_REG_ADDR_PRESS_XLSB    0xF9
+#define BMP280_REG_ADDR_PRESS_LSB     0xF8
+#define BMP280_REG_ADDR_PRESS_MSB     0xF7
+#define BMP280_REG_ADDR_CONFIG        0xF5
+#define BMP280_REG_ADDR_CTRL_MEAS     0xF4
+#define BMP280_REG_ADDR_STATUS        0xF3
+#define BMP280_REG_ADDR_RESET         0xE0
+#define BMP280_REG_ADDR_ID            0xD0
+
+// [BMP280 IDレジスタ 期待値]
+#define BMP280_ID_REG_EXP_VAL         0x58
+
+// [BMP280 RESETレジスタ 書き込み値]
+#define BMP280_RESET_REG_EXP_VAL      0xB6
+
 #endif // I2C_HOST_MODE
 
 // -----------------------------------------------------------
