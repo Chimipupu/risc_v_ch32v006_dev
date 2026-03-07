@@ -39,7 +39,6 @@ static void hw_clock_init(void)
 {
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
     SystemCoreClockUpdate();
-    Delay_Init();
 }
 
 static void hw_timer_init(void)

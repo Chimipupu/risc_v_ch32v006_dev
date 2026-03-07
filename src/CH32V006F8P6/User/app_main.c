@@ -86,7 +86,7 @@ static void env_sensor_read(void)
     // AHT20に測定コマンドを送信(0xAC, 0x33, 0x00の順番)
     drv_send_ret = drc_i2c_send(I2C_ADDR_SENSOR_AHT20, (uint8_t *)&g_aht20_cmd[0], 3);
     // AHT20が測定完了するまで80ms以上待つ
-    Delay_Ms(100);
+    drv_tick_delay_ms(100);
     // AHT20から6Byte一括読み出し
     drv_recv_ret = drc_i2c_recv(I2C_ADDR_SENSOR_AHT20, (uint8_t *)&aht20_read_buf[0], 6, false);
     if(drv_recv_ret == I2C_RET_END) {
@@ -175,13 +175,13 @@ static uint8_t _i2c_proc(void *p_arg)
     printf("[DEBUG] I2C Proc\r\n");
 
 #if 1
-#ifdef I2C_RTC_DEVICE
-    rtc_time_read();
-#endif // I2C_RTC_DEVICE
-
 #ifdef I2C_ENV_SENSOR_DEVICE
-    env_sensor_read();
+    env_sensor_read(); // 環境センサー値取得 (温度、湿度)
 #endif // I2C_ENV_SENSOR_DEVICE
+
+#ifdef I2C_RTC_DEVICE
+    rtc_time_read(); // RTCから時刻取得
+#endif // I2C_RTC_DEVICE
 #endif
 
     return APP_PROC_END;

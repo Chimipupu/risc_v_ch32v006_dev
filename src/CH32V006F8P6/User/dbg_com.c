@@ -329,13 +329,13 @@ void dbg_com_main(void)
     } else if (c == KEY_ESC) {  // ESC
 
         // CH32V006は1byte毎にRXNEをいれてくるでの次のデータまで待ち
-        Delay_Ms(1);
+        drv_tick_delay_ms(1);
 
         c = drv_uart_get_char();
         if (c == KEY_ANSI_ESC) { // ANSI escape sequence
 
             // CH32V006は1byte毎にRXNEをいれてくるでの次のデータまで待ち
-            Delay_Ms(1);
+            drv_tick_delay_ms(1);
 
             c = drv_uart_get_char();
             if (c == KEY_UP) { // キーボードの上矢印

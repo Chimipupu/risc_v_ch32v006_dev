@@ -28,6 +28,7 @@ __attribute__((always_inline)) static inline uint32_t drv_get_systick_cnt(void)
     return g_systick_cnt_ms;
 }
 
+void drv_tick_delay_ms(uint32_t ms);
 void drv_tim_init(uint16_t arr, uint16_t psc, uint16_t div);
 
 #endif // DRV_TIM_H

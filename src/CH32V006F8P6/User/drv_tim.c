@@ -57,6 +57,14 @@ void TIM1_UP_IRQHandler(void)
 // -----------------------------------------------------------
 // [ドライバ]
 
+void drv_tick_delay_ms(uint32_t ms)
+{
+    uint32_t start_tick = drv_get_systick_cnt();
+    while ((drv_get_systick_cnt() - start_tick) < ms) {
+        // NOP
+    }
+}
+
 /**
  * @brief 16bitタイマ  TIM1初期化
  * @param arr 16bit カウント最大値
