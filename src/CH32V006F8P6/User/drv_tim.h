@@ -22,6 +22,11 @@ __attribute__((always_inline)) static inline uint16_t drv_get_tim_cnt(void)
     return TIM_GetCounter(TIM1);
 }
 
+__attribute__((always_inline)) static inline uint32_t drv_get_systick_cnt(void)
+{
+    return SysTick->CNT;
+}
+
 void drv_tim_init(uint16_t arr, uint16_t psc, uint16_t div);
 
 #endif // DRV_TIM_H

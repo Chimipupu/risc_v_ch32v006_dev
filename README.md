@@ -31,7 +31,10 @@ WCH製 RISC-Vマイコン CH32V006の評価F/W個人開発リポジトリ
   - ※基板からC`H32V003F4P6`を剥がして`CH32V006F8P6`に貼り替え済み -->
 
 - `CH32V006F8P6`
-  - CPU ... [QingKeV2C (32bit RV32EmC RISC-V)]
+  - CPU
+    - `QingKeV2C` (RV32EmC)
+      - 乗算 ... H/W (CPU命令)
+      - 除算 ... S/W
   - ROM ... 62KB
   - RAM ... 8KB
   - Clock ... 48MHz

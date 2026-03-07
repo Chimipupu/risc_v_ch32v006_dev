@@ -248,17 +248,17 @@ void app_main_init(void)
 
 /**
  * @brief アプリメイン
+ * @note 各アプリは実行周期が32bit SysTickタイマーから計算したデルタ時間で実行
  */
 void app_main(void)
 {
     uint8_t cbK_ret;
-    static uint16_t s_tim_cnt_ms[sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0])] = {0};
-    static uint16_t s_prev_tim_cnt = 0;
+    static uint32_t s_tick_cnt_ms[sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0])] = {0};
+    static uint32_t s_prev_tick_cnt = 0;
+    uint32_t current_tick_cnt = drv_get_systick_cnt();
+    uint32_t delta_ms = current_tick_cnt - s_prev_tick_cnt;
 
-    uint16_t current_tim_cnt = drv_get_tim_cnt();
-    uint16_t delta_ms = current_tim_cnt - s_prev_tim_cnt;
-
-    s_prev_tim_cnt = current_tim_cnt;
+    s_prev_tick_cnt = current_tick_cnt;
 
     if(delta_ms == 0) {
         return;
@@ -266,11 +266,11 @@ void app_main(void)
 
     for(uint8_t i = 0; i < g_app_func_tbl_cnt; i++)
     {
-        s_tim_cnt_ms[i] += delta_ms;
-        if(s_tim_cnt_ms[i] >= g_app_func_tbl[i].interval_ms) {
+        s_tick_cnt_ms[i] += delta_ms;
+        if(s_tick_cnt_ms[i] >= g_app_func_tbl[i].interval_ms) {
             cbK_ret = g_app_func_tbl[i].pfunc(NULL);
             if(cbK_ret == APP_PROC_END) {
-                s_tim_cnt_ms[i] = 0;
+                s_tick_cnt_ms[i] = 0;
             }
         }
     }
