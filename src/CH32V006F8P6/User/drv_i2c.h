@@ -19,17 +19,29 @@
 #include <ch32v00x.h>
 
 // -----------------------------------------------------------
+// [コンパイルスイッチ]
 #define I2C_HOST_MODE     0
 #define I2C_SLAVE_MODE    1
 
 #define I2C_MODE   I2C_HOST_MODE
 //#define I2C_MODE   I2C_SLAVE_MODE
 
-#if (I2C_MODE == I2C_HOST_MODE)
-// [I2Cクロック]
-#define I2C_CLOCK_100_KHZ             100000
-#define I2C_CLOCK_400_KHZ             400000
-#define I2C_CLOCK_1_MHZ               1000000
+// I2Cクロック
+#define I2C_CLOCK_100_KHZ             100000  // I2C SCLクロック = 100KHz
+#define I2C_CLOCK_400_KHZ             400000  // I2C SCLクロック = 400KHz
+#define I2C_CLOCK_1_MHZ               1000000 // I2C SCLクロック = 1MHz
+
+#define I2C_RTC_DS3231                0
+#define I2C_RTC_RX8900                1
+#define I2C_RTC_DEVICE                I2C_RTC_DS3231
+// #define I2C_RTC_DEVICE                I2C_RTC_RX8900
+
+#define I2C_ENV_SENSOR_AHT20          0
+#define I2C_ENV_SENSOR_BMP280         1
+#define I2C_ENV_SENSOR_DEVICE         I2C_ENV_SENSOR_AHT20
+// #define I2C_ENV_SENSOR_DEVICE         I2C_ENV_SENSOR_BMP280
+// -----------------------------------------------------------
+// [Define]
 
 // [I2Cスレーブアドレス]
 #define I2C_ADDR_RTC_RX8900           0x32 // RTC RX8900 I2Cスレーブアドレス
@@ -39,6 +51,7 @@
 // #define I2C_ADDR_SENSOR_BMP280        0x76 // BMP280 温度+気圧センサ I2Cスレーブアドレス
 #define I2C_ADDR_SENSOR_BMP280        0x77 // BMP280 温度+気圧センサ I2Cスレーブアドレス
 
+#if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280)
 // [BMP280 レジスタアドレス]
 #define BMP280_REG_ADDR_TEMP_XLSB     0xFC
 #define BMP280_REG_ADDR_TEMP_LSB      0xFB
@@ -58,7 +71,7 @@
 // [BMP280 RESETレジスタ 書き込み値]
 #define BMP280_RESET_REG_EXP_VAL      0xB6
 
-#endif // I2C_HOST_MODE
+#endif //I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280
 
 // -----------------------------------------------------------
 typedef enum {
