@@ -45,10 +45,10 @@ static void hw_clock_init(void)
 static void hw_timer_init(void)
 {
     // SysTickタイマー初期化
-    NVIC_EnableIRQ(SysTick_IRQn);              // SysTick割り込み有効化
-    SysTick->SR &= ~(1 << 0);                  // SysTick割り込みフラグクリア
-    SysTick->CMP = (SystemCoreClock-1) / 1000; // SysTick割り込み = 1ms周期
-    SysTick->CNT = 0;                          // SysTickカウント値をクリア
+    NVIC_EnableIRQ(SysTick_IRQn);                 // SysTick割り込み有効化
+    SysTick->SR &= ~(1 << 0);                     // SysTick割り込みフラグクリア
+    SysTick->CMP = (SystemCoreClock - 1) / 1000;  // SysTick割り込み = 1ms周期
+    SysTick->CNT = 0;                             // SysTickカウント値をクリア
     SysTick->CTLR = 0xF;
 
     // TIM1 (16bit 高機能タイマー)初期化
@@ -74,8 +74,8 @@ static void hw_uart_init(void)
 
 #if (SDI_PRINT == SDI_PR_OPEN) || defined(DEBUG_UART_USE)
     printf("[DEBUG] CH32V006F8P6 Develop\r\n");
-    printf("SystemClk:%d\r\n",SystemCoreClock);
-    printf("ChipID:%08x\r\n", DBGMCU_GetCHIPID() );
+    printf("SystemClk: %d MHz\r\n",SystemCoreClock / 1000000);
+    printf("ChipID: %08x\r\n", DBGMCU_GetCHIPID() );
 #endif
 }
 
@@ -86,16 +86,6 @@ static void hw_i2c_init(void)
 
 // -----------------------------------------------------------
 // [メイン関連関数]
-void SysTick_Handler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
-
-/**
- * @brief 32bit SysTickタイマ割り込みハンドラ
- * @note 1ms周期で割り込み発生
- */
-void SysTick_Handler(void)
-{
-    SysTick->SR = 0; // SysTick割り込みフラグクリア
-}
 
 /**
  * @brief メイン関数
@@ -103,7 +93,7 @@ void SysTick_Handler(void)
  */
 int main(void)
 {
-    // ドライバ関連
+    // [ドライバ関連]
     hw_clock_init(); // クロック初期化
     hw_timer_init(); // タイマー初期化
     hw_i2c_init();   // I2C初期化

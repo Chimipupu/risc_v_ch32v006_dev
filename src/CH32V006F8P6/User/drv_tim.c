@@ -22,8 +22,26 @@ volatile const drv_tim_div_t g_tim_div_tbl[] = {
 };
 volatile const uint8_t g_tim_div_tbl_cnt = sizeof(g_tim_div_tbl) / sizeof(g_tim_div_tbl[0]);
 
+extern volatile uint32_t g_systick_cnt_ms = 0;
 // -----------------------------------------------------------
 // [割り込みハンドラ]
+
+void SysTick_Handler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
+
+/**
+ * @brief 32bit SysTickタイマ割り込みハンドラ
+ * @note 1ms周期で割り込み発生
+ */
+void SysTick_Handler(void)
+{
+    if(g_systick_cnt_ms < 0xFFFFFFFF) {
+        g_systick_cnt_ms++;
+    } else {
+        g_systick_cnt_ms = 0;
+    }
+
+    SysTick->SR = 0; // SysTick割り込みフラグクリア
+}
 
 void TIM1_UP_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 /**

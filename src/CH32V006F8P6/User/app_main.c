@@ -174,6 +174,7 @@ static uint8_t _i2c_proc(void *p_arg)
 {
     printf("[DEBUG] I2C Proc\r\n");
 
+#if 1
 #ifdef I2C_RTC_DEVICE
     rtc_time_read();
 #endif // I2C_RTC_DEVICE
@@ -181,6 +182,7 @@ static uint8_t _i2c_proc(void *p_arg)
 #ifdef I2C_ENV_SENSOR_DEVICE
     env_sensor_read();
 #endif // I2C_ENV_SENSOR_DEVICE
+#endif
 
     return APP_PROC_END;
 }
