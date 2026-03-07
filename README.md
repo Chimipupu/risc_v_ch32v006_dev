@@ -2,7 +2,7 @@
 
 WCH製 RISC-Vマイコン CH32V006の評価F/W個人開発リポジトリ
 
-## メモリ使用量
+<!-- ## メモリ使用量
 
 最適化:- `-O0` (無し)、UART:未使用
 
@@ -12,24 +12,25 @@ WCH製 RISC-Vマイコン CH32V006の評価F/W個人開発リポジトリ
 最適化:- `-O0` (無し)、UART:使用
 
 - ROM 15.72 % (9916 Byte)
-- RAM 8.94 % (732 Byte)
+- RAM 8.94 % (732 Byte) -->
 
 ## 開発環境
 
-### S/W
+- S/W
+  - IDE/SDK/コンパイラ
+    - [MounRiver Studio (MRS) V2.2.0](https://www.mounriver.com/download)🔗
+  - 最適化
+    - `-O0` (無し)
+- H/W
+  - マイコン ... 型番:[CH32V006F8P6](https://www.wch-ic.com/downloads/CH32V006DS0_PDF.html)🔗
 
-- IDE/SDK/コンパイラ
-  - [MounRiver Studio (MRS) V2.2.0](https://www.mounriver.com/download)🔗
-- 最適化
-  - `-O0` (無し)
-
-### H/W
+## マイコン
 
 <!-- - 評価基板
   - `CH32V00xEVT(CH32V003F4P6-R0-1V1)`
   - ※基板からC`H32V003F4P6`を剥がして`CH32V006F8P6`に貼り替え済み -->
 
-- マイコン ... 型番:[CH32V006F8P6](https://www.wch-ic.com/downloads/CH32V006DS0_PDF.html)🔗
+- `CH32V006F8P6`
   - CPU ... [QingKeV2C (32bit RV32EmC RISC-V)]
   - ROM ... 62KB
   - RAM ... 8KB
@@ -37,9 +38,9 @@ WCH製 RISC-Vマイコン CH32V006の評価F/W個人開発リポジトリ
   - GPIO ... 18本
   - DMA ... x7ch
   - タイマー
-    - TIM1 ... 16bit高機能タイマー
-    - TIM2 ... 16bit汎用タイマー
-    - TIM3 ... 16bit汎用タイマー
+    - TIM1 ... 16bit 高機能タイマー
+    - TIM2 ... 16bit 汎用タイマー
+    - TIM3 ... 16bit 基本タイマー
   - WDT ... x2本(IWDG, WWDG)
   - SysTick ... 32bitタイマー
   - I2C ... x1ch
@@ -52,11 +53,11 @@ WCH製 RISC-Vマイコン CH32V006の評価F/W個人開発リポジトリ
   <img src="/doc/CH32V006_pinout.png">
 </div>
 
-#### デバッガ
+### デバッガ
 
 - [WCH-LinkE Ver1.3](https://akizukidenshi.com/catalog/g/g118065)🔗
 
-#### デバッグ()SDI
+### デバッグ()SDI
 
 - SDI ... WCHの1線式デバッグ
 
@@ -65,7 +66,7 @@ WCH製 RISC-Vマイコン CH32V006の評価F/W個人開発リポジトリ
 | SWDIO | PD1|
 | GND | GND |
 
-#### UART
+### UART
 
 | WCH-LinkE | CH32V006F8P6 |
 |-|-|
@@ -73,14 +74,14 @@ WCH製 RISC-Vマイコン CH32V006の評価F/W個人開発リポジトリ
 | RX | PD5 (TX)|
 | GND | GND |
 
-#### I2C
+### I2C
 
 | I2C | CH32V006F8P6 |
 |-|-|
 | SDA | PC1 (SDA)|
 | SCL | PC2 (SCL)|
 
-#### SPI
+### SPI
 
 | SPI | CH32V006F8P6 |
 |-|-|
