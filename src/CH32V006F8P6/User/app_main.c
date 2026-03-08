@@ -7,6 +7,7 @@
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  */
 #include "app_main.h"
+#include "app_io_reg.h"
 #include "drv_i2c.h"
 #include "drv_tim.h"
 #include "drv_rtc_rx8900.h"
@@ -60,17 +61,20 @@ typedef uint8_t (*p_func_app_main)(void *p_arg);
 static uint8_t _i2c_proc(void *p_arg);
 #endif // DEBUG_I2C_USE
 static uint8_t _debug_proc(void *p_arg);
+static uint8_t _app_io_reg_proc(void *p_arg);
 
 typedef struct {
-    p_func_app_main pfunc; // コールバック関数ポインタ
-    uint16_t interval_ms;  // コールバック関数の実行周期(ms)
+    p_func_app_main pfunc; // アプリコールバック関数ポインタ
+    uint16_t interval_ms;  // アプリコールバック関数の実行周期(ms)
 } app_main_func_tbl_t;
+
 // アプリコールバック関数テーブル
 app_main_func_tbl_t g_app_func_tbl[] = {
+    {_app_io_reg_proc, 900},
 #ifdef DEBUG_I2C_USE
     {_i2c_proc,   1000},
 #endif // DEBUG_I2C_USE
-    {_debug_proc, 3000},
+    {_debug_proc, 5000},
 };
 const uint8_t g_app_func_tbl_cnt = sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0]);
 
@@ -197,6 +201,29 @@ static uint8_t _i2c_proc(void *p_arg)
 }
 #endif // DEBUG_I2C_USE
 
+static uint8_t _app_io_reg_proc(void *p_arg)
+{
+    uint8_t addr, reg;
+
+#if 1
+    addr = APP_IO_REG_ADDR_WHO_I_AM;
+    reg = app_io_reg_read(addr);
+    #ifdef DEBUG_UART_USE
+        printf("[APP I/O Reg] Addr: 0x%02X, Val: 0x%02X\r\n", addr, reg);
+    #endif
+#else
+    for(addr = 0; addr < APP_IO_REG_NUM; addr++)
+    {
+        reg = app_io_reg_read(addr);
+    #ifdef DEBUG_UART_USE
+        printf("[APP I/O Reg] Addr: 0x%02X, Val: 0x%02X\r\n", addr, reg);
+    #endif
+    }
+#endif
+
+    return APP_PROC_END;
+}
+
 static uint8_t _debug_proc(void *p_arg)
 {
     // printf("[DEBUG] Debug Proc\r\n");
@@ -212,7 +239,6 @@ static uint8_t _debug_proc(void *p_arg)
 
     return APP_PROC_END;
 }
-
 // -----------------------------------------------------------
 // [API]
 
@@ -245,8 +271,8 @@ void util_chip_uid_read(uint32_t *p_buf)
  */
 void app_main_init(void)
 {
-    // 96bitのUID読み出し
-    util_chip_uid_read((uint32_t *)&g_chip_uid[0]);
+    app_io_reg_init();                              // アプリI/Oレジスタ初期化
+    util_chip_uid_read((uint32_t *)&g_chip_uid[0]); // 96bitのUID読み出し
 
 #if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280)
     // BMP280 リセット
@@ -254,8 +280,7 @@ void app_main_init(void)
 #endif //I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280
 
 #if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
-    // デバッグモニタ 初期化
-    dbg_com_init();
+    dbg_com_init(); // デバッグモニタ 初期化
 #endif //DEBUG_UART_USE
 }
 
