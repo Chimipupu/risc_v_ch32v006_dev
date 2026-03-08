@@ -80,7 +80,9 @@ static void hw_uart_init(void)
 
 static void hw_i2c_init(void)
 {
+#ifdef DEBUG_I2C_USE
     drc_i2c_Init(I2C_CLOCK_400_KHZ); // I2C マスター 400KHz
+#endif // DEBUG_I2C_USE
 }
 
 // -----------------------------------------------------------

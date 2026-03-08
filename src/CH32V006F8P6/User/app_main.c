@@ -20,7 +20,7 @@
 
 #if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
 #include "dbg_com.h"
-#endif
+#endif // DEBUG_UART_USE && DBG_COM_USE
 
 // -----------------------------------------------------------
 // [Private]
@@ -28,46 +28,54 @@
 #define APP_PROC_EXEC    0x00
 #define APP_PROC_END     0x01
 
-// アプリメイン用ステートマシーンの各処理ステップ
-typedef enum {
-    STEP_I2C_INIT = 0x00, // 初期化ステップ
-    STEP_I2C_SEND,        // 送信ステップ
-    STEP_I2C_RECV,        // 受信ステップ
-    STEP_I2C_RESULT       // 処理結果ステップ
-} app_i2c_step;
+#ifdef DEBUG_I2C_USE
+    // I2C用アプリステートマシーンの各処理ステップ
+    typedef enum {
+        STEP_I2C_INIT = 0x00, // 初期化ステップ
+        STEP_I2C_SEND,        // 送信ステップ
+        STEP_I2C_RECV,        // 受信ステップ
+        STEP_I2C_RESULT       // 処理結果ステップ
+    } app_i2c_step;
+    volatile const uint8_t g_dbg_i2c_send_data_buf[2] = {RTC_RX8900_REG_CTRL, 0x01};
+    volatile uint8_t g_app_i2c_recv_data_buf[16] = {0};
 
-volatile const uint8_t g_dbg_i2c_send_data_buf[2] = {RTC_RX8900_REG_CTRL, 0x01};
-volatile uint8_t g_app_i2c_recv_data_buf[16] = {0};
+    #if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_AHT20)
+    volatile const uint8_t g_aht20_cmd[3] = {0xAC, 0x33, 0x00};
+    #endif // I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_AHT20
+
+    #if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280)
+    volatile const uint8_t g_bmp280_reset_data[2] = {BMP280_REG_ADDR_RESET, BMP280_RESET_REG_EXP_VAL};
+    volatile const uint8_t g_bmp280_id_reg_data[2] = {BMP280_REG_ADDR_ID, BMP280_ID_REG_EXP_VAL};
+    #endif //I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280
+
+    static void env_sensor_read(void);
+    static void rtc_time_read(void);
+#endif // DEBUG_I2C_USE
+
 volatile uint32_t g_chip_uid[3] = {0};
 
 typedef uint8_t (*p_func_app_main)(void *p_arg);
+#ifdef DEBUG_I2C_USE
 static uint8_t _i2c_proc(void *p_arg);
+#endif // DEBUG_I2C_USE
 static uint8_t _debug_proc(void *p_arg);
+
 typedef struct {
     p_func_app_main pfunc; // コールバック関数ポインタ
     uint16_t interval_ms;  // コールバック関数の実行周期(ms)
 } app_main_func_tbl_t;
 // アプリコールバック関数テーブル
 app_main_func_tbl_t g_app_func_tbl[] = {
+#ifdef DEBUG_I2C_USE
     {_i2c_proc,   1000},
+#endif // DEBUG_I2C_USE
     {_debug_proc, 3000},
 };
 const uint8_t g_app_func_tbl_cnt = sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0]);
 
-#if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_AHT20)
-volatile const uint8_t g_aht20_cmd[3] = {0xAC, 0x33, 0x00};
-#endif // I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_AHT20
-
-#if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280)
-volatile const uint8_t g_bmp280_reset_data[2] = {BMP280_REG_ADDR_RESET, BMP280_RESET_REG_EXP_VAL};
-volatile const uint8_t g_bmp280_id_reg_data[2] = {BMP280_REG_ADDR_ID, BMP280_ID_REG_EXP_VAL};
-#endif //I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280
-
-static void env_sensor_read(void);
-static void rtc_time_read(void);
-
 // -----------------------------------------------------------
 // [Static関数]
+#ifdef DEBUG_I2C_USE
 static void env_sensor_read(void)
 {
     volatile uint8_t tmp_u8;
@@ -186,6 +194,7 @@ static uint8_t _i2c_proc(void *p_arg)
 
     return APP_PROC_END;
 }
+#endif // DEBUG_I2C_USE
 
 static uint8_t _debug_proc(void *p_arg)
 {
