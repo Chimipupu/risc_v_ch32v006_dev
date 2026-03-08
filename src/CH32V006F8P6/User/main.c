@@ -24,6 +24,7 @@
 
 // My Lib
 #include "drv_rtc_rx8900.h"
+#include "pcb_board_define.h"
 
 // -----------------------------------------------------------
 // [Private]

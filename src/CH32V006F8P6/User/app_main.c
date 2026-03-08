@@ -10,6 +10,7 @@
 #include "drv_i2c.h"
 #include "drv_tim.h"
 #include "drv_rtc_rx8900.h"
+#include "pcb_board_define.h"
 // -----------------------------------------------------------
 // [DEBUG関連]
 
@@ -198,7 +199,11 @@ static uint8_t _i2c_proc(void *p_arg)
 
 static uint8_t _debug_proc(void *p_arg)
 {
-    printf("[DEBUG] Debug Proc\r\n");
+    // printf("[DEBUG] Debug Proc\r\n");
+
+#ifdef DEBUG_UART_USE
+    printf("[DEBUG] Chip UID(96bit): 0x%08X 0x%08X 0x%08X\r\n", g_chip_uid[2], g_chip_uid[1], g_chip_uid[0]);
+#endif
 
 #if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
     // デバッグモニタ メイン
@@ -242,9 +247,6 @@ void app_main_init(void)
 {
     // 96bitのUID読み出し
     util_chip_uid_read((uint32_t *)&g_chip_uid[0]);
-#ifdef DEBUG_UART_USE
-    printf("[DEBUG] Chip UID(96bit): 0x%08X 0x%08X 0x%08X\r\n", g_chip_uid[2], g_chip_uid[1], g_chip_uid[0]);
-#endif
 
 #if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280)
     // BMP280 リセット

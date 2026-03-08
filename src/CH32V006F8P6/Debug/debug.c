@@ -27,8 +27,6 @@
 void SDI_Printf_Enable(void)
 {
     *(DEBUG_DATA0_ADDRESS) = 0;
-    Delay_Init();
-    Delay_Ms(1);
 }
 
 /*********************************************************************
