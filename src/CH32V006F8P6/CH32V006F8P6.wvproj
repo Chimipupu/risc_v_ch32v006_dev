@@ -330,7 +330,7 @@
 		"sdiPrintf": false,
 		"disablepowerout": false,
 		"clearcodeflash": false,
-		"disablecodeprotect": false,
+		"disablecodeprotect": true,
 		"exepath": "",
 		"exearguments": ""
 	},

@@ -22,7 +22,7 @@ volatile const drv_tim_div_t g_tim_div_tbl[] = {
 };
 volatile const uint8_t g_tim_div_tbl_cnt = sizeof(g_tim_div_tbl) / sizeof(g_tim_div_tbl[0]);
 
-extern volatile uint32_t g_systick_cnt_ms = 0;
+volatile uint32_t g_systick_cnt_ms = 0;
 // -----------------------------------------------------------
 // [割り込みハンドラ]
 
@@ -34,15 +34,13 @@ void SysTick_Handler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
  */
 void SysTick_Handler(void)
 {
-    if(g_systick_cnt_ms < 0xFFFFFFFF) {
-        g_systick_cnt_ms++;
-    } else {
-        g_systick_cnt_ms = 0;
-    }
+    // NOTE: 符号なし32bit整数を1ms周期で更新...約49.7日後にOVF
+    g_systick_cnt_ms++;
 
     SysTick->SR = 0; // SysTick割り込みフラグクリア
 }
 
+#if 0
 void TIM1_UP_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 /**
  * @brief TIM1カウントアップ割り込みハンドラ
@@ -53,7 +51,7 @@ void TIM1_UP_IRQHandler(void)
     ret = TIM_GetITStatus(TIM1, TIM_IT_Update);
     TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
 }
-
+#endif
 // -----------------------------------------------------------
 // [ドライバ]
 
@@ -98,6 +96,7 @@ void drv_tim_init(uint16_t arr, uint16_t psc, uint16_t div)
     TIM_TimeBaseInitStructure.TIM_RepetitionCounter = 50;
     TIM_TimeBaseInit(TIM1, &TIM_TimeBaseInitStructure);
 
+#if 0
     // -----------------------------------------------------------
     // [タイマ割り込み初期化]
     TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
@@ -108,10 +107,7 @@ void drv_tim_init(uint16_t arr, uint16_t psc, uint16_t div)
     NVIC_Init(&NVIC_InitStructure);
     TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);
     // -----------------------------------------------------------
-
-#if 1
-    TIM_Cmd(TIM1, ENABLE);
-#else
-    TIM_GenerateEvent(TIM1, TIM_IT_Update);
 #endif
+
+    TIM_Cmd(TIM1, ENABLE);
 }
