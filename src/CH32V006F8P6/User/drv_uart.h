@@ -1,12 +1,10 @@
 /**
- * @file drv_uasrt.h
+ * @file drv_uart.h
  * @author Chimipupu(https://github.com/Chimipupu)
- * @brief  CH32V006 USARTドライバ＆ラッパー＆API
+ * @brief  CH32V006 UARTドライバ
  * @version 0.1
- * @date 2025-08-06
- * 
+ * @date 2026-03-10
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
- * 
  */
 
 #ifndef DRV_UASRT_H

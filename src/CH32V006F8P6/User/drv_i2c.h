@@ -1,13 +1,12 @@
 /**
  * @file drv_i2c.h
  * @author Chimipupu(https://github.com/Chimipupu)
- * @brief CH32V006 I2Cドライバ＆ラッパー＆API
+ * @brief CH32V006 I2Cドライバ
  * @version 0.1
  * @date 2026-02-23
- * 
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
- * 
  */
+
 #ifndef DRV_I2C_H
 #define DRV_I2C_H
 

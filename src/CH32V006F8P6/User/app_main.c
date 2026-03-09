@@ -30,6 +30,13 @@
 #define APP_PROC_EXEC    0x00
 #define APP_PROC_END     0x01
 
+// アプリメイン用ステートマシーンの各処理ステップ
+typedef enum {
+    STEP_APP_INIT = 0x00, // 初期化ステップ
+    STEP_APP_EXEC,        // 処理実行ステップ
+    STEP_APP_RESULT       // 処理結果ステップ
+} app_main_step;
+
 #ifdef DEBUG_I2C_USE
     // I2C用アプリステートマシーンの各処理ステップ
     typedef enum {
@@ -78,6 +85,7 @@ app_main_func_tbl_t g_app_func_tbl[] = {
 };
 const uint8_t g_app_func_tbl_cnt = sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0]);
 
+static void util_chip_uid_read(uint32_t *p_buf);
 // -----------------------------------------------------------
 // [Static関数]
 #ifdef DEBUG_I2C_USE
@@ -239,14 +247,12 @@ static uint8_t _debug_proc(void *p_arg)
 
     return APP_PROC_END;
 }
-// -----------------------------------------------------------
-// [API]
 
 /**
  * @brief マイコンのユニークID(96bit)読み出し
  * @param p_buf 96bit分のバッファポインタ(32bit x 3 = 96bit)
  */
-void util_chip_uid_read(uint32_t *p_buf)
+static void util_chip_uid_read(uint32_t *p_buf)
 {
     uint32_t *p_ptr;
 
@@ -265,6 +271,8 @@ void util_chip_uid_read(uint32_t *p_buf)
     // UID 64~95bit
     *p_ptr = *((uint32_t *) REG_ADDR_R32_ESIG_UNIID3);
 }
+// -----------------------------------------------------------
+// [アプリ]
 
 /**
  * @brief アプリメイン初期化
@@ -286,7 +294,7 @@ void app_main_init(void)
 
 /**
  * @brief アプリメイン
- * @note 各アプリは実行周期が32bit SysTickタイマーから計算したデルタ時間で実行
+ * @note 各アプリは実行周期が32bit SysTickタイマーのTickベースで実行
  */
 void app_main(void)
 {

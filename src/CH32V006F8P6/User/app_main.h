@@ -37,19 +37,13 @@
 // ----------------------------------------------------------------------
 // [define]
 
+// CH32V006 レジスタアドレス
 #define REG_ADDR_R16_ESIG_FLACAP              0x1FFFF7E0
 #define REG_ADDR_R32_ESIG_UNIID1              0x1FFFF7E8
 #define REG_ADDR_R32_ESIG_UNIID2              0x1FFFF7EC
 #define REG_ADDR_R32_ESIG_UNIID3              0x1FFFF7F0
 
 // ----------------------------------------------------------------------
-
-// アプリメイン用ステートマシーンの各処理ステップ
-typedef enum {
-    STEP_APP_INIT = 0x00, // 初期化ステップ
-    STEP_APP_EXEC,        // 処理実行ステップ
-    STEP_APP_RESULT       // 処理結果ステップ
-} app_main_step;
 
 // NOP
 __attribute__( ( always_inline ) ) static inline void NOP(void)
@@ -71,7 +65,6 @@ __attribute__( ( always_inline ) ) static inline void _EI(void)
 
 // ----------------------------------------------------------------------
 
-void util_chip_uid_read(uint32_t *p_buf);
 void app_main_init(void);
 void app_main(void);
 

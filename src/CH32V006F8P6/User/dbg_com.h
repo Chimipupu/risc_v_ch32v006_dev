@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "drv_uasrt.h"
+#include "drv_uart.h"
 
 // コマンド関連のマクロ
 #define DBG_CMD_MAX_LEN         32 // コマンドの最大長

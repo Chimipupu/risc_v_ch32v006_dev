@@ -171,7 +171,7 @@ uint8_t app_io_reg_read(uint8_t addr)
 {
     uint8_t reg;
 
-    if((addr > 0) && (addr < APP_IO_REG_NUM)) {
+    if(addr < APP_IO_REG_NUM) {
         reg = s_app_io_reg[addr] & g_app_io_reg[addr].read_bit;
     } else {
         reg = 0x00;
@@ -182,7 +182,7 @@ uint8_t app_io_reg_read(uint8_t addr)
 
 void app_io_reg_write(uint8_t addr, uint8_t val)
 {
-    if((addr > 0) && (addr < APP_IO_REG_NUM)) {
+    if(addr < APP_IO_REG_NUM) {
         s_app_io_reg[addr] = val & g_app_io_reg[addr].write_bit;
     }
 }

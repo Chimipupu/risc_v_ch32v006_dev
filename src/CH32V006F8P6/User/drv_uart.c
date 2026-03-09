@@ -1,15 +1,13 @@
 /**
- * @file drv_uasrt.c
+ * @file drv_uart.h
  * @author Chimipupu(https://github.com/Chimipupu)
- * @brief  CH32V006 USARTドライバ＆ラッパー＆API
+ * @brief  CH32V006 UARTドライバ
  * @version 0.1
- * @date 2025-08-06
- * 
+ * @date 2026-03-10
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
- * 
  */
 
-#include "drv_uasrt.h"
+#include "drv_uart.h"
 #include "app_main.h"
 
 void USART1_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
@@ -21,7 +19,6 @@ static uint8_t s_rx_buf_read_idx = 0;             // 受信バッファ読み出
 
 /**
  * @brief USART 割り込みハンドラ
- * 
  */
 void USART1_IRQHandler(void)
 {
@@ -30,12 +27,11 @@ void USART1_IRQHandler(void)
     tmp = USART_GetITStatus(USART1, USART_IT_RXNE);
 
     // 受信データをリングバッファに詰める
-    while(tmp == SET)
+    while(USART_GetITStatus(USART1, USART_IT_RXNE == SET))
     {
         s_rx_buf[s_rx_buf_write_idx] = (uint8_t)(USART1->DATAR & 0x00FF);
         s_rx_data_size = (s_rx_data_size + 1) % USART_RX_BUF_SIZE;
         s_rx_buf_write_idx = (s_rx_buf_write_idx + 1) % USART_RX_BUF_SIZE;
-        tmp = USART_GetITStatus(USART1, USART_IT_RXNE);
     }
 
     USART_ClearITPendingBit(USART1, USART_IT_RXNE);
