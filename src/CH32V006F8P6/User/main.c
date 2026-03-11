@@ -85,6 +85,14 @@ static void hw_i2c_init(void)
 {
 #ifdef DEBUG_I2C_USE
     drc_i2c_Init(I2C_CLOCK_400_KHZ); // I2C マスター 400KHz
+
+    #ifdef EEPROM_USE
+    volatile uint8_t eeprom_read_byte;
+    drv_eeprom_read_byte(0x0000, (uint8_t *)&eeprom_read_byte);
+    if(eeprom_read_byte != 0xAB) {
+        drv_eeprom_write_byte(0x0000, 0xAB);
+    }
+    #endif // EEPROM_USE
 #endif // DEBUG_I2C_USE
 }
 

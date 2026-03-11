@@ -24,10 +24,9 @@
 // -----------------------------------------------------------
 // [ドライバ]
 
-drv_i2c_ret drv_eeprom_write_byte(uint16_t addr, uint8_t *p_data_buf, uint16_t data_len);
-drv_i2c_ret drv_eeprom_read_byte(uint16_t addr, uint8_t *p_data_buf, uint16_t data_len);
-drv_i2c_ret drv_eeprom_write_page(uint8_t top_page, uint8_t *p_data_buf, uint8_t page_num);
-drv_i2c_ret drv_eeprom_read_page(uint8_t top_page, uint8_t *p_data_buf, uint8_t page_num);
-
+drv_i2c_ret drv_eeprom_write_byte(uint16_t addr, uint8_t data);
+drv_i2c_ret drv_eeprom_read_byte(uint16_t addr, uint8_t *p_data);
+drv_i2c_ret drv_eeprom_write_page(uint8_t top_page, uint8_t *p_page_data_buf);
+drv_i2c_ret drv_eeprom_read_page(uint8_t top_page, uint8_t *p_page_data_buf);
 // -----------------------------------------------------------
 #endif // DRV_I2C_EEPROM_24C64_H

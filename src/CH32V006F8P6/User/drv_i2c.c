@@ -67,13 +67,14 @@ void drc_i2c_Init(uint32_t bound)
 }
 
 /**
- * @brief I2C 送信API
+ * @brief I2C 書き込みAPI
  * @param slave_addr 通信相手のスレーブ 7bitアドレス(※左に1ビットシフトする前のアドレス)
  * @param p_send_data_buf 送信データバッファポインタ
  * @param data_len 送信したいデータバイト数
+ * @param is_stop_bit Stopビットを送出するか否か
  * @return drv_i2c_ret 処理結果
  */
-drv_i2c_ret drc_i2c_send(uint8_t slave_addr, uint8_t *p_send_data_buf, uint8_t data_len)
+drv_i2c_ret drv_i2c_write(uint8_t slave_addr, uint8_t *p_send_data_buf, uint8_t data_len, bool is_stop_bit)
 {
     uint8_t i;
     uint8_t *p_data;
@@ -110,21 +111,24 @@ drv_i2c_ret drc_i2c_send(uint8_t slave_addr, uint8_t *p_send_data_buf, uint8_t d
         p_data++;
     }
 
-    // Stopビット
-    I2C_GenerateSTOP(I2C1, ENABLE);
+    if(is_stop_bit == true) {
+        // Stopビット
+        I2C_GenerateSTOP(I2C1, ENABLE);
+    }
 
     return I2C_RET_END;
 }
 
 /**
- * @brief I2C 受信API
+ * @brief I2C 読み出しAPI
  * @param slave_addr 通信相手のスレーブ 7bitアドレス(※左に1ビットシフトする前のアドレス)
  * @param p_recv_data_buf 受信データバッファポインタ
  * @param data_len 受信したいデータバイト数
  * @param nack_opt 最後のデータ - 1のときにNACKを出すか否か
+ * @param is_stop_bit Stopビットを送出するか否か
  * @return drv_i2c_ret処理結果
  */
-drv_i2c_ret drc_i2c_recv(uint8_t slave_addr, uint8_t *p_recv_data_buf, uint8_t data_len, bool nack_opt)
+drv_i2c_ret drv_i2c_read(uint8_t slave_addr, uint8_t *p_recv_data_buf, uint8_t data_len, bool nack_opt, bool is_stop_bit)
 {
     uint8_t i;
     uint8_t *p_data;
@@ -169,7 +173,9 @@ drv_i2c_ret drc_i2c_recv(uint8_t slave_addr, uint8_t *p_recv_data_buf, uint8_t d
     }
 
     // Stopビット
-    I2C_GenerateSTOP(I2C1, ENABLE);
+    if(is_stop_bit == true) {
+        I2C_GenerateSTOP(I2C1, ENABLE);
+    }
 
     return I2C_RET_END;
 }

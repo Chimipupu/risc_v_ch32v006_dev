@@ -107,11 +107,11 @@ static void env_sensor_read(void)
     // [AHT20から温度と湿度を読み出し]
     memset((uint8_t *)&aht20_read_buf[0], 0x00, 8);
     // AHT20に測定コマンドを送信(0xAC, 0x33, 0x00の順番)
-    drv_send_ret = drc_i2c_send(I2C_ADDR_SENSOR_AHT20, (uint8_t *)&g_aht20_cmd[0], 3);
+    drv_send_ret = drv_i2c_write(I2C_ADDR_SENSOR_AHT20, (uint8_t *)&g_aht20_cmd[0], 3, true);
     // AHT20が測定完了するまで80ms以上待つ
     drv_tick_delay_ms(100);
     // AHT20から6Byte一括読み出し
-    drv_recv_ret = drc_i2c_recv(I2C_ADDR_SENSOR_AHT20, (uint8_t *)&aht20_read_buf[0], 6, false);
+    drv_recv_ret = drv_i2c_read(I2C_ADDR_SENSOR_AHT20, (uint8_t *)&aht20_read_buf[0], 6, false, true);
     if(drv_recv_ret == I2C_RET_END) {
         // ステータスのBit7が1のBusyでないか?
         if(REG_BIT_CHK(aht20_read_buf[0], 7) == 0) {
@@ -137,16 +137,16 @@ static void env_sensor_read(void)
     volatile float bmp280_press_data;
 
     tx_data = BMP280_REG_ADDR_STATUS;
-    drv_send_ret = drc_i2c_send(I2C_ADDR_SENSOR_BMP280, (uint8_t *)&tx_data, 1);
-    drv_recv_ret = drc_i2c_recv(I2C_ADDR_SENSOR_BMP280, (uint8_t *)&tmp_u8, 1, false);
+    drv_send_ret = drv_i2c_write(I2C_ADDR_SENSOR_BMP280, (uint8_t *)&tx_data, 1, true);
+    drv_recv_ret = drv_i2c_read(I2C_ADDR_SENSOR_BMP280, (uint8_t *)&tmp_u8, 1, false, true);
 
     if((drv_recv_ret == I2C_RET_END) && (REG_BIT_CHK(tmp_u8, 3) != 1)) {
         // [BMP280から温度と気圧を読み出し]
         memset((uint8_t *)&bmp280_read_buf[0], 0x00, sizeof(bmp280_read_buf));
         tx_data = BMP280_REG_ADDR_PRESS_MSB;
-        drv_send_ret = drc_i2c_send(I2C_ADDR_SENSOR_BMP280, (uint8_t *)&tx_data, 1);
+        drv_send_ret = drv_i2c_write(I2C_ADDR_SENSOR_BMP280, (uint8_t *)&tx_data, 1, true);
         // BMP280から6Byte一括読み出し
-        drv_recv_ret = drc_i2c_recv(I2C_ADDR_SENSOR_BMP280, (uint8_t *)&bmp280_read_buf[0], 6, false);
+        drv_recv_ret = drv_i2c_read(I2C_ADDR_SENSOR_BMP280, (uint8_t *)&bmp280_read_buf[0], 6, false, true);
         if(drv_recv_ret == I2C_RET_END) {
             // 20bit 気圧（-40~85°C ±1.0°C)を取得
             tmp_u32 = ((uint32_t)bmp280_read_buf[0]) << 12;          // 温度のBit[19:12]
@@ -178,12 +178,12 @@ static void rtc_time_read(void)
     memset((uint8_t *)&rtc_read_buf[0], 0x00, 16);
 #if 1
     // [DS3231の全アドレス0x00~0x12を一括読み出し]
-    drv_send_ret = drc_i2c_send(I2C_ADDR_RTC_DS3231, (uint8_t *)&tx_data, 1);
-    drv_recv_ret = drc_i2c_recv(I2C_ADDR_RTC_DS3231, (uint8_t *)&rtc_read_buf[0], 0x12, false);
+    drv_send_ret = drv_i2c_write(I2C_ADDR_RTC_DS3231, (uint8_t *)&tx_data, 1, true);
+    drv_recv_ret = drv_i2c_read(I2C_ADDR_RTC_DS3231, (uint8_t *)&rtc_read_buf[0], 0x12, false, true);
 #else
     // [RX8900の全アドレス0x00~0x0Fを一括読み出し]
-    drv_send_ret = drc_i2c_send(I2C_ADDR_RTC_RX8900, (uint8_t *)&tx_data, 1);
-    drv_recv_ret = drc_i2c_recv(I2C_ADDR_RTC_RX8900, (uint8_t *)&rtc_read_buf[0], 0x0F, false);
+    drv_send_ret = drv_i2c_write(I2C_ADDR_RTC_RX8900, (uint8_t *)&tx_data, 1, true);
+    drv_recv_ret = drv_i2c_read(I2C_ADDR_RTC_RX8900, (uint8_t *)&rtc_read_buf[0], 0x0F, false, true);
 #endif
 
 #ifdef DEBUG_UART_USE
@@ -210,9 +210,9 @@ static uint8_t _i2c_proc(void *p_arg)
 {
     printf("[DEBUG] I2C Proc\r\n");
 
-#if 0
+#ifdef EEPROM_USE
     eeprom_read(); // EEPROMからデータ読み出し
-#endif
+#endif // EEPROM_USE
 
 #ifdef I2C_ENV_SENSOR_DEVICE
     env_sensor_read(); // 環境センサー値取得 (温度、湿度)
@@ -301,7 +301,7 @@ void app_main_init(void)
 
 #if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280)
     // BMP280 リセット
-    drc_i2c_send(I2C_ADDR_SENSOR_BMP280, (uint8_t *)&g_bmp280_reset_data, 2);
+    drv_i2c_write(I2C_ADDR_SENSOR_BMP280, (uint8_t *)&g_bmp280_reset_data, 2, true);
 #endif //I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280
 
 #if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
