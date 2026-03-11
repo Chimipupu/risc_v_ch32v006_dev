@@ -10,6 +10,7 @@
 #include "app_io_reg.h"
 #include "drv_i2c.h"
 #include "drv_tim.h"
+#include "drv_i2c_eeprom_24c64.h"
 #include "drv_rtc_rx8900.h"
 #include "pcb_board_define.h"
 // -----------------------------------------------------------
@@ -57,6 +58,7 @@ typedef enum {
     volatile const uint8_t g_bmp280_id_reg_data[2] = {BMP280_REG_ADDR_ID, BMP280_ID_REG_EXP_VAL};
     #endif //I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280
 
+    static void eeprom_read(void);
     static void env_sensor_read(void);
     static void rtc_time_read(void);
 #endif // DEBUG_I2C_USE
@@ -191,11 +193,27 @@ static void rtc_time_read(void)
 #endif
 }
 
+static void eeprom_read(void)
+{
+    volatile uint8_t tx_data = 0;
+    volatile drv_i2c_ret drv_send_ret = I2C_RET_END;
+    volatile drv_i2c_ret drv_recv_ret = I2C_RET_END;
+    volatile uint8_t eeprom_page_buf[EEPROM_24C64_PAGE_SIZE_BYTE] = {0};
+    volatile uint16_t eeprom_addr = 0;
+
+    memset((uint8_t *)&eeprom_page_buf[0], 0x00, EEPROM_24C64_PAGE_SIZE_BYTE);
+
+    // TODO: (TBD) 詳細設計「詳細設計書_IOCPS」のシート「EEPROMメモリマップ」の読み出し
+}
+
 static uint8_t _i2c_proc(void *p_arg)
 {
     printf("[DEBUG] I2C Proc\r\n");
 
-#if 1
+#if 0
+    eeprom_read(); // EEPROMからデータ読み出し
+#endif
+
 #ifdef I2C_ENV_SENSOR_DEVICE
     env_sensor_read(); // 環境センサー値取得 (温度、湿度)
 #endif // I2C_ENV_SENSOR_DEVICE
@@ -203,7 +221,6 @@ static uint8_t _i2c_proc(void *p_arg)
 #ifdef I2C_RTC_DEVICE
     rtc_time_read(); // RTCから時刻取得
 #endif // I2C_RTC_DEVICE
-#endif
 
     return APP_PROC_END;
 }

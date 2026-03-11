@@ -13,7 +13,11 @@
 // ----------------------------------------------------------------------
 // [コンパイルスイッチ]
 #define DEBUG_UART_USE // UARTの使用有無
-// #define DEBUG_I2C_USE // I2Cの使用有無
+#define DEBUG_I2C_USE // I2Cの使用有無
+
+#ifdef DEBUG_I2C_USE
+    #define EEPROM_USE
+#endif // DEBUG_I2C_USE
 // ----------------------------------------------------------------------
 
 #endif // PCB_BOARD_H
