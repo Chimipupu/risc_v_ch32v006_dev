@@ -24,6 +24,7 @@
 
 // My Lib
 #include "drv_rtc_rx8900.h"
+#include "drv_i2c_eeprom_24c64.h"
 #include "pcb_board_define.h"
 
 // -----------------------------------------------------------
@@ -77,7 +78,7 @@ static void hw_uart_init(void)
 #if (SDI_PRINT == SDI_PR_OPEN) || defined(DEBUG_UART_USE)
     printf("[DEBUG] CH32V006F8P6 Develop\r\n");
     printf("SystemClk: %d MHz\r\n",SystemCoreClock / 1000000);
-    printf("ChipID: %08x\r\n", DBGMCU_GetCHIPID() );
+    printf("ChipID: %08x\r\n", DBGMCU_GetCHIPID());
 #endif
 }
 
@@ -87,12 +88,19 @@ static void hw_i2c_init(void)
     drc_i2c_Init(I2C_CLOCK_400_KHZ); // I2C マスター 400KHz
 
     #ifdef EEPROM_USE
-    volatile uint8_t eeprom_read_byte;
-    drv_eeprom_read_byte(0x0000, (uint8_t *)&eeprom_read_byte);
-    if(eeprom_read_byte != 0xAB) {
-        drv_eeprom_write_byte(0x0000, 0xAB);
-    }
+    // uint8_t i;
+    // volatile uint8_t eeprom_read_page[EEPROM_24C64_PAGE_SIZE_BYTE] = {0};
+
+    // for(i = 0; i < EEPROM_24C64_PAGE_SIZE_BYTE; i++)
+    // {
+    //     drv_eeprom_read_byte(i, &eeprom_read_page[i]);
+    // }
+
+    // if(eeprom_read_page[0] != 0xAB) {
+    //     drv_eeprom_write_byte(0x0000, 0xAB);
+    // }
     #endif // EEPROM_USE
+
 #endif // DEBUG_I2C_USE
 }
 

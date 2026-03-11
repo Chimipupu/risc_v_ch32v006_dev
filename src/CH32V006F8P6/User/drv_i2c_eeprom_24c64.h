@@ -15,7 +15,7 @@
 // -----------------------------------------------------------
 // [Define]
 
-#define I2C_ADDR_EEPROM_24C64         0x80 // EEPROM 24C64 I2Cスレーブアドレス
+#define I2C_ADDR_EEPROM_24C64         0x50 // EEPROM 24C64 I2Cスレーブアドレス
 #define EEPROM_24C64_PAGE_SIZE_BYTE   32   // EEPROM 24C64 ページサイズ 32Byte
 #define EEPROM_24C64_SIZE_BYTE        8192 // EEPROM 24C64 全容量 8192Byte
 #define EEPROM_24C64_PAGE_NUM         (EEPROM_24C64_SIZE_BYTE / EEPROM_24C64_PAGE_SIZE_BYTE) // EEPROM 24C64 ページ数

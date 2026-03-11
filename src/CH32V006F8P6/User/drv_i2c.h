@@ -30,15 +30,6 @@
 #define I2C_CLOCK_400_KHZ             400000  // I2C SCLクロック = 400KHz
 #define I2C_CLOCK_1_MHZ               1000000 // I2C SCLクロック = 1MHz
 
-#define I2C_RTC_DS3231                0
-#define I2C_RTC_RX8900                1
-// #define I2C_RTC_DEVICE                I2C_RTC_DS3231
-// #define I2C_RTC_DEVICE                I2C_RTC_RX8900
-
-#define I2C_ENV_SENSOR_AHT20          0
-#define I2C_ENV_SENSOR_BMP280         1
-// #define I2C_ENV_SENSOR_DEVICE         I2C_ENV_SENSOR_AHT20
-// #define I2C_ENV_SENSOR_DEVICE         I2C_ENV_SENSOR_BMP280
 // -----------------------------------------------------------
 // [Define]
 

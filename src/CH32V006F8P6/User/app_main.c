@@ -254,6 +254,7 @@ static uint8_t _debug_proc(void *p_arg)
     // printf("[DEBUG] Debug Proc\r\n");
 
 #ifdef DEBUG_UART_USE
+    printf("[DEBUG] PCB Info: Type = %s\r\n", PCB_NAME_STR);
     printf("[DEBUG] Chip UID(96bit): 0x%08X 0x%08X 0x%08X\r\n", g_chip_uid[2], g_chip_uid[1], g_chip_uid[0]);
 #endif
 
