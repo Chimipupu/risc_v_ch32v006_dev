@@ -8,6 +8,7 @@
  */
 
 #include "drv_i2c_eeprom_24c64.h"
+#include <stdint.h>
 
 // -----------------------------------------------------------
 // [Static関数]
@@ -50,12 +51,34 @@ drv_i2c_ret drv_eeprom_read_byte(uint16_t addr, uint8_t *p_data)
     return ret;
 }
 
-drv_i2c_ret drv_eeprom_write_page(uint8_t top_page, uint8_t *p_page_data_buf)
+drv_i2c_ret drv_eeprom_read_page(uint8_t read_page, uint8_t *p_page_data_buf)
 {
-    // TODO
+    drv_i2c_ret ret = I2C_RET_END;
+    uint8_t addr_buf[2] = {0};
+    uint16_t page_top_addr;
+    
+    page_top_addr = read_page * EEPROM_24C64_PAGE_BYTE_SIZE;
+
+    _eeprom_addr_to_buf(page_top_addr, (uint8_t *)&addr_buf[0]);
+    ret = drv_i2c_write(I2C_ADDR_EEPROM_24C64, (uint8_t *)&addr_buf[0], 2, false);
+    if(ret == I2C_RET_END) {
+        ret = drv_i2c_read(I2C_ADDR_EEPROM_24C64, p_page_data_buf, EEPROM_24C64_PAGE_BYTE_SIZE, true, true);
+    }
+
+    return ret;
 }
 
-drv_i2c_ret drv_eeprom_read_page(uint8_t top_page, uint8_t *p_page_data_buf)
+drv_i2c_ret drv_eeprom_write_page(uint8_t write_page, uint8_t *p_page_data_buf)
 {
-    // TODO
+    drv_i2c_ret ret = I2C_RET_END;
+    uint8_t addr_buf[2] = {0};
+    uint16_t page_top_addr;
+    
+    page_top_addr = write_page * EEPROM_24C64_PAGE_BYTE_SIZE;
+
+    _eeprom_addr_to_buf(page_top_addr, (uint8_t *)&addr_buf[0]);
+    ret = drv_i2c_write(I2C_ADDR_EEPROM_24C64, (uint8_t *)&addr_buf[0], 2, false);
+    ret = drv_i2c_write(I2C_ADDR_EEPROM_24C64, p_page_data_buf, EEPROM_24C64_PAGE_BYTE_SIZE, true);
+
+    return ret;
 }

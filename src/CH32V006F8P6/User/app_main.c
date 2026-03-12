@@ -198,10 +198,10 @@ static void eeprom_read(void)
     volatile uint8_t tx_data = 0;
     volatile drv_i2c_ret drv_send_ret = I2C_RET_END;
     volatile drv_i2c_ret drv_recv_ret = I2C_RET_END;
-    volatile uint8_t eeprom_page_buf[EEPROM_24C64_PAGE_SIZE_BYTE] = {0};
+    volatile uint8_t eeprom_page_buf[EEPROM_24C64_PAGE_BYTE_SIZE] = {0};
     volatile uint16_t eeprom_addr = 0;
 
-    memset((uint8_t *)&eeprom_page_buf[0], 0x00, EEPROM_24C64_PAGE_SIZE_BYTE);
+    memset((uint8_t *)&eeprom_page_buf[0], 0x00, EEPROM_24C64_PAGE_BYTE_SIZE);
 
     // TODO: (TBD) 詳細設計「詳細設計書_IOCPS」のシート「EEPROMメモリマップ」の読み出し
 }

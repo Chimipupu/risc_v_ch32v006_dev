@@ -89,9 +89,9 @@ static void hw_i2c_init(void)
 
     #ifdef EEPROM_USE
     // uint8_t i;
-    // volatile uint8_t eeprom_read_page[EEPROM_24C64_PAGE_SIZE_BYTE] = {0};
+    // volatile uint8_t eeprom_read_page[EEPROM_24C64_PAGE_BYTE_SIZE] = {0};
 
-    // for(i = 0; i < EEPROM_24C64_PAGE_SIZE_BYTE; i++)
+    // for(i = 0; i < EEPROM_24C64_PAGE_BYTE_SIZE; i++)
     // {
     //     drv_eeprom_read_byte(i, &eeprom_read_page[i]);
     // }
