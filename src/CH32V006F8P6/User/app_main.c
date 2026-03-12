@@ -16,11 +16,6 @@
 // -----------------------------------------------------------
 // [DEBUG関連]
 
-#ifdef DEBUG_APP
-// volatile uint16_t g_dbg_start_timer_cnt = 0;
-// volatile uint16_t g_dbg_end_timer_cnt = 0;
-#endif // DEBUG_APP
-
 #if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
 #include "dbg_com.h"
 #endif // DEBUG_UART_USE && DBG_COM_USE
@@ -46,9 +41,9 @@ typedef enum {
         STEP_I2C_RECV,        // 受信ステップ
         STEP_I2C_RESULT       // 処理結果ステップ
     } app_i2c_step;
-    volatile const uint8_t g_dbg_i2c_send_data_buf[2] = {RTC_RX8900_REG_CTRL, 0x01};
-    volatile uint8_t g_app_i2c_recv_data_buf[16] = {0};
+    // volatile uint8_t g_app_i2c_recv_data_buf[16] = {0};
 
+#if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_AHT20) || (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280) 
     #if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_AHT20)
     volatile const uint8_t g_aht20_cmd[3] = {0xAC, 0x33, 0x00};
     #endif // I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_AHT20
@@ -58,9 +53,17 @@ typedef enum {
     volatile const uint8_t g_bmp280_id_reg_data[2] = {BMP280_REG_ADDR_ID, BMP280_ID_REG_EXP_VAL};
     #endif //I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280
 
-    static void eeprom_read(void);
     static void env_sensor_read(void);
+#endif
+
+#if (I2C_RTC_DEVICE == I2C_RTC_DS3231) || (I2C_RTC_DEVICE == I2C_RTC_RX8900)
+    #if (I2C_RTC_DEVICE == I2C_RTC_RX8900)
+    volatile const uint8_t g_dbg_i2c_send_data_buf[2] = {RTC_RX8900_REG_CTRL, 0x01};
+    #endif
     static void rtc_time_read(void);
+#endif
+
+    static void eeprom_read(void);
 #endif // DEBUG_I2C_USE
 
 volatile uint32_t g_chip_uid[3] = {0};
@@ -91,7 +94,7 @@ static void util_chip_uid_read(uint32_t *p_buf);
 // -----------------------------------------------------------
 // [Static関数]
 #ifdef DEBUG_I2C_USE
-#if (I2C_ENV_SENSOR_DEVICE != I2C_ENV_SENSOR_NODE)
+#if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_AHT20) || (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280) 
 static void env_sensor_read(void)
 {
     volatile uint8_t tmp_u8;
@@ -131,8 +134,8 @@ static void env_sensor_read(void)
         #ifdef DEBUG_UART_USE
         printf("[DEBUG] AHT20: Temp = %d °C, Humdity = %d %%RH\r\n", (int32_t)aht20_temp_data, (uint32_t)aht20_humdity_data);
         #endif
-    }
 #endif
+    }
 
 #if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280) // BMP280
     volatile uint8_t bmp280_read_buf[8] = {0};
@@ -172,7 +175,7 @@ static void env_sensor_read(void)
 }
 #endif
 
-#if (I2C_RTC_DEVICE != I2C_RTC_NONE)
+#if (I2C_RTC_DEVICE == I2C_RTC_DS3231) || (I2C_RTC_DEVICE == I2C_RTC_RX8900)
 static void rtc_time_read(void)
 {
     volatile uint8_t tx_data = 0;
@@ -203,6 +206,7 @@ static void rtc_time_read(void)
 
 static void eeprom_read(void)
 {
+#if 0
     volatile uint8_t tx_data = 0;
     volatile drv_i2c_ret drv_send_ret = I2C_RET_END;
     volatile drv_i2c_ret drv_recv_ret = I2C_RET_END;
@@ -212,6 +216,7 @@ static void eeprom_read(void)
     memset((uint8_t *)&eeprom_page_buf[0], 0x00, EEPROM_24C64_PAGE_BYTE_SIZE);
 
     // TODO: (TBD) 詳細設計「詳細設計書_IOCPS」のシート「EEPROMメモリマップ」の読み出し
+#endif
 }
 
 static uint8_t _i2c_proc(void *p_arg)
@@ -222,11 +227,11 @@ static uint8_t _i2c_proc(void *p_arg)
     // eeprom_read(); // EEPROMからデータ読み出し
 #endif // EEPROM_USE
 
-#if (I2C_ENV_SENSOR_DEVICE != I2C_ENV_SENSOR_NODE)
+#if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_AHT20) || (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280)
     env_sensor_read(); // 環境センサー値取得 (温度、湿度)
 #endif // I2C_ENV_SENSOR_DEVICE
 
-#if (I2C_RTC_DEVICE != I2C_RTC_NONE)
+#if (I2C_RTC_DEVICE == I2C_RTC_DS3231) || (I2C_RTC_DEVICE == I2C_RTC_RX8900)
     rtc_time_read(); // RTCから時刻取得
 #endif // I2C_RTC_DEVICE
 
@@ -236,23 +241,15 @@ static uint8_t _i2c_proc(void *p_arg)
 
 static uint8_t _app_io_reg_proc(void *p_arg)
 {
-    uint8_t addr, reg;
+    uint8_t i, reg;
 
-#if 1
-    addr = APP_IO_REG_ADDR_WHO_I_AM;
-    reg = app_io_reg_read(addr);
-    #ifdef DEBUG_UART_USE
-        printf("[APP I/O Reg] Addr: 0x%02X, Val: 0x%02X\r\n", addr, reg);
-    #endif
-#else
-    for(addr = 0; addr < APP_IO_REG_NUM; addr++)
+    for(i = 0; i < IO_REG_STR_TBL_CNT; i++)
     {
-        reg = app_io_reg_read(addr);
-    #ifdef DEBUG_UART_USE
-        printf("[APP I/O Reg] Addr: 0x%02X, Val: 0x%02X\r\n", addr, reg);
-    #endif
+        reg = app_io_reg_read(g_io_reg_str_tbl[i].addr);
+        #ifdef DEBUG_UART_USE
+            printf("[APP I/O Reg] %s, Addr: 0x%02X, Val: 0x%02X\r\n", g_io_reg_str_tbl[i].p_str,  g_io_reg_str_tbl[i].addr, reg);
+        #endif    
     }
-#endif
 
     return APP_PROC_END;
 }
