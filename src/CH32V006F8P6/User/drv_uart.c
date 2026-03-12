@@ -27,11 +27,12 @@ void USART1_IRQHandler(void)
     tmp = USART_GetITStatus(USART1, USART_IT_RXNE);
 
     // 受信データをリングバッファに詰める
-    while(USART_GetITStatus(USART1, USART_IT_RXNE == SET))
+    while(tmp == SET)
     {
         s_rx_buf[s_rx_buf_write_idx] = (uint8_t)(USART1->DATAR & 0x00FF);
         s_rx_data_size = (s_rx_data_size + 1) % USART_RX_BUF_SIZE;
         s_rx_buf_write_idx = (s_rx_buf_write_idx + 1) % USART_RX_BUF_SIZE;
+        tmp = USART_GetITStatus(USART1, USART_IT_RXNE);
     }
 
     USART_ClearITPendingBit(USART1, USART_IT_RXNE);

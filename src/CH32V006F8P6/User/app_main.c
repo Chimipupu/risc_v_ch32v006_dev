@@ -63,7 +63,7 @@ typedef enum {
     static void rtc_time_read(void);
 #endif
 
-    static void eeprom_read(void);
+    // static void eeprom_read(void);
 #endif // DEBUG_I2C_USE
 
 volatile uint32_t g_chip_uid[3] = {0};
@@ -204,9 +204,9 @@ static void rtc_time_read(void)
 }
 #endif
 
+#if 0
 static void eeprom_read(void)
 {
-#if 0
     volatile uint8_t tx_data = 0;
     volatile drv_i2c_ret drv_send_ret = I2C_RET_END;
     volatile drv_i2c_ret drv_recv_ret = I2C_RET_END;
@@ -216,8 +216,8 @@ static void eeprom_read(void)
     memset((uint8_t *)&eeprom_page_buf[0], 0x00, EEPROM_24C64_PAGE_BYTE_SIZE);
 
     // TODO: (TBD) 詳細設計「詳細設計書_IOCPS」のシート「EEPROMメモリマップ」の読み出し
-#endif
 }
+#endif
 
 static uint8_t _i2c_proc(void *p_arg)
 {
@@ -245,9 +245,9 @@ static uint8_t _app_io_reg_proc(void *p_arg)
 
     for(i = 0; i < IO_REG_STR_TBL_CNT; i++)
     {
-        reg = app_io_reg_read(g_io_reg_str_tbl[i].addr);
+        reg = app_io_reg_read(g_io_reg_data_tbl[i].addr);
         #ifdef DEBUG_UART_USE
-            printf("[APP I/O Reg] %s, Addr: 0x%02X, Val: 0x%02X\r\n", g_io_reg_str_tbl[i].p_str,  g_io_reg_str_tbl[i].addr, reg);
+            printf("[APP I/O Reg] %s, Addr: 0x%02X, Val: 0x%02X\r\n", g_io_reg_data_tbl[i].p_str,  g_io_reg_data_tbl[i].addr, reg);
         #endif    
     }
 
