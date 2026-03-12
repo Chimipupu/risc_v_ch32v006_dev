@@ -91,6 +91,7 @@ static void util_chip_uid_read(uint32_t *p_buf);
 // -----------------------------------------------------------
 // [Static関数]
 #ifdef DEBUG_I2C_USE
+#if (I2C_ENV_SENSOR_DEVICE != I2C_ENV_SENSOR_NODE)
 static void env_sensor_read(void)
 {
     volatile uint8_t tmp_u8;
@@ -131,7 +132,9 @@ static void env_sensor_read(void)
         printf("[DEBUG] AHT20: Temp = %d °C, Humdity = %d %%RH\r\n", (int32_t)aht20_temp_data, (uint32_t)aht20_humdity_data);
         #endif
     }
-#else // BMP280
+#endif
+
+#if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280) // BMP280
     volatile uint8_t bmp280_read_buf[8] = {0};
     volatile float bmp280_temp_data;
     volatile float bmp280_press_data;
@@ -167,7 +170,9 @@ static void env_sensor_read(void)
     }
 #endif
 }
+#endif
 
+#if (I2C_RTC_DEVICE != I2C_RTC_NONE)
 static void rtc_time_read(void)
 {
     volatile uint8_t tx_data = 0;
@@ -176,11 +181,13 @@ static void rtc_time_read(void)
     volatile uint8_t rtc_read_buf[16] = {0};
 
     memset((uint8_t *)&rtc_read_buf[0], 0x00, 16);
-#if 1
+#if (I2C_RTC_DEVICE == I2C_RTC_DS3231)
     // [DS3231の全アドレス0x00~0x12を一括読み出し]
     drv_send_ret = drv_i2c_write(I2C_ADDR_RTC_DS3231, (uint8_t *)&tx_data, 1, true);
     drv_recv_ret = drv_i2c_read(I2C_ADDR_RTC_DS3231, (uint8_t *)&rtc_read_buf[0], 0x12, false, true);
-#else
+#endif
+
+#if (I2C_RTC_DEVICE == I2C_RTC_RX8900)
     // [RX8900の全アドレス0x00~0x0Fを一括読み出し]
     drv_send_ret = drv_i2c_write(I2C_ADDR_RTC_RX8900, (uint8_t *)&tx_data, 1, true);
     drv_recv_ret = drv_i2c_read(I2C_ADDR_RTC_RX8900, (uint8_t *)&rtc_read_buf[0], 0x0F, false, true);
@@ -192,6 +199,7 @@ static void rtc_time_read(void)
     }
 #endif
 }
+#endif
 
 static void eeprom_read(void)
 {
@@ -214,11 +222,11 @@ static uint8_t _i2c_proc(void *p_arg)
     // eeprom_read(); // EEPROMからデータ読み出し
 #endif // EEPROM_USE
 
-#ifdef I2C_ENV_SENSOR_DEVICE
+#if (I2C_ENV_SENSOR_DEVICE != I2C_ENV_SENSOR_NODE)
     env_sensor_read(); // 環境センサー値取得 (温度、湿度)
 #endif // I2C_ENV_SENSOR_DEVICE
 
-#ifdef I2C_RTC_DEVICE
+#if (I2C_RTC_DEVICE != I2C_RTC_NONE)
     rtc_time_read(); // RTCから時刻取得
 #endif // I2C_RTC_DEVICE
 

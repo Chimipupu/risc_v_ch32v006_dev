@@ -17,6 +17,14 @@
 // #define PCB_TYPE    PCB_ENV_BOARD_MK_0
 #define PCB_TYPE    PCB_ENV_BOARD_MK_1
 
+#define I2C_RTC_NONE                  0xFF
+#define I2C_RTC_DS3231                0
+#define I2C_RTC_RX8900                1
+
+#define I2C_ENV_SENSOR_NOTE          0xFF
+#define I2C_ENV_SENSOR_AHT20          0
+#define I2C_ENV_SENSOR_BMP280         1
+
 // ----------------------------------------------------------------------
 // 試作初号基板 「ENV MK0」
 #if (PCB_TYPE == PCB_ENV_BOARD_MK_0)
@@ -24,15 +32,11 @@
 
     #define DEBUG_UART_USE // UARTの使用有無
     #define DEBUG_I2C_USE  // I2Cの使用有無
-    // #define EEPROM_USE
+    // #define EEPROM_USE     // EEPROMの使用有無
 
-    #define I2C_RTC_DS3231                0
-    #define I2C_RTC_RX8900                1
     #define I2C_RTC_DEVICE                I2C_RTC_DS3231
     // #define I2C_RTC_DEVICE                I2C_RTC_RX8900
-    
-    #define I2C_ENV_SENSOR_AHT20          0
-    #define I2C_ENV_SENSOR_BMP280         1
+
     #define I2C_ENV_SENSOR_DEVICE         I2C_ENV_SENSOR_AHT20
     // #define I2C_ENV_SENSOR_DEVICE         I2C_ENV_SENSOR_BMP280
 #endif // PCB_ENV_BOARD_MK_0
@@ -43,6 +47,9 @@
     #define DEBUG_UART_USE  // UARTの使用有無
     #define DEBUG_I2C_USE   // I2Cの使用有無
     #define EEPROM_USE      // EEPROMの使用有無
+
+    #define I2C_RTC_DEVICE                I2C_RTC_NONE
+    #define I2C_ENV_SENSOR_DEVICE         I2C_ENV_SENSOR_NOTE
 #endif // PCB_ENV_BOARD_MK_1
 //**********************************************************************
 
