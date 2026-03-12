@@ -33,7 +33,10 @@ drv_i2c_ret drv_eeprom_write_byte(uint16_t addr, uint8_t data)
     _eeprom_addr_to_buf(addr, (uint8_t *)&data_buf[0]);
     // data[2]...書き込みデータ
     data_buf[2] = data;
-    ret = drv_i2c_write(I2C_ADDR_EEPROM_24C64, (uint8_t *)&data_buf[0], 3, true);
+
+    do {
+        ret = drv_i2c_write(I2C_ADDR_EEPROM_24C64, (uint8_t *)&data_buf[0], 3, true);
+    } while(ret != I2C_RET_END);
 
     return ret;
 }
@@ -44,10 +47,15 @@ drv_i2c_ret drv_eeprom_read_byte(uint16_t addr, uint8_t *p_data)
     uint8_t addr_buf[2] = {0};
 
     _eeprom_addr_to_buf(addr, (uint8_t *)&addr_buf[0]);
-    ret = drv_i2c_write(I2C_ADDR_EEPROM_24C64, (uint8_t *)&addr_buf[0], 2, false);
-    if(ret == I2C_RET_END) {
+
+    do {
+        ret = drv_i2c_write(I2C_ADDR_EEPROM_24C64, (uint8_t *)&addr_buf[0], 2, true);
+    } while(ret != I2C_RET_END);
+
+    do {
         ret = drv_i2c_read(I2C_ADDR_EEPROM_24C64, p_data, 1, true, true);
-    }
+    } while(ret != I2C_RET_END);
+
     return ret;
 }
 
@@ -58,12 +66,15 @@ drv_i2c_ret drv_eeprom_read_page(uint8_t read_page, uint8_t *p_page_data_buf)
     uint16_t page_top_addr;
     
     page_top_addr = read_page * EEPROM_24C64_PAGE_BYTE_SIZE;
-
     _eeprom_addr_to_buf(page_top_addr, (uint8_t *)&addr_buf[0]);
-    ret = drv_i2c_write(I2C_ADDR_EEPROM_24C64, (uint8_t *)&addr_buf[0], 2, false);
-    if(ret == I2C_RET_END) {
+
+    do {
+        ret = drv_i2c_write(I2C_ADDR_EEPROM_24C64, (uint8_t *)&addr_buf[0], 2, true);
+    } while(ret != I2C_RET_END);
+
+    do {
         ret = drv_i2c_read(I2C_ADDR_EEPROM_24C64, p_page_data_buf, EEPROM_24C64_PAGE_BYTE_SIZE, true, true);
-    }
+    } while(ret != I2C_RET_END);
 
     return ret;
 }
@@ -75,10 +86,15 @@ drv_i2c_ret drv_eeprom_write_page(uint8_t write_page, uint8_t *p_page_data_buf)
     uint16_t page_top_addr;
     
     page_top_addr = write_page * EEPROM_24C64_PAGE_BYTE_SIZE;
-
     _eeprom_addr_to_buf(page_top_addr, (uint8_t *)&addr_buf[0]);
-    ret = drv_i2c_write(I2C_ADDR_EEPROM_24C64, (uint8_t *)&addr_buf[0], 2, false);
-    ret = drv_i2c_write(I2C_ADDR_EEPROM_24C64, p_page_data_buf, EEPROM_24C64_PAGE_BYTE_SIZE, true);
+
+    do {
+        ret = drv_i2c_write(I2C_ADDR_EEPROM_24C64, (uint8_t *)&addr_buf[0], 2, true);
+    } while(ret != I2C_RET_END);
+
+    do {
+        ret = drv_i2c_write(I2C_ADDR_EEPROM_24C64, p_page_data_buf, EEPROM_24C64_PAGE_BYTE_SIZE, true);
+    } while(ret != I2C_RET_END);
 
     return ret;
 }

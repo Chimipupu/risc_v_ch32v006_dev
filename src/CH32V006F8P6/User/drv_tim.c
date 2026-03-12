@@ -72,7 +72,7 @@ void drv_tick_delay_ms(uint32_t ms)
 void drv_tim_init(uint16_t arr, uint16_t psc, uint16_t div)
 {
     uint8_t i;
-    NVIC_InitTypeDef NVIC_InitStructure = {0};
+    // NVIC_InitTypeDef NVIC_InitStructure = {0};
     TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStructure = {0};
     volatile uint16_t div_config_val = TIM_CKD_DIV1; // デフォルトは1分周(TIM_CKD_DIV1)
 

@@ -14,6 +14,7 @@
 
 // ADK
 #include <ch32v00x.h>
+#include <stdint.h>
 #include "debug.h"
 
 // My App
@@ -34,6 +35,14 @@ static void hw_timer_init(void);
 static void hw_uart_init(void);
 static void hw_i2c_init(void);
 
+#ifdef EEPROM_USE
+volatile const uint8_t g_page_data[] = {
+    0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78, 0x99,
+    0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55,
+    0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0xFF, 0xFF,
+    0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55
+};
+#endif
 // -----------------------------------------------------------
 // [Static関数]
 
@@ -70,6 +79,7 @@ static void hw_uart_init(void)
 #if (SDI_PRINT == SDI_PR_OPEN)
     SDI_Printf_Enable();
 #endif
+
 #ifdef DEBUG_UART_USE
     // USRAT初期化 115200 8N1(TX=PD5ピン, RX=PD6ピン)
     drv_uart_init();
@@ -88,19 +98,14 @@ static void hw_i2c_init(void)
     drc_i2c_Init(I2C_CLOCK_400_KHZ); // I2C マスター 400KHz
 
     #ifdef EEPROM_USE
-    // uint8_t i;
-    // volatile uint8_t eeprom_read_page[EEPROM_24C64_PAGE_BYTE_SIZE] = {0};
+    volatile uint8_t eeprom_page_buf[EEPROM_24C64_PAGE_BYTE_SIZE] = {0};
 
-    // for(i = 0; i < EEPROM_24C64_PAGE_BYTE_SIZE; i++)
-    // {
-    //     drv_eeprom_read_byte(i, &eeprom_read_page[i]);
-    // }
-
-    // if(eeprom_read_page[0] != 0xAB) {
-    //     drv_eeprom_write_byte(0x0000, 0xAB);
-    // }
+    drv_eeprom_read_page(0x00, (uint8_t *)&eeprom_page_buf[0]);
+    if(eeprom_page_buf[0] != 0xAB) {
+        drv_eeprom_write_page(0x00, (uint8_t *)&g_page_data[0]);
+        drv_eeprom_read_page(0x00, (uint8_t *)&eeprom_page_buf[0]);
+    }
     #endif // EEPROM_USE
-
 #endif // DEBUG_I2C_USE
 }
 

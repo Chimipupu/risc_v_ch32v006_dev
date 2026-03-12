@@ -211,7 +211,7 @@ static uint8_t _i2c_proc(void *p_arg)
     printf("[DEBUG] I2C Proc\r\n");
 
 #ifdef EEPROM_USE
-    eeprom_read(); // EEPROMからデータ読み出し
+    // eeprom_read(); // EEPROMからデータ読み出し
 #endif // EEPROM_USE
 
 #ifdef I2C_ENV_SENSOR_DEVICE

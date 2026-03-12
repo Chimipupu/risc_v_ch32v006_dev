@@ -14,8 +14,8 @@
 // [コンパイルスイッチ]
 #define PCB_ENV_BOARD_MK_0    0x00
 #define PCB_ENV_BOARD_MK_1    0x01
-#define PCB_TYPE    PCB_ENV_BOARD_MK_0
-// #define PCB_TYPE    PCB_ENV_BOARD_MK_1
+// #define PCB_TYPE    PCB_ENV_BOARD_MK_0
+#define PCB_TYPE    PCB_ENV_BOARD_MK_1
 
 // ----------------------------------------------------------------------
 // 試作初号基板 「ENV MK0」
