@@ -13,6 +13,7 @@
 #include "drv_i2c_eeprom_24c64.h"
 #include "drv_rtc_rx8900.h"
 #include "pcb_board_define.h"
+#include <stdint.h>
 // -----------------------------------------------------------
 // [DEBUG関連]
 
@@ -62,8 +63,6 @@ typedef enum {
     #endif
     static void rtc_time_read(void);
 #endif
-
-    // static void eeprom_read(void);
 #endif // DEBUG_I2C_USE
 
 volatile uint32_t g_chip_uid[3] = {0};
@@ -91,9 +90,43 @@ app_main_func_tbl_t g_app_func_tbl[] = {
 const uint8_t g_app_func_tbl_cnt = sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0]);
 
 static void util_chip_uid_read(uint32_t *p_buf);
+
+#ifdef EEPROM_USE
+volatile const uint8_t g_eeprom_init_page_0_data[] = {
+    0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78, 0x99,
+    0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55,
+    0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0xFF, 0xFF,
+    0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55
+};
+volatile uint8_t g_eeprom_page_buf[EEPROM_24C64_PAGE_BYTE_SIZE] = {0};
+
+static void _eeprom_init(void);
+#endif
 // -----------------------------------------------------------
 // [Static関数]
 #ifdef DEBUG_I2C_USE
+
+#ifdef EEPROM_USE
+static void _eeprom_init(void)
+{
+    int ret_cmp;
+
+    drv_eeprom_read_page(0x00, (uint8_t *)&g_eeprom_page_buf[0]);
+    if(g_eeprom_page_buf[0] != 0xAB) {
+        drv_eeprom_write_page(0x00, (uint8_t *)&g_eeprom_init_page_0_data[0]);
+        drv_tick_delay_ms(10); // EEPROMの書き込み待ち時間の8ms以上待つ
+        drv_eeprom_read_page(0x00, (uint8_t *)&g_eeprom_page_buf[0]);
+    }
+
+    ret_cmp = memcmp((const void *)&g_eeprom_init_page_0_data, (const void *)&g_eeprom_page_buf, EEPROM_24C64_PAGE_BYTE_SIZE);
+    if(ret_cmp == 0) {
+        printf("[DEBUG] EEPROM Verify OK\r\n");
+    } else {
+        printf("[DEBUG] EEPROM Verify ERROR\r\n");
+    }
+}
+#endif // EEPROM_USE
+
 #if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_AHT20) || (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280) 
 static void env_sensor_read(void)
 {
@@ -204,28 +237,10 @@ static void rtc_time_read(void)
 }
 #endif
 
-#if 0
-static void eeprom_read(void)
-{
-    volatile uint8_t tx_data = 0;
-    volatile drv_i2c_ret drv_send_ret = I2C_RET_END;
-    volatile drv_i2c_ret drv_recv_ret = I2C_RET_END;
-    volatile uint8_t eeprom_page_buf[EEPROM_24C64_PAGE_BYTE_SIZE] = {0};
-    volatile uint16_t eeprom_addr = 0;
-
-    memset((uint8_t *)&eeprom_page_buf[0], 0x00, EEPROM_24C64_PAGE_BYTE_SIZE);
-
-    // TODO: (TBD) 詳細設計「詳細設計書_IOCPS」のシート「EEPROMメモリマップ」の読み出し
-}
-#endif
-
 static uint8_t _i2c_proc(void *p_arg)
 {
     printf("[DEBUG] I2C Proc\r\n");
 
-#ifdef EEPROM_USE
-    // eeprom_read(); // EEPROMからデータ読み出し
-#endif // EEPROM_USE
 
 #if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_AHT20) || (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280)
     env_sensor_read(); // 環境センサー値取得 (温度、湿度)
@@ -304,6 +319,10 @@ void app_main_init(void)
 {
     app_io_reg_init();                              // アプリI/Oレジスタ初期化
     util_chip_uid_read((uint32_t *)&g_chip_uid[0]); // 96bitのUID読み出し
+
+#ifdef EEPROM_USE
+    _eeprom_init(); // EEPROMからデータ読み出し
+#endif // EEPROM_USE
 
 #if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280)
     // BMP280 リセット

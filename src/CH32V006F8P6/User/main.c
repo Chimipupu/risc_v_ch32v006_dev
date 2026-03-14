@@ -34,15 +34,6 @@ static void hw_clock_init(void);
 static void hw_timer_init(void);
 static void hw_uart_init(void);
 static void hw_i2c_init(void);
-
-#ifdef EEPROM_USE
-volatile const uint8_t g_page_data[] = {
-    0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78, 0x99,
-    0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55,
-    0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0xFF, 0xFF,
-    0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55
-};
-#endif
 // -----------------------------------------------------------
 // [Static関数]
 
@@ -96,16 +87,6 @@ static void hw_i2c_init(void)
 {
 #ifdef DEBUG_I2C_USE
     drc_i2c_Init(I2C_CLOCK_400_KHZ); // I2C マスター 400KHz
-
-    #ifdef EEPROM_USE
-    volatile uint8_t eeprom_page_buf[EEPROM_24C64_PAGE_BYTE_SIZE] = {0};
-
-    drv_eeprom_read_page(0x00, (uint8_t *)&eeprom_page_buf[0]);
-    if(eeprom_page_buf[0] != 0xAB) {
-        drv_eeprom_write_page(0x00, (uint8_t *)&g_page_data[0]);
-        drv_eeprom_read_page(0x00, (uint8_t *)&eeprom_page_buf[0]);
-    }
-    #endif // EEPROM_USE
 #endif // DEBUG_I2C_USE
 }
 
