@@ -13,6 +13,7 @@
 #include "drv_i2c_eeprom_24c64.h"
 #include "drv_rtc_rx8900.h"
 #include "pcb_board_define.h"
+#include <stdbool.h>
 #include <stdint.h>
 // -----------------------------------------------------------
 // [DEBUG関連]
@@ -93,37 +94,72 @@ static void util_chip_uid_read(uint32_t *p_buf);
 
 #ifdef EEPROM_USE
 volatile const uint8_t g_eeprom_init_page_0_data[] = {
-    0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78, 0x99,
-    0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55,
-    0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0xFF, 0xFF,
-    0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55
+    0x43, 0x48, 0x33, 0x32, 0x56, 0x30, 0x30, 0x36,
+    0x20, 0x44, 0x45, 0x56, 0x45, 0x4C, 0x4F, 0x50,
+    0x42, 0x59, 0x20, 0x43, 0x48, 0x49, 0x4D, 0x49,
+    0x50, 0x55, 0x50, 0x55, 0x20, 0x20, 0x20, 0x20
 };
 volatile uint8_t g_eeprom_page_buf[EEPROM_24C64_PAGE_BYTE_SIZE] = {0};
+static bool _app_eeprom_factory_reset(void);
+#endif // EEPROM_USE
 
-static void _eeprom_init(void);
-#endif
+static void _mem_dump(const uint8_t *p_buf, uint32_t size);
 // -----------------------------------------------------------
 // [Static関数]
-#ifdef DEBUG_I2C_USE
 
-#ifdef EEPROM_USE
-static void _eeprom_init(void)
+static void _mem_dump(const uint8_t *p_buf, uint32_t size)
 {
+    uint8_t c, h, i;
+
+    for(h = 0; h < (size / 16); h++)
+    {
+        printf("%04X: ", h * 16);
+        // HEX形式でダンプ
+        for(i = 0; i < 16; i++)
+        {
+            printf("%02X ", p_buf[h * 16 + i]);
+        }
+        printf(" |");
+        // ASCIIでダンプ
+        for(i = 0; i < 16; i++)
+        {
+            c = p_buf[h * 16 + i];
+            // 0x20(スペース) から 0x7E(~) までを表示
+            c = ((c >= 0x20) && (c <= 0x7E)) ? c : ' ';
+            printf("%c", c);
+        }
+        printf("|\r\n");
+    }
+}
+
+#ifdef DEBUG_I2C_USE
+#ifdef EEPROM_USE
+static bool _app_eeprom_factory_reset(void)
+{
+    bool ret;
     int ret_cmp;
 
     drv_eeprom_read_page(0x00, (uint8_t *)&g_eeprom_page_buf[0]);
-    if(g_eeprom_page_buf[0] != 0xAB) {
+    ret_cmp = memcmp((const void *)&g_eeprom_init_page_0_data,
+                     (const void *)&g_eeprom_page_buf,
+                        EEPROM_24C64_PAGE_BYTE_SIZE);
+
+    // EEPROMを工場出荷リセット
+    if(ret_cmp != 0) {
+        ret = true;
         drv_eeprom_write_page(0x00, (uint8_t *)&g_eeprom_init_page_0_data[0]);
         drv_tick_delay_ms(10); // EEPROMの書き込み待ち時間の8ms以上待つ
         drv_eeprom_read_page(0x00, (uint8_t *)&g_eeprom_page_buf[0]);
+        printf("[DEBUG] EEPROM Factory Reset Done!\r\n");
+    } else {
+        ret = false;
+        printf("[DEBUG] This EEPROM Aleady Factory Reseted!\r\n");
     }
 
-    ret_cmp = memcmp((const void *)&g_eeprom_init_page_0_data, (const void *)&g_eeprom_page_buf, EEPROM_24C64_PAGE_BYTE_SIZE);
-    if(ret_cmp == 0) {
-        printf("[DEBUG] EEPROM Verify OK\r\n");
-    } else {
-        printf("[DEBUG] EEPROM Verify ERROR\r\n");
-    }
+    // EEPORM メモリダンプ
+    _mem_dump((const uint8_t *)&g_eeprom_page_buf[0], EEPROM_24C64_PAGE_BYTE_SIZE);
+
+    return ret;
 }
 #endif // EEPROM_USE
 
@@ -241,6 +277,11 @@ static uint8_t _i2c_proc(void *p_arg)
 {
     printf("[DEBUG] I2C Proc\r\n");
 
+#ifdef EEPROM_USE
+    // EEPORM メモリダンプ
+    printf("[DEBUG] EEPROM Memory Dump\r\n");
+    _mem_dump((const uint8_t *)&g_eeprom_page_buf[0], EEPROM_24C64_PAGE_BYTE_SIZE);
+#endif // EEPROM_USE
 
 #if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_AHT20) || (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280)
     env_sensor_read(); // 環境センサー値取得 (温度、湿度)
@@ -321,7 +362,7 @@ void app_main_init(void)
     util_chip_uid_read((uint32_t *)&g_chip_uid[0]); // 96bitのUID読み出し
 
 #ifdef EEPROM_USE
-    _eeprom_init(); // EEPROMからデータ読み出し
+    _app_eeprom_factory_reset(); // EEPROMの工場出荷リセット
 #endif // EEPROM_USE
 
 #if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280)
