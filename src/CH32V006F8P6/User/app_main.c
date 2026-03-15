@@ -24,6 +24,33 @@
 #endif // DEBUG_UART_USE && DBG_COM_USE
 
 // -----------------------------------------------------------
+// [アプリメイン関連]
+typedef uint8_t (*p_func_app_main)(void *p_arg);
+static uint8_t _app_btn_proc(void *p_arg);
+static uint8_t _app_io_reg_proc(void *p_arg);
+#ifdef DEBUG_I2C_USE
+static uint8_t _i2c_proc(void *p_arg);
+#endif // DEBUG_I2C_USE
+static uint8_t _debug_proc(void *p_arg);
+
+typedef struct {
+    p_func_app_main pfunc; // アプリコールバック関数ポインタ
+    uint16_t interval_ms;  // アプリコールバック関数の実行周期(ms)
+} app_main_func_tbl_t;
+
+// アプリメインコールバック関数テーブル
+app_main_func_tbl_t g_app_func_tbl[] = {
+    {_app_btn_proc,    500}, // ボタン処理アプリ
+    {_app_io_reg_proc, 900}, // I/Oレジスタアプリ
+#ifdef DEBUG_I2C_USE
+    {_i2c_proc,        1000}, // I2C処理
+#endif // DEBUG_I2C_USE
+    {_debug_proc,      5000}, // デバッグ処理
+};
+#define APP_FUNC_TBL_CNT    sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0])
+
+static uint32_t s_app_tick_cnt_buf[APP_FUNC_TBL_CNT] = {0};
+// -----------------------------------------------------------
 // [Private]
 
 #define APP_PROC_EXEC    0x00
@@ -68,31 +95,6 @@ typedef enum {
 #endif // DEBUG_I2C_USE
 
 volatile uint32_t g_chip_uid[3] = {0};
-
-typedef uint8_t (*p_func_app_main)(void *p_arg);
-static uint8_t _app_btn_proc(void *p_arg);
-static uint8_t _app_io_reg_proc(void *p_arg);
-#ifdef DEBUG_I2C_USE
-static uint8_t _i2c_proc(void *p_arg);
-#endif // DEBUG_I2C_USE
-static uint8_t _debug_proc(void *p_arg);
-
-typedef struct {
-    p_func_app_main pfunc; // アプリコールバック関数ポインタ
-    uint16_t interval_ms;  // アプリコールバック関数の実行周期(ms)
-} app_main_func_tbl_t;
-
-// アプリコールバック関数テーブル
-app_main_func_tbl_t g_app_func_tbl[] = {
-    {_app_btn_proc,    500}, // ボタン処理アプリ
-    {_app_io_reg_proc, 900}, // I/Oレジスタアプリ
-#ifdef DEBUG_I2C_USE
-    {_i2c_proc,        1000}, // I2C処理
-#endif // DEBUG_I2C_USE
-    {_debug_proc,      5000}, // デバッグ処理
-};
-const uint8_t g_app_func_tbl_cnt = sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0]);
-
 static void util_chip_uid_read(uint32_t *p_buf);
 
 #ifdef EEPROM_USE
@@ -107,6 +109,7 @@ static bool _app_eeprom_factory_reset(void);
 #endif // EEPROM_USE
 
 static void _mem_dump(const uint8_t *p_buf, uint32_t size);
+
 // -----------------------------------------------------------
 // [Static関数]
 
@@ -304,6 +307,8 @@ static uint8_t _app_btn_proc(void *p_arg)
         g_is_btn_on_flg = false;
         printf("[DEBUG] EXTI0 IRQ (= PCB Button ON)\r\n");
     }
+
+    return APP_PROC_END;
 }
 
 static uint8_t _app_io_reg_proc(void *p_arg)
@@ -392,8 +397,8 @@ void app_main_init(void)
  */
 void app_main(void)
 {
+    uint8_t i;
     uint8_t cbK_ret;
-    static uint32_t s_tick_cnt_ms[sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0])] = {0};
     static uint32_t s_prev_tick_cnt = 0;
     uint32_t current_tick_cnt = drv_get_systick_cnt();
     uint32_t delta_ms = current_tick_cnt - s_prev_tick_cnt;
@@ -404,13 +409,13 @@ void app_main(void)
         return;
     }
 
-    for(uint8_t i = 0; i < g_app_func_tbl_cnt; i++)
+    for(i = 0; i < APP_FUNC_TBL_CNT; i++)
     {
-        s_tick_cnt_ms[i] += delta_ms;
-        if(s_tick_cnt_ms[i] >= g_app_func_tbl[i].interval_ms) {
+        s_app_tick_cnt_buf[i] += delta_ms;
+        if(s_app_tick_cnt_buf[i] >= g_app_func_tbl[i].interval_ms) {
             cbK_ret = g_app_func_tbl[i].pfunc(NULL);
             if(cbK_ret == APP_PROC_END) {
-                s_tick_cnt_ms[i] = 0;
+                s_app_tick_cnt_buf[i] = 0;
             }
         }
     }

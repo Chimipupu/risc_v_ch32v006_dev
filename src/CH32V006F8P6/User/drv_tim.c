@@ -3,7 +3,7 @@
  * @author Chimipupu(https://github.com/Chimipupu)
  * @brief  CH32V006 タイマドライバ
  * @version 0.1
- * @date 2026-03-05
+ * @date 2026-03-15
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  */
 
@@ -20,9 +20,10 @@ volatile const drv_tim_div_t g_tim_div_tbl[] = {
     {2, TIM_CKD_DIV2},
     {4, TIM_CKD_DIV4},
 };
-volatile const uint8_t g_tim_div_tbl_cnt = sizeof(g_tim_div_tbl) / sizeof(g_tim_div_tbl[0]);
+#define TIM_DIV_TBL_CNT    sizeof(g_tim_div_tbl) / sizeof(g_tim_div_tbl[0])
 
 volatile uint32_t g_systick_cnt_ms = 0;
+volatile software_timer_cnt_t g_sw_timer_cnt_buf[SW_TIMER_BUG_SIZE];
 // -----------------------------------------------------------
 // [割り込みハンドラ]
 
@@ -40,7 +41,7 @@ void SysTick_Handler(void)
     SysTick->SR = 0; // SysTick割り込みフラグクリア
 }
 
-#if 0
+#ifdef USE_TIM_IRQ
 void TIM1_UP_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 /**
  * @brief TIM1カウントアップ割り込みハンドラ
@@ -51,15 +52,61 @@ void TIM1_UP_IRQHandler(void)
     ret = TIM_GetITStatus(TIM1, TIM_IT_Update);
     TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
 }
-#endif
+#endif // USE_TIM_IRQ
 // -----------------------------------------------------------
 // [ドライバ]
-
 void drv_tick_delay_ms(uint32_t ms)
 {
     uint32_t start_tick = drv_get_systick_cnt();
     while ((drv_get_systick_cnt() - start_tick) < ms) {
-        // NOP
+        __asm__ __volatile__("nop");
+    }
+}
+
+void soft_timer_start(uint8_t timer_no, uint32_t config_time_ms)
+{
+    if(timer_no <= (SW_TIMER_BUG_SIZE - 1)) {
+        g_sw_timer_cnt_buf[timer_no].is_cnt_start = true;
+        g_sw_timer_cnt_buf[timer_no].config_time_ms = config_time_ms;
+        g_sw_timer_cnt_buf[timer_no].cnt_time_ms = 0;
+    }
+}
+
+void soft_timer_stop(uint8_t timer_no)
+{
+    if(timer_no <= (SW_TIMER_BUG_SIZE - 1)) {
+        g_sw_timer_cnt_buf[timer_no].is_cnt_start = false;
+    }
+}
+
+bool get_soft_timer_cnt_match(uint8_t timer_no)
+{
+    if(timer_no <= (SW_TIMER_BUG_SIZE - 1)) {
+        if(g_sw_timer_cnt_buf[timer_no].is_cnt_start != false) {
+            return g_sw_timer_cnt_buf[timer_no].is_cnt_match;
+        }
+    }
+}
+
+void soft_timer_proc(void)
+{
+    uint8_t i;
+    static uint32_t s_prev_tick_cnt = 0;
+    uint32_t current_tick_cnt;
+    uint32_t delta_ms;
+
+    current_tick_cnt = drv_get_systick_cnt();
+    delta_ms = current_tick_cnt - s_prev_tick_cnt;
+    s_prev_tick_cnt = current_tick_cnt;
+
+    for(i = 0; i < SW_TIMER_BUG_SIZE; i++)
+    {
+        if(g_sw_timer_cnt_buf[i].is_cnt_start != false) {
+            g_sw_timer_cnt_buf[i].cnt_time_ms += delta_ms;
+            if(g_sw_timer_cnt_buf[i].cnt_time_ms >= g_sw_timer_cnt_buf[i].config_time_ms) {
+                g_sw_timer_cnt_buf[i].is_cnt_match = true;
+            }
+        }
     }
 }
 
@@ -83,7 +130,7 @@ void drv_tim_init(uint16_t arr, uint16_t psc, uint16_t div)
     TIM_TimeBaseInitStructure.TIM_Prescaler = psc;
 
     // 分周比の設定値をテーブルから検索(1,2,4分周のいずれかを指定)
-    for(i = 0; i < g_tim_div_tbl_cnt; i++)
+    for(i = 0; i < TIM_DIV_TBL_CNT; i++)
     {
         if(g_tim_div_tbl[i].div == div) {
             div_config_val = g_tim_div_tbl[i].div_config_val;
@@ -96,7 +143,7 @@ void drv_tim_init(uint16_t arr, uint16_t psc, uint16_t div)
     TIM_TimeBaseInitStructure.TIM_RepetitionCounter = 50;
     TIM_TimeBaseInit(TIM1, &TIM_TimeBaseInitStructure);
 
-#if 0
+#ifdef USE_TIM_IRQ
     // -----------------------------------------------------------
     // [タイマ割り込み初期化]
     TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
@@ -107,7 +154,27 @@ void drv_tim_init(uint16_t arr, uint16_t psc, uint16_t div)
     NVIC_Init(&NVIC_InitStructure);
     TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);
     // -----------------------------------------------------------
-#endif
+#endif // USE_TIM_IRQ
 
     TIM_Cmd(TIM1, ENABLE);
+}
+
+void drv_systick_init(void)
+{
+    uint8_t i;
+
+    NVIC_EnableIRQ(SysTick_IRQn);                 // SysTick割り込み有効化
+    SysTick->SR &= ~(1 << 0);                     // SysTick割り込みフラグクリア
+    SysTick->CMP = (SystemCoreClock - 1) / 1000;  // SysTick割り込み = 1ms周期
+    SysTick->CNT = 0;                             // SysTickカウント値をクリア
+    SysTick->CTLR = 0xF;
+
+    // S/Wタイマーカウント初期化
+    for(i = 0; i < SW_TIMER_BUG_SIZE; i++)
+    {
+        g_sw_timer_cnt_buf[i].is_cnt_start = false;
+        g_sw_timer_cnt_buf[i].is_cnt_match = false;
+        g_sw_timer_cnt_buf[i].config_time_ms = 0;
+        g_sw_timer_cnt_buf[i].cnt_time_ms = 0;
+    }
 }

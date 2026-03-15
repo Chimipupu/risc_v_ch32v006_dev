@@ -56,14 +56,10 @@ static void hw_gpio_init(void)
 static void hw_timer_init(void)
 {
     // SysTickタイマー初期化
-    NVIC_EnableIRQ(SysTick_IRQn);                 // SysTick割り込み有効化
-    SysTick->SR &= ~(1 << 0);                     // SysTick割り込みフラグクリア
-    SysTick->CMP = (SystemCoreClock - 1) / 1000;  // SysTick割り込み = 1ms周期
-    SysTick->CNT = 0;                             // SysTickカウント値をクリア
-    SysTick->CTLR = 0xF;
+    drv_systick_init();
 
-    // TIM1 (16bit 高機能タイマー)初期化
 #if 0
+    // TIM1 (16bit 高機能タイマー)初期化
     #if 0
         // TIM1 @1ms周期、カウントアップ @65.535秒
         // 1ms周期 = (48MHz / div) / psc = (48MHz / 1) / 48000 = 1ms
@@ -121,7 +117,8 @@ int main(void)
 
     while(1)
     {
-        app_main(); // アプリメイン
+        soft_timer_proc(); // S/Wタイマー処理
+        app_main();        // アプリメイン
     }
 
     return 0;
