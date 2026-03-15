@@ -64,7 +64,6 @@ static void _sw_timer_init(uint8_t timer_no)
 {
     if(timer_no <= (SW_TIMER_BUG_SIZE - 1)) {
         g_sw_timer_buf[timer_no].is_cnt_start = false;
-        g_sw_timer_buf[timer_no].is_cnt_match = false;
         g_sw_timer_buf[timer_no].is_intervel = false;
         g_sw_timer_buf[timer_no].config_time_ms = 0;
         g_sw_timer_buf[timer_no].cnt_time_ms = 0;
@@ -78,7 +77,6 @@ static void _sw_timer_all_init(void)
     for(i = 0; i < SW_TIMER_BUG_SIZE; i++)
     {
         g_sw_timer_buf[i].is_cnt_start = false;
-        g_sw_timer_buf[i].is_cnt_match = false;
         g_sw_timer_buf[i].is_intervel = false;
         g_sw_timer_buf[i].config_time_ms = 0;
         g_sw_timer_buf[i].cnt_time_ms = 0;
@@ -95,7 +93,7 @@ void drv_tick_delay_ms(uint32_t ms)
     }
 }
 
-bool soft_timer_start(uint32_t config_time_ms, bool is_intervel, uint8_t *p_timer_no)
+bool soft_timer_start(uint16_t config_time_ms, bool is_intervel, uint8_t *p_timer_no)
 {
     bool ret = false;
     uint8_t i;
@@ -126,17 +124,22 @@ void soft_timer_stop(uint8_t timer_no)
 
 bool get_soft_timer_cnt_match(uint8_t timer_no)
 {
-    bool ret = false;
-
     if(timer_no <= (SW_TIMER_BUG_SIZE - 1)) {
         if(g_sw_timer_buf[timer_no].is_cnt_start != false) {
-            // 一様、読み出されたのでCOR (Clear on Read)
-            ret = g_sw_timer_buf[timer_no].is_cnt_match;
-            g_sw_timer_buf[timer_no].is_cnt_match = false;
+            // コンペアマッチしてるか？
+            if(g_sw_timer_buf[timer_no].cnt_time_ms >= g_sw_timer_buf[timer_no].config_time_ms) {
+                // falseのワンショットなら終了、trueの周期タイマーなら再スタート
+                if(g_sw_timer_buf[timer_no].is_intervel == false) {
+                    g_sw_timer_buf[timer_no].is_cnt_start = false;
+                } else {
+                    g_sw_timer_buf[timer_no].cnt_time_ms = 0;
+                }
+                return true;
+            } else {
+                return false;
+            }
         }
     }
-
-    return ret;
 }
 
 void soft_timer_proc(void)
@@ -154,16 +157,6 @@ void soft_timer_proc(void)
     {
         if(g_sw_timer_buf[i].is_cnt_start != false) {
             g_sw_timer_buf[i].cnt_time_ms += delta_ms; // 1ms加算
-            // コンペアマッチしてるか？
-            if(g_sw_timer_buf[i].cnt_time_ms >= g_sw_timer_buf[i].config_time_ms) {
-                g_sw_timer_buf[i].is_cnt_match = true;
-                // falseのワンショットなら終了、trueの周期タイマーなら再スタート
-                if(g_sw_timer_buf[i].is_intervel == false) {
-                    _sw_timer_init(i);
-                } else {
-                    g_sw_timer_buf[i].cnt_time_ms = 0;
-                }
-            }
         }
     }
 }
