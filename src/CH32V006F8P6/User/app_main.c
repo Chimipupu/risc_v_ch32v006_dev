@@ -49,10 +49,9 @@ app_main_func_tbl_t g_app_func_tbl[] = {
 };
 #define APP_FUNC_TBL_CNT    sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0])
 
-static uint32_t s_app_tick_cnt_buf[APP_FUNC_TBL_CNT] = {0};
+static uint8_t s_app_sw_timer_no_buf[APP_FUNC_TBL_CNT] = {0};
 // -----------------------------------------------------------
 // [Private]
-
 #define APP_PROC_EXEC    0x00
 #define APP_PROC_END     0x01
 
@@ -320,7 +319,7 @@ static uint8_t _app_io_reg_proc(void *p_arg)
         reg = app_io_reg_read(g_io_reg_data_tbl[i].addr);
         #ifdef DEBUG_UART_USE
             printf("[APP I/O Reg] %s, Addr: 0x%02X, Val: 0x%02X\r\n", g_io_reg_data_tbl[i].p_str,  g_io_reg_data_tbl[i].addr, reg);
-        #endif    
+        #endif
     }
 
     return APP_PROC_END;
@@ -374,6 +373,8 @@ static void util_chip_uid_read(uint32_t *p_buf)
  */
 void app_main_init(void)
 {
+    uint8_t i;
+
     app_io_reg_init();                              // アプリI/Oレジスタ初期化
     util_chip_uid_read((uint32_t *)&g_chip_uid[0]); // 96bitのUID読み出し
 
@@ -389,6 +390,12 @@ void app_main_init(void)
 #if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
     dbg_com_init(); // デバッグモニタ 初期化
 #endif //DEBUG_UART_USE
+
+    // S/Wタイマースタート
+    for(i = 0; i < APP_FUNC_TBL_CNT; i++)
+    {
+        soft_timer_start(g_app_func_tbl[i].interval_ms, true, &s_app_sw_timer_no_buf[i]);
+    }
 }
 
 /**
@@ -398,24 +405,16 @@ void app_main_init(void)
 void app_main(void)
 {
     uint8_t i;
+    bool ret_sw_timer;
     uint8_t cbK_ret;
-    static uint32_t s_prev_tick_cnt = 0;
-    uint32_t current_tick_cnt = drv_get_systick_cnt();
-    uint32_t delta_ms = current_tick_cnt - s_prev_tick_cnt;
-
-    s_prev_tick_cnt = current_tick_cnt;
-
-    if(delta_ms == 0) {
-        return;
-    }
 
     for(i = 0; i < APP_FUNC_TBL_CNT; i++)
     {
-        s_app_tick_cnt_buf[i] += delta_ms;
-        if(s_app_tick_cnt_buf[i] >= g_app_func_tbl[i].interval_ms) {
+        ret_sw_timer = get_soft_timer_cnt_match(s_app_sw_timer_no_buf[i]);
+        if(ret_sw_timer == true) {
             cbK_ret = g_app_func_tbl[i].pfunc(NULL);
             if(cbK_ret == APP_PROC_END) {
-                s_app_tick_cnt_buf[i] = 0;
+                // TODO
             }
         }
     }

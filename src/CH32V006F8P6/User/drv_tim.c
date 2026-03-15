@@ -23,7 +23,10 @@ volatile const drv_tim_div_t g_tim_div_tbl[] = {
 #define TIM_DIV_TBL_CNT    sizeof(g_tim_div_tbl) / sizeof(g_tim_div_tbl[0])
 
 volatile uint32_t g_systick_cnt_ms = 0;
-volatile software_timer_cnt_t g_sw_timer_cnt_buf[SW_TIMER_BUG_SIZE];
+volatile software_timer_config_t g_sw_timer_buf[SW_TIMER_BUG_SIZE];
+
+static void _sw_timer_init(uint8_t timer_no);
+static void _sw_timer_all_init(void);
 // -----------------------------------------------------------
 // [割り込みハンドラ]
 
@@ -53,6 +56,35 @@ void TIM1_UP_IRQHandler(void)
     TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
 }
 #endif // USE_TIM_IRQ
+
+// -----------------------------------------------------------
+// [Static関数]
+
+static void _sw_timer_init(uint8_t timer_no)
+{
+    if(timer_no <= (SW_TIMER_BUG_SIZE - 1)) {
+        g_sw_timer_buf[timer_no].is_cnt_start = false;
+        g_sw_timer_buf[timer_no].is_cnt_match = false;
+        g_sw_timer_buf[timer_no].is_intervel = false;
+        g_sw_timer_buf[timer_no].config_time_ms = 0;
+        g_sw_timer_buf[timer_no].cnt_time_ms = 0;
+    }
+}
+
+static void _sw_timer_all_init(void)
+{
+    uint8_t i;
+
+    for(i = 0; i < SW_TIMER_BUG_SIZE; i++)
+    {
+        g_sw_timer_buf[i].is_cnt_start = false;
+        g_sw_timer_buf[i].is_cnt_match = false;
+        g_sw_timer_buf[i].is_intervel = false;
+        g_sw_timer_buf[i].config_time_ms = 0;
+        g_sw_timer_buf[i].cnt_time_ms = 0;
+    }
+}
+
 // -----------------------------------------------------------
 // [ドライバ]
 void drv_tick_delay_ms(uint32_t ms)
@@ -63,29 +95,48 @@ void drv_tick_delay_ms(uint32_t ms)
     }
 }
 
-void soft_timer_start(uint8_t timer_no, uint32_t config_time_ms)
+bool soft_timer_start(uint32_t config_time_ms, bool is_intervel, uint8_t *p_timer_no)
 {
-    if(timer_no <= (SW_TIMER_BUG_SIZE - 1)) {
-        g_sw_timer_cnt_buf[timer_no].is_cnt_start = true;
-        g_sw_timer_cnt_buf[timer_no].config_time_ms = config_time_ms;
-        g_sw_timer_cnt_buf[timer_no].cnt_time_ms = 0;
+    bool ret = false;
+    uint8_t i;
+
+    // 空いてるタイマーを探す
+    for(i = 0; i < SW_TIMER_BUG_SIZE; i++)
+    {
+        if(g_sw_timer_buf[i].is_cnt_start != true) {
+            g_sw_timer_buf[i].is_intervel = is_intervel;
+            g_sw_timer_buf[i].config_time_ms = config_time_ms;
+            g_sw_timer_buf[i].cnt_time_ms = 0;
+            g_sw_timer_buf[i].is_cnt_start = true;
+            *p_timer_no = i;
+            ret = true;
+            break; // Break for loop
+        }
     }
+
+    return ret;
 }
 
 void soft_timer_stop(uint8_t timer_no)
 {
     if(timer_no <= (SW_TIMER_BUG_SIZE - 1)) {
-        g_sw_timer_cnt_buf[timer_no].is_cnt_start = false;
+        g_sw_timer_buf[timer_no].is_cnt_start = false;
     }
 }
 
 bool get_soft_timer_cnt_match(uint8_t timer_no)
 {
+    bool ret = false;
+
     if(timer_no <= (SW_TIMER_BUG_SIZE - 1)) {
-        if(g_sw_timer_cnt_buf[timer_no].is_cnt_start != false) {
-            return g_sw_timer_cnt_buf[timer_no].is_cnt_match;
+        if(g_sw_timer_buf[timer_no].is_cnt_start != false) {
+            // 一様、読み出されたのでCOR (Clear on Read)
+            ret = g_sw_timer_buf[timer_no].is_cnt_match;
+            g_sw_timer_buf[timer_no].is_cnt_match = false;
         }
     }
+
+    return ret;
 }
 
 void soft_timer_proc(void)
@@ -101,10 +152,17 @@ void soft_timer_proc(void)
 
     for(i = 0; i < SW_TIMER_BUG_SIZE; i++)
     {
-        if(g_sw_timer_cnt_buf[i].is_cnt_start != false) {
-            g_sw_timer_cnt_buf[i].cnt_time_ms += delta_ms;
-            if(g_sw_timer_cnt_buf[i].cnt_time_ms >= g_sw_timer_cnt_buf[i].config_time_ms) {
-                g_sw_timer_cnt_buf[i].is_cnt_match = true;
+        if(g_sw_timer_buf[i].is_cnt_start != false) {
+            g_sw_timer_buf[i].cnt_time_ms += delta_ms; // 1ms加算
+            // コンペアマッチしてるか？
+            if(g_sw_timer_buf[i].cnt_time_ms >= g_sw_timer_buf[i].config_time_ms) {
+                g_sw_timer_buf[i].is_cnt_match = true;
+                // falseのワンショットなら終了、trueの周期タイマーなら再スタート
+                if(g_sw_timer_buf[i].is_intervel == false) {
+                    _sw_timer_init(i);
+                } else {
+                    g_sw_timer_buf[i].cnt_time_ms = 0;
+                }
             }
         }
     }
@@ -161,8 +219,6 @@ void drv_tim_init(uint16_t arr, uint16_t psc, uint16_t div)
 
 void drv_systick_init(void)
 {
-    uint8_t i;
-
     NVIC_EnableIRQ(SysTick_IRQn);                 // SysTick割り込み有効化
     SysTick->SR &= ~(1 << 0);                     // SysTick割り込みフラグクリア
     SysTick->CMP = (SystemCoreClock - 1) / 1000;  // SysTick割り込み = 1ms周期
@@ -170,11 +226,5 @@ void drv_systick_init(void)
     SysTick->CTLR = 0xF;
 
     // S/Wタイマーカウント初期化
-    for(i = 0; i < SW_TIMER_BUG_SIZE; i++)
-    {
-        g_sw_timer_cnt_buf[i].is_cnt_start = false;
-        g_sw_timer_cnt_buf[i].is_cnt_match = false;
-        g_sw_timer_cnt_buf[i].config_time_ms = 0;
-        g_sw_timer_cnt_buf[i].cnt_time_ms = 0;
-    }
+    _sw_timer_all_init();
 }

@@ -38,13 +38,14 @@ __attribute__((always_inline)) static inline uint32_t drv_get_systick_cnt(void)
 typedef struct {
     bool is_cnt_start;        // カウント開始有無
     bool is_cnt_match;        // カウント一致有無
+    bool is_intervel;         // 周期タイマー有無(false=ワンショット、true=周期タイマー)
     uint32_t config_time_ms;  // 目標のタイマーカウントms
     uint32_t cnt_time_ms;     // 今現在のタイマーカウントms
-} software_timer_cnt_t;
+} software_timer_config_t;
 
 // -----------------------------------------------------------
 void drv_tick_delay_ms(uint32_t ms);
-void soft_timer_start(uint8_t timer_no, uint32_t config_time_ms);
+bool soft_timer_start(uint32_t config_time_ms, bool is_intervel, uint8_t *p_timer_no);
 void soft_timer_stop(uint8_t timer_no);
 bool get_soft_timer_cnt_match(uint8_t timer_no);
 void soft_timer_proc(void);
