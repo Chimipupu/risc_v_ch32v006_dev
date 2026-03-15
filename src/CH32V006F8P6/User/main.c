@@ -19,6 +19,9 @@
 
 // My App
 #include "app_main.h"
+
+// My Drv
+#include "drv_gpio.h"
 #include "drv_tim.h"
 #include "drv_i2c.h"
 #include "drv_uart.h"
@@ -31,9 +34,11 @@
 // -----------------------------------------------------------
 // [Private]
 static void hw_clock_init(void);
+static void hw_gpio_init(void);
 static void hw_timer_init(void);
 static void hw_uart_init(void);
 static void hw_i2c_init(void);
+
 // -----------------------------------------------------------
 // [Static関数]
 
@@ -41,6 +46,11 @@ static void hw_clock_init(void)
 {
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
     SystemCoreClockUpdate();
+}
+
+static void hw_gpio_init(void)
+{
+    drv_gpio_init();
 }
 
 static void hw_timer_init(void)
@@ -101,6 +111,7 @@ int main(void)
 {
     // [ドライバ関連]
     hw_clock_init(); // クロック初期化
+    hw_gpio_init();  // GPIO初期化
     hw_timer_init(); // タイマー初期化
     hw_i2c_init();   // I2C初期化
     hw_uart_init();  // UART初期化

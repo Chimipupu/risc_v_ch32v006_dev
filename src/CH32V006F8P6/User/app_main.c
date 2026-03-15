@@ -6,15 +6,16 @@
  * @date 2026-02-25
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  */
+
 #include "app_main.h"
 #include "app_io_reg.h"
+#include "drv_gpio.h"
 #include "drv_i2c.h"
 #include "drv_tim.h"
 #include "drv_i2c_eeprom_24c64.h"
 #include "drv_rtc_rx8900.h"
 #include "pcb_board_define.h"
-#include <stdbool.h>
-#include <stdint.h>
+
 // -----------------------------------------------------------
 // [DEBUG関連]
 
@@ -69,11 +70,12 @@ typedef enum {
 volatile uint32_t g_chip_uid[3] = {0};
 
 typedef uint8_t (*p_func_app_main)(void *p_arg);
+static uint8_t _app_btn_proc(void *p_arg);
+static uint8_t _app_io_reg_proc(void *p_arg);
 #ifdef DEBUG_I2C_USE
 static uint8_t _i2c_proc(void *p_arg);
 #endif // DEBUG_I2C_USE
 static uint8_t _debug_proc(void *p_arg);
-static uint8_t _app_io_reg_proc(void *p_arg);
 
 typedef struct {
     p_func_app_main pfunc; // アプリコールバック関数ポインタ
@@ -82,11 +84,12 @@ typedef struct {
 
 // アプリコールバック関数テーブル
 app_main_func_tbl_t g_app_func_tbl[] = {
-    {_app_io_reg_proc, 900},
+    {_app_btn_proc,    500}, // ボタン処理アプリ
+    {_app_io_reg_proc, 900}, // I/Oレジスタアプリ
 #ifdef DEBUG_I2C_USE
-    {_i2c_proc,   1000},
+    {_i2c_proc,        1000}, // I2C処理
 #endif // DEBUG_I2C_USE
-    {_debug_proc, 5000},
+    {_debug_proc,      5000}, // デバッグ処理
 };
 const uint8_t g_app_func_tbl_cnt = sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0]);
 
@@ -294,6 +297,14 @@ static uint8_t _i2c_proc(void *p_arg)
     return APP_PROC_END;
 }
 #endif // DEBUG_I2C_USE
+
+static uint8_t _app_btn_proc(void *p_arg)
+{
+    if(g_is_btn_on_flg != false) {
+        g_is_btn_on_flg = false;
+        printf("[DEBUG] EXTI0 IRQ (= PCB Button ON)\r\n");
+    }
+}
 
 static uint8_t _app_io_reg_proc(void *p_arg)
 {
