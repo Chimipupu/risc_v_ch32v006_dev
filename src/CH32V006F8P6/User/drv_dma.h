@@ -22,6 +22,14 @@
 // [コンパイルスイッチ]
 
 // -----------------------------------------------------------
+#define DMA_CH_1              0
+#define DMA_CH_2              1
+#define DMA_CH_3              2
+#define DMA_CH_4              3
+#define DMA_CH_5              4
+#define DMA_CH_6              5
+#define DMA_CH_7              6
+
 #define DMA_CH_CNT            7
 
 #define MODE_MEM2MEM       0x00

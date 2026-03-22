@@ -38,8 +38,6 @@ void _dma_init(uint8_t ch, uint8_t mode)
     RCC_HBPeriphClockCmd(RCC_HBPeriph_DMA1, ENABLE);
 
     DMA_StructInit(&DMA_InitStructure);
-    DMA_InitStructure.DMA_PeripheralBaseAddr = *((uint32_t *)s_dma_config_tbl[ch].p_src);
-    DMA_InitStructure.DMA_MemoryBaseAddr = *((uint32_t *)s_dma_config_tbl[ch].p_dst);
     DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
     DMA_InitStructure.DMA_BufferSize = s_dma_config_tbl[ch].size_byte;
     DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Enable;
@@ -49,12 +47,16 @@ void _dma_init(uint8_t ch, uint8_t mode)
     {
         // 転送幅 ... 2バイト
         case DATA_TYPE_WORD:
+            DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)((uint16_t *)s_dma_config_tbl[ch].p_src);
+            DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)((uint16_t *)s_dma_config_tbl[ch].p_dst);
             DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
             DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
             break;
 
         // 転送幅 ... 4バイト
         case DATA_TYPE_DWORD:
+            DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)((uint32_t *)s_dma_config_tbl[ch].p_src);
+            DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)((uint32_t *)s_dma_config_tbl[ch].p_dst);
             DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;
             DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Word;
             break;
@@ -62,6 +64,8 @@ void _dma_init(uint8_t ch, uint8_t mode)
         // 転送幅 ... 1バイト
         case DATA_TYPE_BYTE:
         default:
+            DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)((uint8_t *)s_dma_config_tbl[ch].p_src);
+            DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)((uint8_t *)s_dma_config_tbl[ch].p_dst);
             DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
             DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
             break;
@@ -104,7 +108,7 @@ bool drv_dma_init(uint8_t ch, uint8_t mode, drv_dma_config_t *p_config)
 {
     bool ret = false;
 
-    if((ch < DMA_CH_CNT) && (mode <= MODE_MEM2PERI) && (p_config->size_byte <= DATA_TYPE_DWORD)) {
+    if((ch < DMA_CH_CNT) && (mode <= MODE_MEM2PERI) && (p_config->data_type <= DATA_TYPE_DWORD)) {
         s_dma_config_tbl[ch].data_type = p_config->data_type;
         s_dma_config_tbl[ch].size_byte = p_config->size_byte;
         s_dma_config_tbl[ch].p_src = p_config->p_src;

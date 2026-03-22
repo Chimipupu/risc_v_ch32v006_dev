@@ -10,6 +10,7 @@
 #include "app_main.h"
 #include "app_io_reg.h"
 #include "drv_gpio.h"
+#include "drv_dma.h"
 #include "drv_i2c.h"
 #include "drv_tim.h"
 #include "drv_i2c_eeprom_24c64.h"
@@ -385,6 +386,30 @@ void app_main_init(void)
 
     app_io_reg_init();                              // アプリI/Oレジスタ初期化
     util_chip_uid_read((uint32_t *)&g_chip_uid[0]); // 96bitのUID読み出し
+
+#if 1
+    // DMAテスト
+    int cmp_ret;
+    uint8_t dbg_dma_test_buf[32] = {0};
+    drv_dma_config_t dma_cfg = {
+        .data_type = DATA_TYPE_BYTE,
+        .size_byte = 32,
+        .p_src = (void *)&g_eeprom_init_page_0_data[0],
+        .p_dst = (void *)&dbg_dma_test_buf[0],
+    };
+
+    drv_dma_init(DMA_CH_1, MODE_MEM2MEM, &dma_cfg);
+    drv_dma_start(DMA_CH_1);
+
+    while(drv_dma_tc_check(DMA_CH_1) == false);
+
+    cmp_ret = memcmp((const void *)&dbg_dma_test_buf, (const void *)&g_eeprom_init_page_0_data, 32);
+    if(cmp_ret == 0) {
+        printf("[DEBUG] DMA Compare Succes!\r\n");
+    } else {
+        printf("[DEBUG] Error! DMA Compare Fail!\r\n");
+    }
+#endif
 
 #ifdef EEPROM_USE
     _app_eeprom_factory_reset(); // EEPROMの工場出荷リセット
