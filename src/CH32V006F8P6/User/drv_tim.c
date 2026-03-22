@@ -76,10 +76,7 @@ static void _sw_timer_all_init(void)
 
     for(i = 0; i < SW_TIMER_BUG_SIZE; i++)
     {
-        g_sw_timer_buf[i].is_cnt_start = false;
-        g_sw_timer_buf[i].is_intervel = false;
-        g_sw_timer_buf[i].config_time_ms = 0;
-        g_sw_timer_buf[i].cnt_time_ms = 0;
+        _sw_timer_init(i);
     }
 }
 

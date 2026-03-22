@@ -19,6 +19,9 @@
 #define DEBUG_APP
 // ----------------------------------------------------------------------
 // [マクロ]
+#define APP_PROC_EXEC     0x00 // アプリ実行継続
+#define APP_PROC_END      0x01 // アプリ実行終了
+#define APP_PROC_ERROR    0xFF // アプリ実行エラー
 
 // レジスタを8/16/32bitでR/Wするマクロ
 #define REG_READ_BYTE(base, offset)           (*(volatile uint8_t  *)((base) + (offset)))

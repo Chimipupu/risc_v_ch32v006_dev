@@ -13,12 +13,10 @@
 #include "drv_i2c.h"
 #include "drv_tim.h"
 #include "drv_i2c_eeprom_24c64.h"
-#include "drv_rtc_rx8900.h"
 #include "pcb_board_define.h"
 
 // -----------------------------------------------------------
 // [DEBUG関連]
-
 #if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
 #include "dbg_com.h"
 #endif // DEBUG_UART_USE && DBG_COM_USE
@@ -28,10 +26,14 @@
 typedef uint8_t (*p_func_app_main)(void *p_arg);
 static uint8_t _app_btn_proc(void *p_arg);
 static uint8_t _app_io_reg_proc(void *p_arg);
+
 #ifdef DEBUG_I2C_USE
 static uint8_t _i2c_proc(void *p_arg);
 #endif // DEBUG_I2C_USE
+
+#ifdef DEBUG_APP
 static uint8_t _debug_proc(void *p_arg);
+#endif // DEBUG_APP
 
 typedef struct {
     p_func_app_main pfunc; // アプリコールバック関数ポインタ
@@ -42,18 +44,22 @@ typedef struct {
 app_main_func_tbl_t g_app_func_tbl[] = {
     {_app_btn_proc,    500}, // ボタン処理アプリ
     {_app_io_reg_proc, 900}, // I/Oレジスタアプリ
+
 #ifdef DEBUG_I2C_USE
     {_i2c_proc,        1000}, // I2C処理
 #endif // DEBUG_I2C_USE
+
+#ifdef DEBUG_APP
     {_debug_proc,      5000}, // デバッグ処理
+#endif // DEBUG_APP
 };
 #define APP_FUNC_TBL_CNT    sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0])
+const uint8_t g_app_func_tbl_cnt = APP_FUNC_TBL_CNT;
+static uint8_t s_app_sw_timer_buf[APP_FUNC_TBL_CNT] = {0};
+static uint8_t s_idx = 0;
 
-static uint8_t s_app_sw_timer_no_buf[APP_FUNC_TBL_CNT] = {0};
 // -----------------------------------------------------------
 // [Private]
-#define APP_PROC_EXEC    0x00
-#define APP_PROC_END     0x01
 
 // アプリメイン用ステートマシーンの各処理ステップ
 typedef enum {
@@ -325,6 +331,7 @@ static uint8_t _app_io_reg_proc(void *p_arg)
     return APP_PROC_END;
 }
 
+#ifdef DEBUG_APP
 static uint8_t _debug_proc(void *p_arg)
 {
     // printf("[DEBUG] Debug Proc\r\n");
@@ -341,6 +348,7 @@ static uint8_t _debug_proc(void *p_arg)
 
     return APP_PROC_END;
 }
+#endif // DEBUG_APP
 
 /**
  * @brief マイコンのユニークID(96bit)読み出し
@@ -394,7 +402,7 @@ void app_main_init(void)
     // S/Wタイマースタート
     for(i = 0; i < APP_FUNC_TBL_CNT; i++)
     {
-        soft_timer_start(g_app_func_tbl[i].interval_ms, true, &s_app_sw_timer_no_buf[i]);
+        soft_timer_start(g_app_func_tbl[i].interval_ms, true, &s_app_sw_timer_buf[i]);
     }
 }
 
@@ -404,18 +412,22 @@ void app_main_init(void)
  */
 void app_main(void)
 {
-    uint8_t i;
     bool ret_sw_timer;
     uint8_t cbK_ret;
 
-    for(i = 0; i < APP_FUNC_TBL_CNT; i++)
-    {
-        ret_sw_timer = get_soft_timer_cnt_match(s_app_sw_timer_no_buf[i]);
-        if(ret_sw_timer == true) {
-            cbK_ret = g_app_func_tbl[i].pfunc(NULL);
-            if(cbK_ret == APP_PROC_END) {
+    ret_sw_timer = get_soft_timer_cnt_match(s_app_sw_timer_buf[s_idx]);
+
+    if(ret_sw_timer == true) {
+        // アプリ コールバック関数実行
+        cbK_ret = g_app_func_tbl[s_idx].pfunc(NULL);
+
+        if(cbK_ret != APP_PROC_EXEC) {
+            // アプリ実行失敗時の処理
+            if(cbK_ret == APP_PROC_ERROR) {
                 // TODO
             }
         }
     }
+
+    s_idx = (s_idx + 1) % g_app_func_tbl_cnt;
 }
