@@ -22,23 +22,25 @@
 // [コンパイルスイッチ]
 
 // -----------------------------------------------------------
+#define DMA_CH_CNT            7
+
 #define MODE_MEM2MEM       0x00
 #define MODE_MEM2PERI      0x01
 
-#define DATA_TYPE_BYTE     0x00
-#define DATA_TYPE_WORD     0x01
-#define DATA_TYPE_DWORD    0x02
+#define DATA_TYPE_BYTE     0x00 // 転送幅 ... 1バイト
+#define DATA_TYPE_WORD     0x02 // 転送幅 ... 2バイト
+#define DATA_TYPE_DWORD    0x04 // 転送幅 ... 4バイト
 
 // -----------------------------------------------------------
 typedef struct {
-    uint8_t mode;
-    uint32_t size;
     uint8_t data_type;
+    uint32_t size_byte;
     void *p_src;
     void *p_dst;
 } drv_dma_config_t;
 
 // -----------------------------------------------------------
-void drv_dma_init(uint8_t ch, drv_dma_config_t *p_config);
+void drv_dma_start(uint8_t ch);
+bool drv_dma_init(uint8_t ch, uint8_t mode, drv_dma_config_t *p_config);
 
 #endif // DRV_DMA_H
