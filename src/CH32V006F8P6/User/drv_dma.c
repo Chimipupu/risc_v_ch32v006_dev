@@ -11,14 +11,19 @@
 
 // -----------------------------------------------------------
 
-const DMA_Channel_TypeDef *p_dma_ch_tbl[DMA_CH_CNT] = {
-    DMA1_Channel1,
-    DMA1_Channel2,
-    DMA1_Channel3,
-    DMA1_Channel4,
-    DMA1_Channel5,
-    DMA1_Channel6,
-    DMA1_Channel7,
+typedef struct {
+    DMA_Channel_TypeDef *p_dma_ch;
+    uint32_t tc_flg;
+} dma_config_data_t;
+
+const dma_config_data_t g_dma_ch_config_tbl[DMA_CH_CNT] = {
+    {DMA1_Channel1, DMA1_FLAG_TC1},
+    {DMA1_Channel2, DMA1_FLAG_TC2},
+    {DMA1_Channel3, DMA1_FLAG_TC3},
+    {DMA1_Channel4, DMA1_FLAG_TC4},
+    {DMA1_Channel5, DMA1_FLAG_TC5},
+    {DMA1_Channel6, DMA1_FLAG_TC6},
+    {DMA1_Channel7, DMA1_FLAG_TC7},
 };
 
 static drv_dma_config_t s_dma_config_tbl[DMA_CH_CNT];
@@ -71,8 +76,8 @@ void _dma_init(uint8_t ch, uint8_t mode)
         DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
     }
 
-    DMA_Init(DMA1_Channel3, &DMA_InitStructure);
-    DMA_ClearFlag(DMA1_FLAG_TC3);
+    DMA_Init(g_dma_ch_config_tbl[ch].p_dma_ch, &DMA_InitStructure);
+    DMA_ClearFlag(g_dma_ch_config_tbl[ch].tc_flg);
 }
 // -----------------------------------------------------------
 // [ドライバ]
@@ -80,7 +85,18 @@ void _dma_init(uint8_t ch, uint8_t mode)
 void drv_dma_start(uint8_t ch)
 {
     if(ch < DMA_CH_CNT) {
-        DMA_Cmd(p_dma_ch_tbl[ch], ENABLE);
+        DMA_Cmd(g_dma_ch_config_tbl[ch].p_dma_ch, ENABLE);
+    }
+}
+
+bool drv_dma_tc_check(uint8_t ch)
+{
+    if(ch < DMA_CH_CNT) {
+        if(DMA_GetFlagStatus(g_dma_ch_config_tbl[ch].tc_flg) == SET) {
+            return true;
+        } else {
+            return false;
+        }
     }
 }
 

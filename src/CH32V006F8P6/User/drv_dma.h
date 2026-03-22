@@ -41,6 +41,7 @@ typedef struct {
 
 // -----------------------------------------------------------
 void drv_dma_start(uint8_t ch);
+bool drv_dma_tc_check(uint8_t ch);
 bool drv_dma_init(uint8_t ch, uint8_t mode, drv_dma_config_t *p_config);
 
 #endif // DRV_DMA_H
