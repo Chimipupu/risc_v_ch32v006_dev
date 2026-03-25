@@ -18,8 +18,9 @@
 
 // コマンド構造体
 typedef struct {
-    const char* p_cmd_str;                   // コマンド文字列
-    void (*p_func)(const char *p_args);      // コールバック関数ポインタ
+    const char *p_cmd_str;                   // コマンド
+    const char *p_cmd_short_str;             // 短縮コマンド
+    void (*p_func)(const char *p_args);      // コマンドコールバック関数ポインタ
     const char* p_description;               // コマンドの説明
 } dbg_cmd_info_t;
 
@@ -28,9 +29,6 @@ typedef struct {
 // #define PCB_NAME               "CH32V003F4P6-R0-1V1"
 #define MCU_FLASH_SIZE         62
 #define MCU_RAM_SIZE           8
-#define FW_VERSION_MAJOR       0
-#define FW_VERSION_MINOR       0
-#define FW_VERSION_REVISION    1
 
 static void dbg_com_init_msg(const char *p_args);
 
@@ -41,12 +39,12 @@ static void cmd_mem_dump(const char *p_args);
 static void cmd_reg(const char *p_args);
 // コマンドテーブル
 const dbg_cmd_info_t g_cmd_tbl[] = {
-//  | コマンド文字列 | コールバック関数   | コマンド説明 |
-    { "help",         &cmd_help,         "Command All Show"},
-    { "cls",          &cmd_cls,          "Display Clear"},
-    { "sys",          &cmd_system,       "Show System Information"},
-    { "memd",         &cmd_mem_dump,     "Memory Dump Command"},
-    { "reg",          &cmd_reg,          "I/O Register R/W"},
+//  | コマンド    | 短縮コマンド | コールバック関数   | コマンド説明 |
+    { "help",      "?",          &cmd_help,         "Show All Cmd"},
+    { "clear",     "cls",        &cmd_cls,          "Display Clear"},
+    { "sysinfo",   "sif",        &cmd_system,       "Show SysInfo"},
+    { "memdump",   "md",         &cmd_mem_dump,     "MemDump Cmd"},
+    { "ioreg",     "ir",         &cmd_reg,          "I/O Reg R/W Cmd"},
 };
 #define CMD_TBL_CNT    sizeof(g_cmd_tbl) / sizeof(g_cmd_tbl[0])
 
@@ -62,25 +60,21 @@ static uint8_t s_buf_idx = 0;
 
 static void dbg_com_init_msg(const char *p_args)
 {
-    printf("\nDebug Command Monitor for %s Ver%d.%d.%d\n",MCU_NAME,
-                                                        FW_VERSION_MAJOR,
-                                                        FW_VERSION_MINOR,
-                                                        FW_VERSION_REVISION);
+    printf("\nDebug Cmd for %s Ver%d.%d.%d\n",  MCU_NAME,
+                                                DBG_COM_VER_MAJOR,
+                                                DBG_COM_VER_MINOR,
+                                                DBG_COM_VER_REVISION);
     printf("Copyright (c) 2026 Chimipupu All Rights Reserved.\n");
-    printf("Type 'help' for available commands\n");
-#ifdef _WDT_ENABLE_
-    printf("[INFO] Wanning! WDT Enabled: %dms\n", _WDT_OVF_TIME_MS_);
-#endif // _WDT_ENABLE_
 }
 
 static void cmd_help(const char *p_args)
 {
     dbg_com_init_msg(p_args);
 
-    printf("\nAvailable %d commands:\n", CMD_TBL_CNT);
+    printf("\nCmd Cnt: [%d]\n", CMD_TBL_CNT);
     for (uint8_t i = 0; i < CMD_TBL_CNT; i++)
     {
-        printf("  %-10s - %s\n", g_cmd_tbl[i].p_cmd_str, g_cmd_tbl[i].p_description);
+        printf("  %-10s | %-5s |  %s\n", g_cmd_tbl[i].p_cmd_str, g_cmd_tbl[i].p_cmd_short_str, g_cmd_tbl[i].p_description);
     }
 }
 
@@ -94,20 +88,18 @@ static void cmd_system(const char *p_args)
     // printf("\n[System Information]\n");
 
     // 基板
-    printf("\n[PCB Info]\nPCB : %s\n", PCB_NAME);
+    printf("\nPCB: %s\n", PCB_NAME);
 
     // マイコン
-    printf("MCU : %s\n", MCU_NAME);
-    printf("CPU : RISC-V RV32EmC (QingKe V2C)\n");
+    printf("MCU: %s\n", MCU_NAME);
+    printf("CPU: RISC-V RV32EmC (QingKe V2C)\n");
 
     // ROM/RAM
-    printf("\n[Mem Info]\n");
-    printf("Flash Size : %d KB\n", MCU_FLASH_SIZE);
-    printf("RAM Size : %d KB\n", MCU_RAM_SIZE);
+    printf("Flash: %d KB\n", MCU_FLASH_SIZE);
+    printf("SRAM: %d KB\n", MCU_RAM_SIZE);
 
     // クロック関連
-    printf("\n[Clock Info]\n");
-    printf("System Clock : %d MHz\r\n", SystemCoreClock / 1000000);
+    printf("System Clock: %d MHz\r\n", SystemCoreClock / 1000000);
 }
 
 static void cmd_mem_dump(const char *p_args)
@@ -149,7 +141,9 @@ static void _cmd_exec(const char *p_buf)
     // コマンド実行
     for(i = 0; i < CMD_TBL_CNT; i++)
     {
-        if (strcmp(&s_cmd_buf[0], g_cmd_tbl[i].p_cmd_str) == 0) {
+        if( (strcmp(&s_cmd_buf[0], g_cmd_tbl[i].p_cmd_str) == 0) ||     // コマンドと一致か？
+            (strcmp(&s_cmd_buf[0], g_cmd_tbl[i].p_cmd_short_str) == 0)  // 短縮コマンドと一致か？
+        ) {
             g_cmd_tbl[i].p_func(NULL);
         }
     }

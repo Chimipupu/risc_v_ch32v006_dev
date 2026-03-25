@@ -25,6 +25,11 @@
 // #define DEBUG_DBG_COM
 
 // -----------------------------------------------------------
+// バージョン情報
+#define DBG_COM_VER_MAJOR               0
+#define DBG_COM_VER_MINOR               0
+#define DBG_COM_VER_REVISION            1
+
 // [キーボード関連定義]
 #define KEY_ESC                         27              // ESCキー
 #define KEY_BACKSPACE                   127             // バックスペースキー
