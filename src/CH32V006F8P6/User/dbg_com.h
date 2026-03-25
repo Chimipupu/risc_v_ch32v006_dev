@@ -25,12 +25,6 @@
 // #define DEBUG_DBG_COM
 
 // -----------------------------------------------------------
-// コマンド関連のマクロ
-#define DBG_CMD_UART_BUF_SIZE           128 // UART受信バッファのサイズ
-#define DBG_CMD_MAX_LEN                 32  // コマンドの最大長
-#define DBG_CMD_MAX_ARGS                5   // コマンドの最大引数数
-#define CMD_HISTORY_MAX                 16  // コマンド履歴の最大数
-
 // [キーボード関連定義]
 #define KEY_ESC                         27              // ESCキー
 #define KEY_BACKSPACE                   127             // バックスペースキー

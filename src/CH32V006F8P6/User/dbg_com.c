@@ -12,18 +12,14 @@
 // [DEBUG関連]
 
 // -----------------------------------------------------------
-// コマンド引数構造体
-typedef struct {
-    int32_t argc;                    // 引数の数
-    char* p_argv[DBG_CMD_MAX_ARGS];  // 引数の配列
-} dbg_cmd_args_t;
+// コマンド関連のマクロ
+#define DBG_CMD_UART_BUF_SIZE           128 // UART受信バッファのサイズ
+#define DBG_CMD_MAX_LEN                 32  // コマンドの最大長
 
 // コマンド構造体
 typedef struct {
     const char* p_cmd_str;                   // コマンド文字列
-    void (*p_func)(dbg_cmd_args_t *p_args);  // コールバック関数ポインタ
-    int32_t min_args;                        // 最小引数数
-    int32_t max_args;                        // 最大引数数
+    void (*p_func)(const char *p_args);      // コールバック関数ポインタ
     const char* p_description;               // コマンドの説明
 } dbg_cmd_info_t;
 
@@ -36,25 +32,25 @@ typedef struct {
 #define FW_VERSION_MINOR       0
 #define FW_VERSION_REVISION    1
 
-static void dbg_com_init_msg(dbg_cmd_args_t *p_args);
+static void dbg_com_init_msg(const char *p_args);
 
-static void cmd_help(dbg_cmd_args_t *p_args);
-static void cmd_cls(dbg_cmd_args_t *p_args);
-static void cmd_system(dbg_cmd_args_t *p_args);
-static void cmd_mem_dump(dbg_cmd_args_t *p_args);
-static void cmd_reg(dbg_cmd_args_t *p_args);
+static void cmd_help(const char *p_args);
+static void cmd_cls(const char *p_args);
+static void cmd_system(const char *p_args);
+static void cmd_mem_dump(const char *p_args);
+static void cmd_reg(const char *p_args);
 // コマンドテーブル
 const dbg_cmd_info_t g_cmd_tbl[] = {
-//  | コマンド文字列 | コールバック関数 | 最小引数 | 最大引数 | コマンド説明 |
-    { "help",         &cmd_help,       0,         0,        "Command All Show"},
-    { "cls",          &cmd_cls,        0,         0,        "Display Clear"},
-    { "sys",          &cmd_system,     0,         0,        "Show System Information"},
-    { "memd",         &cmd_mem_dump,   2,         2,        "Memory Dump Command. args -> (#address, #length)"},
-    { "reg",          &cmd_reg,        3,         4,        "Register R/W. exp(reg #addr r|w bits #val)"},
+//  | コマンド文字列 | コールバック関数   | コマンド説明 |
+    { "help",         &cmd_help,         "Command All Show"},
+    { "cls",          &cmd_cls,          "Display Clear"},
+    { "sys",          &cmd_system,       "Show System Information"},
+    { "memd",         &cmd_mem_dump,     "Memory Dump Command"},
+    { "reg",          &cmd_reg,          "I/O Register R/W"},
 };
 #define CMD_TBL_CNT    sizeof(g_cmd_tbl) / sizeof(g_cmd_tbl[0])
 
-static void _cmd_exec(const char *p_buf, dbg_cmd_args_t *p_args);
+static void _cmd_exec(const char *p_buf);
 
 // コマンドバッファ
 static char s_uart_recv_buf[DBG_CMD_UART_BUF_SIZE];
@@ -64,7 +60,7 @@ static uint8_t s_buf_idx = 0;
 // -----------------------------------------------------------
 // [Static関数]
 
-static void dbg_com_init_msg(dbg_cmd_args_t *p_args)
+static void dbg_com_init_msg(const char *p_args)
 {
     printf("\nDebug Command Monitor for %s Ver%d.%d.%d\n",MCU_NAME,
                                                         FW_VERSION_MAJOR,
@@ -77,7 +73,7 @@ static void dbg_com_init_msg(dbg_cmd_args_t *p_args)
 #endif // _WDT_ENABLE_
 }
 
-static void cmd_help(dbg_cmd_args_t *p_args)
+static void cmd_help(const char *p_args)
 {
     dbg_com_init_msg(p_args);
 
@@ -88,12 +84,12 @@ static void cmd_help(dbg_cmd_args_t *p_args)
     }
 }
 
-static void cmd_cls(dbg_cmd_args_t *p_args)
+static void cmd_cls(const char *p_args)
 {
     printf(ANSI_ESC_CLS);
 }
 
-static void cmd_system(dbg_cmd_args_t *p_args)
+static void cmd_system(const char *p_args)
 {
     // printf("\n[System Information]\n");
 
@@ -114,86 +110,26 @@ static void cmd_system(dbg_cmd_args_t *p_args)
     printf("System Clock : %d MHz\r\n", SystemCoreClock / 1000000);
 }
 
-static void cmd_mem_dump(dbg_cmd_args_t *p_args)
+static void cmd_mem_dump(const char *p_args)
 {
-    uint32_t addr;
-    uint32_t length;
-
-    if (p_args->argc != 3) {
-        printf("Error: Invalid number of arguments. Usage: mem_dump <address> <length>\n");
-        return;
-    }
-
-    // アドレスを16進数文字列から数値に変換
-    if (sscanf(p_args->p_argv[1], "#%x", &addr) != 1) {
-        printf("Error: Invalid address format. Use hexadecimal with # prefix (e.g., #F0000000)\n");
-        return;
-    }
-
-    // 長さを16進数文字列から数値に変換
-    if (sscanf(p_args->p_argv[2], "#%x", &length) != 1) {
-        printf("Error: Invalid length format. Use hexadecimal with # prefix (e.g., #10)\n");
-        return;
-    }
+    // TODO
 }
 
 /**
- * @brief レジスタR/Wコマンド関数
+ * @brief アプリ I/O レジスタR/Wコマンド関数
  * @param p_args コマンド引数の構造体ポインタ
  */
-static void cmd_reg(dbg_cmd_args_t *p_args)
+static void cmd_reg(const char *p_args)
 {
-    uint32_t wval = 0;
-    uint32_t val = 0;
-    uint32_t addr = 0;
-
-    if (p_args->argc != 4 && p_args->argc != 5) {
-        printf("Error: Usage: reg #ADDR r|w BITS [#VAL]\n");
-        printf("  e.g. reg #F000FF00 r 8\n");
-        printf("  e.g. reg #F000FF00 w 32 #FFDC008F\n");
-        return;
-    }
-
-    if (sscanf(p_args->p_argv[1], "#%x", &addr) != 1) {
-        printf("Error: Invalid address format. Use #HEX (e.g. #F000FF00)\n");
-        return;
-    }
-    char rw = p_args->p_argv[2][0];
-    int bits = atoi(p_args->p_argv[3]);
-    if (!(bits == 8 || bits == 16 || bits == 32)) {
-        printf("Error: Bit width must be 8, 16, or 32\n");
-        return;
-    }
-    if (rw == 'r') { // 読み取り
-        if (p_args->argc != 4) {
-            printf("Error: Read usage: reg #ADDR r BITS\n");
-            return;
-        }
-        if (bits == 8) val = REG_READ_BYTE(0, addr);
-        else if (bits == 16) val = REG_READ_WORD(0, addr);
-        else if (bits == 32) val = REG_READ_DWORD(0, addr);
-        printf("[REG] Read %dbit @ 0x%08X = 0x%08X\n", bits, addr, val);
-    } else if (rw == 'w') { // 書き込み
-        sscanf(p_args->p_argv[4], "#%x", &wval);
-        if (bits == 8) {
-            REG_WRITE_BYTE(0, addr, (uint8_t)wval);
-        } else if (bits == 16) {
-            REG_WRITE_WORD(0, addr, (uint16_t)wval);
-        } else if (bits == 32) {
-            REG_WRITE_DWORD(0, addr, (uint32_t)wval);
-        }
-            printf("[REG] Write %dbit @ 0x%08X = 0x%08X\n", bits, addr, wval);
-    } else {
-            printf("Error: 2nd arg must be 'r' or 'w'\n");
-    }
+    // TODO
 }
 
-static void _cmd_exec(const char *p_buf, dbg_cmd_args_t *p_args)
+static void _cmd_exec(const char *p_buf)
 {
     uint8_t i;
     uint8_t *p_ptr;
 
-    if((p_buf == NULL) || (p_args == NULL)) {
+    if(p_buf == NULL) {
         return;
     }
 
@@ -214,7 +150,7 @@ static void _cmd_exec(const char *p_buf, dbg_cmd_args_t *p_args)
     for(i = 0; i < CMD_TBL_CNT; i++)
     {
         if (strcmp(&s_cmd_buf[0], g_cmd_tbl[i].p_cmd_str) == 0) {
-            g_cmd_tbl[i].p_func(p_args);
+            g_cmd_tbl[i].p_func(NULL);
         }
     }
 }
@@ -237,7 +173,6 @@ void dbg_com_init(void)
  */
 void dbg_com_main(void)
 {
-    dbg_cmd_args_t args;
     uint8_t c;
     bool drv_ret;
 
@@ -257,7 +192,7 @@ void dbg_com_main(void)
             printf("\n");
 
             // コマンド解析 & 実行
-            _cmd_exec((const char *)&s_uart_recv_buf[0], &args);
+            _cmd_exec((const char *)&s_uart_recv_buf[0]);
         }
 
         memset(&s_uart_recv_buf[0], 0x00, DBG_CMD_UART_BUF_SIZE);
