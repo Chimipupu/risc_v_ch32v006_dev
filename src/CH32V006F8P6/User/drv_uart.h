@@ -17,8 +17,6 @@
 
 #include <ch32v00x.h>
 
-#define USART_RX_BUF_SIZE   128
-
 bool drv_uart_get_char(uint8_t *p_data);
 void drv_uart_init(void);
 

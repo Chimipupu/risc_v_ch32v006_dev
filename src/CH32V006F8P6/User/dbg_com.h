@@ -20,83 +20,120 @@
 
 #include "drv_uart.h"
 
-// #define DEBUG_DBG_COM      // デバッグ用
+// -----------------------------------------------------------
+// [コンパイルスイッチ]
+// #define DEBUG_DBG_COM
 
+// -----------------------------------------------------------
 // コマンド関連のマクロ
-#define DBG_CMD_MAX_LEN         32 // コマンドの最大長
-#define DBG_CMD_MAX_ARGS        5 // コマンドの最大引数数
-#define CMD_HISTORY_MAX         16 // コマンド履歴の最大数
-
-// GPIOの最大本数
-#if defined(PCB_WEACT_RP2350A_V10) || defined(PCB_WEACT_RP2350B)
-// RP2350B (QFN-80)
-#define GPIO_MAX_PIN_NUM        48
-#else
-// RP2350A (QFN-60)
-#define GPIO_MAX_PIN_NUM        30
-#endif
-
-// 期待値: tan(355/226)
-#define TAN_355_226_EXPECTED -7497258.18532
-
-// [タイマー関連定義]
-#define TIMER_MAX_SECONDS 3600   // 最大1時間
-// タイマーの最大アラーム数
-#define TIMER_MAX_ALARMS      PICO_TIME_DEFAULT_ALARM_POOL_MAX_TIMERS
+#define DBG_CMD_UART_BUF_SIZE           128 // UART受信バッファのサイズ
+#define DBG_CMD_MAX_LEN                 32  // コマンドの最大長
+#define DBG_CMD_MAX_ARGS                5   // コマンドの最大引数数
+#define CMD_HISTORY_MAX                 16  // コマンド履歴の最大数
 
 // [キーボード関連定義]
-#define KEY_ESC                 27              // ESCキー
-#define KEY_BACKSPACE           127             // バックスペースキー
-#define KEY_ANSI_ESC            '['             // ANSIエスケープシーケンス
-#define KEY_UP                  'A'             // 十字キーの矢印上
-#define KEY_DOWN                'B'             // 十字キーの矢印下
-#define KEY_LEFT                'D'             // 左矢印キー（ESC[D）
-#define KEY_RIGHT               'C'             // 右矢印キー（ESC[C）
-#define KEY_DELETE              0x7F            // Deleteキー
+#define KEY_ESC                         27              // ESCキー
+#define KEY_BACKSPACE                   127             // バックスペースキー
+#define KEY_ANSI_ESC                    '['             // ANSIエスケープシーケンス
+#define KEY_UP                          'A'             // 十字キーの矢印上
+#define KEY_DOWN                        'B'             // 十字キーの矢印下
+#define KEY_LEFT                        'D'             // 左矢印キー（ESC[D）
+#define KEY_RIGHT                       'C'             // 右矢印キー（ESC[C）
+#define KEY_DELETE                      0x7F            // Deleteキー
 
 // ANSI ESC(エスケープシーケンス)
-#define ANSI_ESC_CLS            "\033[2J\033[H" // ANSI ESC 画面クリア
-#define ANSI_TXT_COLOR_RESET    "\e[0m"         // ANSI ESC 文字色 リセット
-#define ANSI_TXT_COLOR_WHITE    "\e[37sm"       // ANSI ESC 文字色 白
-#define ANSI_TXT_COLOR_RED      "\e[31m"        // ANSI ESC 文字色 赤
-#define ANSI_TXT_COLOR_GREEN    "\e[32m"        // ANSI ESC 文字色 緑
-#define ANSI_TXT_COLOR_YELLOW   "\e[33m"        // ANSI ESC 文字色 黄
-#define ANSI_TXT_COLOR_BLUE     "\e[34m"        // ANSI ESC 文字色 青
-#define ANSI_TXT_COLOR_PURPLE   "\e[35m"        // ANSI ESC 文字色 紫
-#define ANSI_TXT_COLOR_MAGENTA  "\e[36m"        // ANSI ESC 文字色 マゼンタ
+#define ANSI_ESC_CLS                    "\033[2J\033[H" // ANSI ESC 画面クリア
+#define ANSI_TXT_COLOR_RESET            "\e[0m"         // ANSI ESC 文字色 リセット
+#define ANSI_TXT_COLOR_WHITE            "\e[37sm"       // ANSI ESC 文字色 白
+#define ANSI_TXT_COLOR_RED              "\e[31m"        // ANSI ESC 文字色 赤
+#define ANSI_TXT_COLOR_GREEN            "\e[32m"        // ANSI ESC 文字色 緑
+#define ANSI_TXT_COLOR_YELLOW           "\e[33m"        // ANSI ESC 文字色 黄
+#define ANSI_TXT_COLOR_BLUE             "\e[34m"        // ANSI ESC 文字色 青
+#define ANSI_TXT_COLOR_PURPLE           "\e[35m"        // ANSI ESC 文字色 紫
+#define ANSI_TXT_COLOR_MAGENTA          "\e[36m"        // ANSI ESC 文字色 マゼンタ
 
-// コマンドの種類
-typedef enum {
-    CMD_HELP,       // ヘルプ表示
-    CMD_CLS,        // 画面クリア
-    CMD_SYSTEM,     // システム情報表示
-    CMD_RST,        // リセット
-    CMD_MEM_DUMP,   // メモリダンプ
-    CMD_REG,        // レジスタ操作8/16/32bit
-    CMD_GPIO,       // GPIO制御
-    CMD_I2C,        // I2C制御
-    CMD_NEOPIXEL,   // NeoPixel制御
-    CMD_TIMER,      // タイマーコマンド
-    CMD_MT_TEST,    // 論理演算/四則演算/数学アプリのテスト
-    CMD_UNKNOWN     // 不明なコマンド
-} dbg_cmd_t;
+// 文字
+#define ANSI_ESC_PG_RESET               "\x1b[0m"
+#define ANSI_ESC_PG_BOLD                "\x1b[1m"
+#define ANSI_ESC_PG_UNDERLINE           "\x1b[4m"
 
-// コマンド引数構造体
-typedef struct {
-    int32_t argc;                    // 引数の数
-    char* p_argv[DBG_CMD_MAX_ARGS];  // 引数の配列
-} dbg_cmd_args_t;
+// 背景色
+#define ANSI_ESC_BG_BLACK               "\x1b[40m"
+#define ANSI_ESC_BG_RED                 "\x1b[41m"
+#define ANSI_ESC_BG_GREEN               "\x1b[42m"
+#define ANSI_ESC_BG_YELLOW              "\x1b[43m"
+#define ANSI_ESC_BG_BLUE                "\x1b[44m"
+#define ANSI_ESC_BG_MAGENTA             "\x1b[45m"
+#define ANSI_ESC_BG_CYAN                "\x1b[46m"
+#define ANSI_ESC_BG_WHITE               "\x1b[47m"
 
-// コマンド構造体
-typedef struct {
-    const char* p_cmd_str;                   // コマンド文字列
-    dbg_cmd_t cmd_type;                      // コマンド種類
-    void (*p_func)(dbg_cmd_args_t *p_args);  // コールバック関数ポインタ
-    int32_t min_args;                        // 最小引数数
-    int32_t max_args;                        // 最大引数数
-    const char* p_description;               // コマンドの説明
-} dbg_cmd_info_t;
+// 文字色
+#define ANSI_ESC_PG_REVERSE             "\x1b[7m"
+#define ANSI_ESC_PG_BLACK               "\x1b[30m"
+#define ANSI_ESC_PG_RED                 "\x1b[31m"
+#define ANSI_ESC_PG_GREEN               "\x1b[32m"
+#define ANSI_ESC_PG_YELLOW              "\x1b[33m"
+#define ANSI_ESC_PG_BLUE                "\x1b[34m"
+#define ANSI_ESC_PG_MAGENTA             "\x1b[35m"
+#define ANSI_ESC_PG_CYAN                "\x1b[36m"
+#define ANSI_ESC_PG_WHITE               "\x1b[37m"
 
+// 明るい文字色
+#define ANSI_ESC_PG_BRIGHT_BLACK        "\x1b[90m"
+#define ANSI_ESC_PG_BRIGHT_RED          "\x1b[91m"
+#define ANSI_ESC_PG_BRIGHT_GREEN        "\x1b[92m"
+#define ANSI_ESC_PG_BRIGHT_YELLOW       "\x1b[93m"
+#define ANSI_ESC_PG_BRIGHT_BLUE         "\x1b[94m"
+#define ANSI_ESC_PG_BRIGHT_MAGENTA      "\x1b[95m"
+#define ANSI_ESC_PG_BRIGHT_CYAN         "\x1b[96m"
+#define ANSI_ESC_PG_BRIGHT_WHITE        "\x1b[97m"
+
+// 明るい背景色
+#define ANSI_ESC_BG_BRIGHT_BLACK        "\x1b[100m"
+#define ANSI_ESC_BG_BRIGHT_RED          "\x1b[101m"
+#define ANSI_ESC_BG_BRIGHT_GREEN        "\x1b[102m"
+#define ANSI_ESC_BG_BRIGHT_YELLOW       "\x1b[103m"
+#define ANSI_ESC_BG_BRIGHT_BLUE         "\x1b[104m"
+#define ANSI_ESC_BG_BRIGHT_MAGENTA      "\x1b[105m"
+#define ANSI_ESC_BG_BRIGHT_CYAN         "\x1b[106m"
+#define ANSI_ESC_BG_BRIGHT_WHITE        "\x1b[107m"
+
+// その他装飾
+#define ANSI_ESC_PG_DIM                 "\x1b[2m"
+#define ANSI_ESC_PG_ITALIC              "\x1b[3m"
+#define ANSI_ESC_PG_BLINK               "\x1b[5m"
+#define ANSI_ESC_PG_HIDDEN              "\x1b[8m"
+#define ANSI_ESC_PG_STRIKE              "\x1b[9m"
+
+// カーソル移動
+#define ANSI_ESC_CURSOR_UP(n)           "\x1b[" #n "A"
+#define ANSI_ESC_CURSOR_DOWN(n)         "\x1b[" #n "B"
+#define ANSI_ESC_CURSOR_FORWARD(n)      "\x1b[" #n "C"
+#define ANSI_ESC_CURSOR_BACK(n)         "\x1b[" #n "D"
+
+// 画面クリア
+#define ANSI_ESC_CLEAR_SCREEN           "\x1b[2J"
+#define ANSI_ESC_CLEAR_LINE             "\x1b[2K"
+
+// カーソル位置指定（X:列, Y:行）
+#define ANSI_ESC_CURSOR_POS(Y,X)        "\x1b[" #Y ";" #X "H"
+
+// カーソル保存・復元
+#define ANSI_ESC_SAVE_CURSOR            "\x1b[s"
+#define ANSI_ESC_RESTORE_CURSOR         "\x1b[u"
+
+// スクロール
+#define ANSI_ESC_SCROLL_UP(n)           "\x1b[" #n "S"
+#define ANSI_ESC_SCROLL_DOWN(n)         "\x1b[" #n "T"
+
+// 画面全体クリア＆カーソルホーム
+#define ANSI_ESC_CLEAR_ALL              "\x1b[2J\x1b[H"
+
+// 画面バッファ切替（主/副）
+#define ANSI_ESC_ALT_SCREEN_ON          "\x1b[?1049h"
+#define ANSI_ESC_ALT_SCREEN_OFF         "\x1b[?1049l"
+
+// -----------------------------------------------------------
 void dbg_com_init(void);
 void dbg_com_main(void);
 

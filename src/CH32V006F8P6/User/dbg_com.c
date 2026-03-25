@@ -7,12 +7,26 @@
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  */
 #include "dbg_com.h"
-#include "ansi_esc.h"
 
 // -----------------------------------------------------------
 // [DEBUG関連]
 
 // -----------------------------------------------------------
+// コマンド引数構造体
+typedef struct {
+    int32_t argc;                    // 引数の数
+    char* p_argv[DBG_CMD_MAX_ARGS];  // 引数の配列
+} dbg_cmd_args_t;
+
+// コマンド構造体
+typedef struct {
+    const char* p_cmd_str;                   // コマンド文字列
+    void (*p_func)(dbg_cmd_args_t *p_args);  // コールバック関数ポインタ
+    int32_t min_args;                        // 最小引数数
+    int32_t max_args;                        // 最大引数数
+    const char* p_description;               // コマンドの説明
+} dbg_cmd_info_t;
+
 #define MCU_NAME               "CH32V006F8P6"
 #define PCB_NAME               "DEV PCB"
 // #define PCB_NAME               "CH32V003F4P6-R0-1V1"
@@ -31,19 +45,20 @@ static void cmd_mem_dump(dbg_cmd_args_t *p_args);
 static void cmd_reg(dbg_cmd_args_t *p_args);
 // コマンドテーブル
 const dbg_cmd_info_t g_cmd_tbl[] = {
-//  | 文字列 | 種類 | コールバック関数 | 最小引数 | 最大引数 | 説明 |
-    {"help",    CMD_HELP,       &cmd_help,        0,    0,    "Command All Show"},
-    {"cls",     CMD_CLS,        &cmd_cls,         0,    0,    "Display Clear"},
-    {"sys",     CMD_SYSTEM,     &cmd_system,      0,    0,    "Show System Information"},
-    {"memd",    CMD_MEM_DUMP,   &cmd_mem_dump,    2,    2,    "Memory Dump Command. args -> (#address, #length)"},
-    {"reg",     CMD_REG,        &cmd_reg,         3,    4,    "Register R/W. exp(reg #addr r|w bits #val)"},
+//  | コマンド文字列 | コールバック関数 | 最小引数 | 最大引数 | コマンド説明 |
+    { "help",         &cmd_help,       0,         0,        "Command All Show"},
+    { "cls",          &cmd_cls,        0,         0,        "Display Clear"},
+    { "sys",          &cmd_system,     0,         0,        "Show System Information"},
+    { "memd",         &cmd_mem_dump,   2,         2,        "Memory Dump Command. args -> (#address, #length)"},
+    { "reg",          &cmd_reg,        3,         4,        "Register R/W. exp(reg #addr r|w bits #val)"},
 };
-const size_t g_cmd_tbl_size = sizeof(g_cmd_tbl) / sizeof(g_cmd_tbl[0]);
+#define CMD_TBL_CNT    sizeof(g_cmd_tbl) / sizeof(g_cmd_tbl[0])
 
-static void _cmd_exec(dbg_cmd_t cmd, dbg_cmd_args_t *p_args);
+static void _cmd_exec(const char *p_buf, dbg_cmd_args_t *p_args);
 
 // コマンドバッファ
-static char s_cmd_buffer[DBG_CMD_MAX_LEN];
+static char s_uart_recv_buf[DBG_CMD_UART_BUF_SIZE];
+static char s_cmd_buf[DBG_CMD_MAX_LEN];
 static uint8_t s_buf_idx = 0;
 
 // -----------------------------------------------------------
@@ -66,8 +81,8 @@ static void cmd_help(dbg_cmd_args_t *p_args)
 {
     dbg_com_init_msg(p_args);
 
-    printf("\nAvailable %d commands:\n", g_cmd_tbl_size);
-    for (uint8_t i = 0; i < g_cmd_tbl_size; i++)
+    printf("\nAvailable %d commands:\n", CMD_TBL_CNT);
+    for (uint8_t i = 0; i < CMD_TBL_CNT; i++)
     {
         printf("  %-10s - %s\n", g_cmd_tbl[i].p_cmd_str, g_cmd_tbl[i].p_description);
     }
@@ -173,94 +188,32 @@ static void cmd_reg(dbg_cmd_args_t *p_args)
     }
 }
 
-// コマンド引数を分割して解析
-static int32_t _cmd_split(char* p_str, dbg_cmd_args_t *p_args)
-{
-    char* p_token;
-    char* p_next = p_str;
-    char* p_end = p_str + strlen(p_str);
-
-    p_args->argc = 0;
-#ifdef DEBUG_DBG_COM
-    printf("[DEBUG] : Input string = '%s'\n", p_str);  // 入力文字列の確認
-#endif // DEBUG_DBG_COM
-
-    while (p_next < p_end && p_args->argc < DBG_CMD_MAX_ARGS)
-    {
-        // スペースをスキップ
-        while (*p_next == ' ' && p_next < p_end)
-        {
-            p_next++;
-        }
-        if (p_next >= p_end) break;
-
-        // トークンの開始位置を記録
-        p_token = p_next;
-
-        // 次のスペースまたは文字列末尾まで移動
-        while (*p_next != ' ' && p_next < p_end)
-        {
-            p_next++;
-        }
-
-        // 文字列を終端
-        if (*p_next == ' ') {
-            *p_next++ = '\0';
-        }
-
-#ifdef DEBUG_DBG_COM
-        printf("[DEBUG] : Next token = '%s'\n", p_token);
-#endif // DEBUG_DBG_COM
-        p_args->p_argv[p_args->argc++] = p_token;
-        // WDT_RST();
-    }
-
-#ifdef DEBUG_DBG_COM
-    printf("[DEBUG] : argc = %d\n", p_args->argc);
-    for (int i = 0; i < p_args->argc; i++)
-    {
-        printf("[DEBUG] : argv[%d] = %s\n", i, p_args->p_argv[i]);
-    }
-#endif // DEBUG_DBG_COM
-
-    return p_args->argc;
-}
-
-/**
- * @brief コマンド文字列を解析してコマンド種類を返す
- * @param p_cmd_str コマンド文字列
- * @param p_args 引数構造体
- * @return dbg_cmd_t コマンド種類
- */
-static dbg_cmd_t _cmd_parse(const char* p_cmd_str, dbg_cmd_args_t *p_args)
-{
-    for (uint8_t i = 0; i < g_cmd_tbl_size; i++)
-    {
-        if (strcmp(p_cmd_str, g_cmd_tbl[i].p_cmd_str) == 0) {
-            // 引数の数をチェック
-            // if (p_args->argc - 1 < g_cmd_tbl[i].min_args || p_args->argc - 1 > g_cmd_tbl[i].max_args) {
-            //     printf("Error: Invalid number of arguments. Expected %d-%d, got %d\n",
-            //         g_cmd_tbl[i].min_args, g_cmd_tbl[i].max_args, p_args->argc - 1);
-            //     return CMD_UNKNOWN;
-            // }
-            return g_cmd_tbl[i].cmd_type;
-        }
-    }
-    return CMD_UNKNOWN;
-}
-
-/**
- * @brief コマンドを実行する
- * @param cmd コマンド種類
- * @param p_args 引数構造体
- */
-static void _cmd_exec(dbg_cmd_t cmd, dbg_cmd_args_t *p_args)
+static void _cmd_exec(const char *p_buf, dbg_cmd_args_t *p_args)
 {
     uint8_t i;
+    uint8_t *p_ptr;
 
-    for(i = 0; i < g_cmd_tbl_size; i++)
+    if((p_buf == NULL) || (p_args == NULL)) {
+        return;
+    }
+
+    p_ptr = (uint8_t *)p_buf;
+
+    // コマンド解析
+    for(i = 0; i < DBG_CMD_UART_BUF_SIZE; i++)
     {
-        if(g_cmd_tbl[i].cmd_type == cmd) {
+        if((*p_ptr == '\r') || (*p_ptr == '\n') || (*p_ptr == '\0')) {
+            break; // Break For Loop
+        } else {
+            s_cmd_buf[i] = *p_ptr;
+            p_ptr++;
+        }
+    }
+
+    // コマンド実行
+    for(i = 0; i < CMD_TBL_CNT; i++)
+    {
+        if (strcmp(&s_cmd_buf[0], g_cmd_tbl[i].p_cmd_str) == 0) {
             g_cmd_tbl[i].p_func(p_args);
         }
     }
@@ -286,7 +239,6 @@ void dbg_com_main(void)
 {
     dbg_cmd_args_t args;
     uint8_t c;
-    dbg_cmd_t cmd;
     bool drv_ret;
 
     // UARTから1バイト受信
@@ -296,26 +248,21 @@ void dbg_com_main(void)
     }
 
     // リングバッファ更新
-    s_cmd_buffer[s_buf_idx] = c;
+    s_uart_recv_buf[s_buf_idx] = c;
     s_buf_idx = (s_buf_idx + 1) % DBG_CMD_MAX_LEN;
 
     // デリミタでCRかLFが来てたらコマンドを受付ける
-    if (c == '\r' || c == '\n') {
+    if ((c == '\r') || (c == '\n')) {
         if (s_buf_idx > 0) {
-            s_cmd_buffer[s_buf_idx] = '\0';
             printf("\n");
 
-            // コマンド解析
-            _cmd_split(s_cmd_buffer, &args);
-            cmd = _cmd_parse(args.p_argv[0], &args);
-
-            // コマンド実行
-            _cmd_exec(cmd, &args);
-
-            memset(&s_cmd_buffer[0], 0x00, DBG_CMD_MAX_LEN);
-            s_buf_idx = 0;
+            // コマンド解析 & 実行
+            _cmd_exec((const char *)&s_uart_recv_buf[0], &args);
         }
 
+        memset(&s_uart_recv_buf[0], 0x00, DBG_CMD_UART_BUF_SIZE);
+        memset(&s_cmd_buf[0], 0x00, DBG_CMD_MAX_LEN);
+        s_buf_idx = 0;
         printf("\n> ");
     }
 }

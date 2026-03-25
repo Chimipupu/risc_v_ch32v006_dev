@@ -10,15 +10,16 @@
 #include "drv_uart.h"
 #include "app_main.h"
 
-void USART1_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
+#define USART_RX_BUF_SIZE    128
 
 static uint8_t s_rx_buf[USART_RX_BUF_SIZE] = {0}; // UASRT受信リングバッファ
 static uint8_t s_rx_data_size = 0;                // 受信データサイズ
 static uint8_t s_rx_buf_write_idx = 0;            // 受信バッファ書き込みインデックス
 static uint8_t s_rx_buf_read_idx = 0;             // 受信バッファ読み出しインデックス
 
+void USART1_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 /**
- * @brief USART 割り込みハンドラ
+ * @brief UART割り込みハンドラ
  */
 void USART1_IRQHandler(void)
 {
@@ -54,6 +55,7 @@ bool drv_uart_get_char(uint8_t *p_data)
         *p_data = s_rx_buf[s_rx_buf_read_idx];
         s_rx_buf_read_idx = (s_rx_buf_read_idx + 1) % USART_RX_BUF_SIZE;
         s_rx_data_size--;
+        ret = true;
     }
 
     return ret;
