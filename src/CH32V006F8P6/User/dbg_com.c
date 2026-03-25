@@ -9,7 +9,6 @@
  * 
  */
 #include "dbg_com.h"
-#if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
 #include "ansi_esc.h"
 
 // コマンド履歴
@@ -281,7 +280,7 @@ void dbg_com_init(void)
 {
     s_cmd_index = 0;
     s_cursor_pos = 0;
-    printf(ANSI_ESC_CLS);
+    // printf(ANSI_ESC_CLS);
     cmd_help(NULL);
 }
 
@@ -327,15 +326,13 @@ void dbg_com_main(void)
         // Delete処理
         delete_char_at_cursor();
     } else if (c == KEY_ESC) {  // ESC
-
         // CH32V006は1byte毎にRXNEをいれてくるでの次のデータまで待ち
-        drv_tick_delay_ms(1);
+        // drv_tick_delay_ms(1);
 
         c = drv_uart_get_char();
         if (c == KEY_ANSI_ESC) { // ANSI escape sequence
-
             // CH32V006は1byte毎にRXNEをいれてくるでの次のデータまで待ち
-            drv_tick_delay_ms(1);
+            // drv_tick_delay_ms(1);
 
             c = drv_uart_get_char();
             if (c == KEY_UP) { // キーボードの上矢印
@@ -377,4 +374,3 @@ void dbg_com_main(void)
         insert_char_at_cursor(c);
     }
 }
-#endif

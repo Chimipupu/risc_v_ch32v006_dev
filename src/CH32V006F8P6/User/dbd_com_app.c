@@ -10,14 +10,12 @@
  */
 
 #include "dbg_com.h"
-
-#if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
 #include "ansi_esc.h"
 #include "drv_tim.h"
 
 #define MCU_NAME               "CH32V006F8P6"
-// #define PCB_NAME               "DEV PCB"
-#define PCB_NAME               "CH32V003F4P6-R0-1V1"
+#define PCB_NAME               "DEV PCB"
+// #define PCB_NAME               "CH32V003F4P6-R0-1V1"
 #define MCU_FLASH_SIZE         62
 #define MCU_RAM_SIZE           8
 #define FW_VERSION_MAJOR       0
@@ -170,4 +168,3 @@ static void cmd_reg(dbg_cmd_args_t *p_args)
             printf("Error: 2nd arg must be 'r' or 'w'\n");
     }
 }
-#endif

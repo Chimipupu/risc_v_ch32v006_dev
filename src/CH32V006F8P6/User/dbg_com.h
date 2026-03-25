@@ -12,11 +12,8 @@
 #define DBG_COM_H
 
 #include "app_main.h"
+#include "pcb_board_define.h"
 
-// #define DBG_COM_USE
-// #define DEBUG_DBG_COM      // デバッグ用
-
-#if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -24,6 +21,8 @@
 #include <math.h>
 
 #include "drv_uart.h"
+
+// #define DEBUG_DBG_COM      // デバッグ用
 
 // コマンド関連のマクロ
 #define DBG_CMD_MAX_LEN         32 // コマンドの最大長
@@ -103,19 +102,7 @@ typedef struct {
 #pragma once
 extern const dbg_cmd_info_t g_cmd_tbl[];
 
-#if 0
-// タイマー状態
-typedef struct {
-    bool is_run;                     // タイマー実行中フラグ
-    alarm_id_t alarm_id;             // アラームID
-    uint32_t req_time_sec;           // 設定時間 (秒)
-    uint32_t start_time;             // 開始時間
-    uint32_t set_time_us;            // 設定時間（us）
-    uint8_t order;                   // 登録順序
-} timer_state_t;
-#endif
-
 void dbg_com_init(void);
 void dbg_com_main(void);
-#endif
+
 #endif // DBG_COM_H

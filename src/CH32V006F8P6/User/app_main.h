@@ -17,6 +17,9 @@
 // ----------------------------------------------------------------------
 // [コンパイルスイッチ]
 #define DEBUG_APP
+// #define USE_DEBUG_PRINTF
+#define DBG_COM_USE
+
 // ----------------------------------------------------------------------
 // [マクロ]
 #define APP_PROC_EXEC     0x00 // アプリ実行継続
@@ -67,7 +70,7 @@ __attribute__( ( always_inline ) ) static inline void _EI(void)
 }
 
 // ----------------------------------------------------------------------
-
+void app_util_chip_uid_read(uint32_t *p_buf);
 void app_main_init(void);
 void app_main(void);
 

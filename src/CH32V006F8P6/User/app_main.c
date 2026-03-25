@@ -18,7 +18,11 @@
 
 // -----------------------------------------------------------
 // [DEBUG関連]
-#if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
+#ifdef USE_DEBUG_PRINTF
+    #define DEBUG_PRINTF        printf
+#endif // USE_DEBUG_PRINTF
+
+#ifdef DEBUG_UART_USE
 #include "dbg_com.h"
 #endif // DEBUG_UART_USE && DBG_COM_USE
 
@@ -32,9 +36,9 @@ static uint8_t _app_io_reg_proc(void *p_arg);
 static uint8_t _i2c_proc(void *p_arg);
 #endif // DEBUG_I2C_USE
 
-#ifdef DEBUG_APP
+#if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
 static uint8_t _debug_proc(void *p_arg);
-#endif // DEBUG_APP
+#endif
 
 typedef struct {
     p_func_app_main pfunc; // アプリコールバック関数ポインタ
@@ -43,16 +47,16 @@ typedef struct {
 
 // アプリメインコールバック関数テーブル
 app_main_func_tbl_t g_app_func_tbl[] = {
+#if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
+    {_debug_proc,      100}, // デバッグ処理
+#endif
+
     {_app_btn_proc,    500}, // ボタン処理アプリ
     {_app_io_reg_proc, 900}, // I/Oレジスタアプリ
 
 #ifdef DEBUG_I2C_USE
     {_i2c_proc,        1000}, // I2C処理
 #endif // DEBUG_I2C_USE
-
-#ifdef DEBUG_APP
-    {_debug_proc,      5000}, // デバッグ処理
-#endif // DEBUG_APP
 };
 #define APP_FUNC_TBL_CNT    sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0])
 const uint8_t g_app_func_tbl_cnt = APP_FUNC_TBL_CNT;
@@ -101,10 +105,9 @@ typedef enum {
 #endif // DEBUG_I2C_USE
 
 volatile uint32_t g_chip_uid[3] = {0};
-static void util_chip_uid_read(uint32_t *p_buf);
 
 #ifdef EEPROM_USE
-volatile const uint8_t g_eeprom_init_page_0_data[] = {
+volatile const uint8_t g_eeprom_page_0_init_data[EEPROM_24C64_PAGE_BYTE_SIZE] = {
     0x43, 0x48, 0x33, 0x32, 0x56, 0x30, 0x30, 0x36,
     0x20, 0x44, 0x45, 0x56, 0x45, 0x4C, 0x4F, 0x50,
     0x42, 0x59, 0x20, 0x43, 0x48, 0x49, 0x4D, 0x49,
@@ -152,20 +155,24 @@ static bool _app_eeprom_factory_reset(void)
     int ret_cmp;
 
     drv_eeprom_read_page(0x00, (uint8_t *)&g_eeprom_page_buf[0]);
-    ret_cmp = memcmp((const void *)&g_eeprom_init_page_0_data,
+    ret_cmp = memcmp((const void *)&g_eeprom_page_0_init_data,
                      (const void *)&g_eeprom_page_buf,
                         EEPROM_24C64_PAGE_BYTE_SIZE);
 
     // EEPROMを工場出荷リセット
     if(ret_cmp != 0) {
         ret = true;
-        drv_eeprom_write_page(0x00, (uint8_t *)&g_eeprom_init_page_0_data[0]);
+        drv_eeprom_write_page(0x00, (uint8_t *)&g_eeprom_page_0_init_data[0]);
         drv_tick_delay_ms(10); // EEPROMの書き込み待ち時間の8ms以上待つ
         drv_eeprom_read_page(0x00, (uint8_t *)&g_eeprom_page_buf[0]);
-        printf("[DEBUG] EEPROM Factory Reset Done!\r\n");
+#ifdef USE_DEBUG_PRINTF
+        DEBUG_PRINTF("[DEBUG] EEPROM Factory Reset Done!\r\n");
+#endif // USE_DEBUG_PRINTF
     } else {
         ret = false;
-        printf("[DEBUG] This EEPROM Aleady Factory Reseted!\r\n");
+#ifdef USE_DEBUG_PRINTF
+        DEBUG_PRINTF("[DEBUG] This EEPROM Aleady Factory Reseted!\r\n");
+#endif // USE_DEBUG_PRINTF
     }
 
     // EEPORM メモリダンプ
@@ -212,9 +219,9 @@ static void env_sensor_read(void)
             tmp_u32 |= ((uint32_t)aht20_read_buf[5]);               // 温度のBit[7:0]
             aht20_temp_data = ((float)tmp_u32 / 1048576.0f) * 200.0f - 50.0f;
         }
-        #ifdef DEBUG_UART_USE
-        printf("[DEBUG] AHT20: Temp = %d °C, Humdity = %d %%RH\r\n", (int32_t)aht20_temp_data, (uint32_t)aht20_humdity_data);
-        #endif
+    #ifdef USE_DEBUG_PRINTF
+        DEBUG_PRINTF("[DEBUG] AHT20: Temp = %d °C, Humdity = %d %%RH\r\n", (int32_t)aht20_temp_data, (uint32_t)aht20_humdity_data);
+    #endif // USE_DEBUG_PRINTF
 #endif
     }
 
@@ -247,9 +254,9 @@ static void env_sensor_read(void)
             tmp_u32 |= ((uint32_t)bmp280_read_buf[5]);               // 気圧のBit[7:0]
             bmp280_press_data = (float)tmp_u32;
 
-            #ifdef DEBUG_UART_USE
-                printf("[DEBUG] BMP280: Temp = %d °C, Press = %d hPa\r\n", (int32_t)bmp280_temp_data, (int32_t)bmp280_press_data);
-            #endif
+            #ifdef USE_DEBUG_PRINTF
+            DEBUG_PRINTF("[DEBUG] BMP280: Temp = %d °C, Press = %d hPa\r\n", (int32_t)bmp280_temp_data, (int32_t)bmp280_press_data);
+            #endif // USE_DEBUG_PRINTF
         }
     }
 #endif
@@ -277,22 +284,24 @@ static void rtc_time_read(void)
     drv_recv_ret = drv_i2c_read(I2C_ADDR_RTC_RX8900, (uint8_t *)&rtc_read_buf[0], 0x0F, false, true);
 #endif
 
-#ifdef DEBUG_UART_USE
     if((drv_send_ret != I2C_RET_BUSY) && (drv_recv_ret != I2C_RET_BUSY)) {
-        printf("[DEBUG] RTC: %02X:%02X:%02X\r\n", rtc_read_buf[2], rtc_read_buf[1], rtc_read_buf[0]);
+        #ifdef USE_DEBUG_PRINTF
+        DEBUG_PRINTF("[DEBUG] RTC: %02X:%02X:%02X\r\n", rtc_read_buf[2], rtc_read_buf[1], rtc_read_buf[0]);
+        #endif // USE_DEBUG_PRINTF
     }
-#endif
 }
 #endif
 
 static uint8_t _i2c_proc(void *p_arg)
 {
-    printf("[DEBUG] I2C Proc\r\n");
+    // DEBUG_PRINTF("[DEBUG] I2C Proc\r\n");
 
 #ifdef EEPROM_USE
     // EEPORM メモリダンプ
-    printf("[DEBUG] EEPROM Memory Dump\r\n");
+    #ifdef USE_DEBUG_PRINTF
+    DEBUG_PRINTF("[DEBUG] EEPROM Memory Dump\r\n");
     _mem_dump((const uint8_t *)&g_eeprom_page_buf[0], EEPROM_24C64_PAGE_BYTE_SIZE);
+    #endif // USE_DEBUG_PRINTF
 #endif // EEPROM_USE
 
 #if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_AHT20) || (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280)
@@ -311,7 +320,10 @@ static uint8_t _app_btn_proc(void *p_arg)
 {
     if(g_is_btn_on_flg != false) {
         g_is_btn_on_flg = false;
-        printf("[DEBUG] EXTI0 IRQ (= PCB Button ON)\r\n");
+
+#ifdef USE_DEBUG_PRINTF
+        DEBUG_PRINTF("[DEBUG] EXTI0 IRQ (= PCB Button ON)\r\n");
+#endif // USE_DEBUG_PRINTF
     }
 
     return APP_PROC_END;
@@ -319,43 +331,39 @@ static uint8_t _app_btn_proc(void *p_arg)
 
 static uint8_t _app_io_reg_proc(void *p_arg)
 {
+#ifdef USE_DEBUG_PRINTF
     uint8_t i, reg;
 
     for(i = 0; i < IO_REG_STR_TBL_CNT; i++)
     {
         reg = app_io_reg_read(g_io_reg_data_tbl[i].addr);
-        #ifdef DEBUG_UART_USE
-            printf("[APP I/O Reg] %s, Addr: 0x%02X, Val: 0x%02X\r\n", g_io_reg_data_tbl[i].p_str,  g_io_reg_data_tbl[i].addr, reg);
-        #endif
+        DEBUG_PRINTF("[APP I/O Reg] %s, Addr: 0x%02X, Val: 0x%02X\r\n", g_io_reg_data_tbl[i].p_str,  g_io_reg_data_tbl[i].addr, reg);
     }
+#endif // USE_DEBUG_PRINTF
 
     return APP_PROC_END;
 }
-
-#ifdef DEBUG_APP
-static uint8_t _debug_proc(void *p_arg)
-{
-    // printf("[DEBUG] Debug Proc\r\n");
-
-#ifdef DEBUG_UART_USE
-    printf("[DEBUG] PCB Info: Type = %s\r\n", PCB_NAME_STR);
-    printf("[DEBUG] Chip UID(96bit): 0x%08X 0x%08X 0x%08X\r\n", g_chip_uid[2], g_chip_uid[1], g_chip_uid[0]);
-#endif
 
 #if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
+static uint8_t _debug_proc(void *p_arg)
+{
+    // DEBUG_PRINTF("[DEBUG] Debug Proc\r\n");
+
     // デバッグモニタ メイン
     dbg_com_main();
-#endif //DEBUG_UART_USE
 
     return APP_PROC_END;
 }
-#endif // DEBUG_APP
+#endif
+
+// -----------------------------------------------------------
+// [アプリ]
 
 /**
  * @brief マイコンのユニークID(96bit)読み出し
  * @param p_buf 96bit分のバッファポインタ(32bit x 3 = 96bit)
  */
-static void util_chip_uid_read(uint32_t *p_buf)
+void app_util_chip_uid_read(uint32_t *p_buf)
 {
     uint32_t *p_ptr;
 
@@ -374,8 +382,6 @@ static void util_chip_uid_read(uint32_t *p_buf)
     // UID 64~95bit
     *p_ptr = *((uint32_t *) REG_ADDR_R32_ESIG_UNIID3);
 }
-// -----------------------------------------------------------
-// [アプリ]
 
 /**
  * @brief アプリメイン初期化
@@ -385,16 +391,19 @@ void app_main_init(void)
     uint8_t i;
 
     app_io_reg_init();                              // アプリI/Oレジスタ初期化
-    util_chip_uid_read((uint32_t *)&g_chip_uid[0]); // 96bitのUID読み出し
 
-#if 1
+#ifdef USE_DEBUG_PRINTF
+    util_chip_uid_read((uint32_t *)&g_chip_uid[0]); // 96bitのUID読み出し
+    DEBUG_PRINTF("[DEBUG] PCB Info: Type = %s\r\n", PCB_NAME_STR);
+    DEBUG_PRINTF("[DEBUG] Chip UID(96bit): 0x%08X 0x%08X 0x%08X\r\n", g_chip_uid[2], g_chip_uid[1], g_chip_uid[0]);
+
     // DMAテスト
     int cmp_ret;
     uint8_t dbg_dma_test_buf[32] = {0};
     drv_dma_config_t dma_cfg = {
         .data_type = DATA_TYPE_BYTE,
         .size_byte = 32,
-        .p_src = (void *)&g_eeprom_init_page_0_data[0],
+        .p_src = (void *)&g_eeprom_page_0_init_data[0],
         .p_dst = (void *)&dbg_dma_test_buf[0],
     };
 
@@ -403,13 +412,13 @@ void app_main_init(void)
 
     while(drv_dma_tc_check(DMA_CH_1) == false);
 
-    cmp_ret = memcmp((const void *)&dbg_dma_test_buf, (const void *)&g_eeprom_init_page_0_data, 32);
+    cmp_ret = memcmp((const void *)&dbg_dma_test_buf, (const void *)&g_eeprom_page_0_init_data, 32);
     if(cmp_ret == 0) {
-        printf("[DEBUG] DMA Compare Succes!\r\n");
+        DEBUG_PRINTF("[DEBUG] DMA Compare Succes!\r\n");
     } else {
-        printf("[DEBUG] Error! DMA Compare Fail!\r\n");
+        DEBUG_PRINTF("[DEBUG] Error! DMA Compare Fail!\r\n");
     }
-#endif
+#endif // USE_DEBUG_PRINTF
 
 #ifdef EEPROM_USE
     _app_eeprom_factory_reset(); // EEPROMの工場出荷リセット

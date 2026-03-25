@@ -72,7 +72,7 @@ void _dma_init(uint8_t ch, uint8_t mode)
     }
 
     DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
-    DMA_InitStructure.DMA_Priority = DMA_Priority_VeryHigh;
+    DMA_InitStructure.DMA_Priority = DMA_Priority_Medium;
 
     if(mode == MODE_MEM2MEM) {
         DMA_InitStructure.DMA_M2M = DMA_M2M_Enable;
