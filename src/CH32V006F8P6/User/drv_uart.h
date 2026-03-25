@@ -19,7 +19,7 @@
 
 #define USART_RX_BUF_SIZE   128
 
-int32_t drv_uart_get_char(void);
+bool drv_uart_get_char(uint8_t *p_data);
 void drv_uart_init(void);
 
 #endif // DRV_UASRT_H

@@ -48,7 +48,7 @@ typedef struct {
 // アプリメインコールバック関数テーブル
 app_main_func_tbl_t g_app_func_tbl[] = {
 #if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
-    {_debug_proc,      100}, // デバッグ処理
+    {_debug_proc,      10}, // デバッグ処理
 #endif
 
     {_app_btn_proc,    500}, // ボタン処理アプリ

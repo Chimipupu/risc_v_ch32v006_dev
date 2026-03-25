@@ -1,12 +1,10 @@
 /**
  * @file dbg_com.h
  * @author Chimipupu(https://github.com/Chimipupu)
- * @brief デバッグモニタのヘッダ
+ * @brief デバッグUARTモニタ
  * @version 0.1
- * @date 2025-06-13
- * 
+ * @date 2026-03-26
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
- * 
  */
 #ifndef DBG_COM_H
 #define DBG_COM_H
@@ -98,9 +96,6 @@ typedef struct {
     int32_t max_args;                        // 最大引数数
     const char* p_description;               // コマンドの説明
 } dbg_cmd_info_t;
-
-#pragma once
-extern const dbg_cmd_info_t g_cmd_tbl[];
 
 void dbg_com_init(void);
 void dbg_com_main(void);

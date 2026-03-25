@@ -40,19 +40,23 @@ void USART1_IRQHandler(void)
 
 /**
  * @brief UART 1文字受信API
- * @return int32_t UART受信データ
+ * @return uint8_t UART受信データバイト
  */
-int32_t drv_uart_get_char(void)
+bool drv_uart_get_char(uint8_t *p_data)
 {
-    volatile int32_t val = 0;
+    bool ret = false;
+
+    if(p_data == NULL) {
+        return false;
+    }
 
     if(s_rx_data_size > 0) {
-        val = (int32_t)s_rx_buf[s_rx_buf_read_idx];
+        *p_data = s_rx_buf[s_rx_buf_read_idx];
         s_rx_buf_read_idx = (s_rx_buf_read_idx + 1) % USART_RX_BUF_SIZE;
         s_rx_data_size--;
     }
 
-    return val;
+    return ret;
 }
 
 void drv_uart_init(void)
