@@ -170,7 +170,7 @@ static void cmd_eeprom(const char *p_args)
     // エラー: 指定ページ数がEEPROMのページ数以上
     if(cmd_arg_e2p_page > EEPROM_24C64_PAGE_NUM) {
         printf( ANSI_TXT_COLOR_RED    \
-                "[ERROR] EEPROM Cmd, Page = %d, must be Page > %d\r\n"    \
+                "[ERROR] EEPROM Cmd, Page = %d, must be Page <= %d\r\n"    \
                 ANSI_TXT_COLOR_RESET, cmd_arg_e2p_page, EEPROM_24C64_PAGE_NUM);
         return;
     }
