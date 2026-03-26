@@ -74,7 +74,7 @@ drv_i2c_ret drv_eeprom_read_page(uint8_t read_page, uint8_t *p_page_data_buf)
     } while(ret != I2C_RET_END);
 
     do {
-        ret = drv_i2c_read(I2C_ADDR_EEPROM_24C64, p_page_data_buf, EEPROM_24C64_PAGE_BYTE_SIZE, true, true);
+        ret = drv_i2c_read(I2C_ADDR_EEPROM_24C64, p_page_data_buf, EEPROM_24C64_PAGE_BYTE_SIZE, false, true);
     } while(ret != I2C_RET_END);
 
     return ret;

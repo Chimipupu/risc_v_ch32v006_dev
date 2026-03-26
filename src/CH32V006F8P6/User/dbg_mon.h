@@ -9,16 +9,9 @@
 #ifndef DBG_MON_H
 #define DBG_MON_H
 
-#include "app_main.h"
-#include "pcb_board_define.h"
-
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include <stdlib.h>
-#include <math.h>
-
-#include "drv_uart.h"
 
 // -----------------------------------------------------------
 // [コンパイルスイッチ]

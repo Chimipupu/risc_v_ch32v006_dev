@@ -117,35 +117,8 @@ volatile uint8_t g_eeprom_page_buf[EEPROM_24C64_PAGE_BYTE_SIZE] = {0};
 static bool _app_eeprom_factory_reset(void);
 #endif // EEPROM_USE
 
-static void _mem_dump(const uint8_t *p_buf, uint32_t size);
-
 // -----------------------------------------------------------
 // [Static関数]
-
-static void _mem_dump(const uint8_t *p_buf, uint32_t size)
-{
-    uint8_t c, h, i;
-
-    for(h = 0; h < (size / 16); h++)
-    {
-        printf("%04X: ", h * 16);
-        // HEX形式でダンプ
-        for(i = 0; i < 16; i++)
-        {
-            printf("%02X ", p_buf[h * 16 + i]);
-        }
-        printf(" |");
-        // ASCIIでダンプ
-        for(i = 0; i < 16; i++)
-        {
-            c = p_buf[h * 16 + i];
-            // 0x20(スペース) から 0x7E(~) までを表示
-            c = ((c >= 0x20) && (c <= 0x7E)) ? c : ' ';
-            printf("%c", c);
-        }
-        printf("|\r\n");
-    }
-}
 
 #ifdef DEBUG_I2C_USE
 #ifdef EEPROM_USE
@@ -176,7 +149,7 @@ static bool _app_eeprom_factory_reset(void)
     }
 
     // EEPORM メモリダンプ
-    _mem_dump((const uint8_t *)&g_eeprom_page_buf[0], EEPROM_24C64_PAGE_BYTE_SIZE);
+    app_util_mem_dump((const uint8_t *)&g_eeprom_page_buf[0], EEPROM_24C64_PAGE_BYTE_SIZE);
 
     return ret;
 }
@@ -300,7 +273,7 @@ static uint8_t _i2c_proc(void *p_arg)
     // EEPORM メモリダンプ
     #ifdef USE_DEBUG_PRINTF
     DEBUG_PRINTF("[DEBUG] EEPROM Memory Dump\r\n");
-    _mem_dump((const uint8_t *)&g_eeprom_page_buf[0], EEPROM_24C64_PAGE_BYTE_SIZE);
+    app_util_mem_dump((const uint8_t *)&g_eeprom_page_buf[0], EEPROM_24C64_PAGE_BYTE_SIZE);
     #endif // USE_DEBUG_PRINTF
 #endif // EEPROM_USE
 
@@ -358,6 +331,31 @@ static uint8_t _debug_proc(void *p_arg)
 
 // -----------------------------------------------------------
 // [アプリ]
+
+void app_util_mem_dump(const uint8_t *p_buf, uint32_t size)
+{
+    uint8_t c, h, i;
+
+    for(h = 0; h < (size / 16); h++)
+    {
+        printf("%04X: ", h * 16);
+        // HEX形式でダンプ
+        for(i = 0; i < 16; i++)
+        {
+            printf("%02X ", p_buf[h * 16 + i]);
+        }
+        printf(" |");
+        // ASCIIでダンプ
+        for(i = 0; i < 16; i++)
+        {
+            c = p_buf[h * 16 + i];
+            // 0x20(スペース) から 0x7E(~) までを表示
+            c = ((c >= 0x20) && (c <= 0x7E)) ? c : ' ';
+            printf("%c", c);
+        }
+        printf("|\r\n");
+    }
+}
 
 /**
  * @brief マイコンのユニークID(96bit)読み出し
@@ -420,9 +418,9 @@ void app_main_init(void)
     }
 #endif // USE_DEBUG_PRINTF
 
-#ifdef EEPROM_USE
-    _app_eeprom_factory_reset(); // EEPROMの工場出荷リセット
-#endif // EEPROM_USE
+// #ifdef EEPROM_USE
+//     _app_eeprom_factory_reset(); // EEPROMの工場出荷リセット
+// #endif // EEPROM_USE
 
 #if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280)
     // BMP280 リセット

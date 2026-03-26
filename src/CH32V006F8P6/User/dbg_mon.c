@@ -7,6 +7,11 @@
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  */
 #include "dbg_mon.h"
+#include "app_io_reg.h"
+#include "app_main.h"
+#include "pcb_board_define.h"
+#include "drv_uart.h"
+#include "drv_i2c_eeprom_24c64.h"
 
 // -----------------------------------------------------------
 // [DEBUG関連]
@@ -42,14 +47,22 @@ static void cmd_cls(const char *p_args);
 static void cmd_system(const char *p_args);
 static void cmd_mem_dump(const char *p_args);
 static void cmd_reg(const char *p_args);
+#ifdef EEPROM_USE
+static void cmd_eeprom(const char *p_args);
+#endif // EEPROM_USE
 // コマンドテーブル
 const dbg_cmd_info_t g_cmd_tbl[] = {
 //  | コマンド    | 短縮コマンド | コールバック関数   | コマンド説明 |
+    // [システム関連コマンド]
     { "help",      "?",          &cmd_help,         "Show All Cmd"    },
     { "clear",     "cls",        &cmd_cls,          "Display Clear"   },
     { "sysinfo",   "sif",        &cmd_system,       "Show SysInfo"    },
     { "memdump",   "mdp",        &cmd_mem_dump,     "MemDump Cmd"     },
+    // [ペリフェラル関連コマンド]
     { "ioreg",     "irg",        &cmd_reg,          "I/O Reg R/W Cmd" },
+#ifdef EEPROM_USE
+    { "e2p",       "e2p",        &cmd_eeprom,       "EEPROM R/W Cmd" },
+#endif // EEPROM_USE
 };
 #define CMD_TBL_CNT    sizeof(g_cmd_tbl) / sizeof(g_cmd_tbl[0])
 
@@ -65,7 +78,6 @@ static char s_cmd_args_buf[DBG_CMD_ARGS_BUF_SIZE];
 
 // -----------------------------------------------------------
 // [Static関数]
-
 static void dbg_mon_init_msg(const char *p_args)
 {
     printf("\nDebug Monior for %s Ver%d.%d.%d\n",  MCU_NAME,
@@ -117,12 +129,75 @@ static void cmd_mem_dump(const char *p_args)
 
 /**
  * @brief アプリ I/O レジスタR/Wコマンド関数
- * @param p_args コマンド引数の構造体ポインタ
+ * @param p_args コマンド引数
  */
 static void cmd_reg(const char *p_args)
 {
     // TODO
 }
+
+#ifdef EEPROM_USE
+/**
+ * @brief EEPROM R/Wコマンド関数
+ * @param p_args コマンド引数
+ * @note EEPROM ページ指定Read  ... 例 「e2p r page=0」
+ * @note EEPROM ページ指定Write: 未実装
+ */
+static void cmd_eeprom(const char *p_args)
+{
+    uint8_t *p_ptr;
+    uint8_t rw;
+    uint16_t cmd_arg_e2p_page = 0;
+    uint8_t e2p_page_buf[EEPROM_24C64_PAGE_BYTE_SIZE] = {0};
+
+    p_ptr = p_args;
+
+    // コマンド引数: 「e2p r」 or 「e2p w」の部分
+    rw = *p_ptr; // 'r' or 'w'
+
+    // 「page=xx」までポインタを進める
+    p_ptr += 6;
+
+    // コマンド引数: 「page=xx」の「xx」部分
+    while((*p_ptr != '\0') && (*p_ptr != '\r') && (*p_ptr != '\n'))
+    {
+        if((*p_ptr >= '0') && (*p_ptr <= '9')) {
+            cmd_arg_e2p_page = (cmd_arg_e2p_page * 10) + (uint16_t)((*p_ptr - '0'));
+        }
+        p_ptr++;
+    }
+
+    // エラー: 指定ページ数がEEPROMのページ数以上
+    if(cmd_arg_e2p_page > EEPROM_24C64_PAGE_NUM) {
+        printf( ANSI_TXT_COLOR_RED    \
+                "[ERROR] EEPROM Cmd, Page = %d, must be Page > %d\r\n"    \
+                ANSI_TXT_COLOR_RESET, cmd_arg_e2p_page, EEPROM_24C64_PAGE_NUM);
+        return;
+    }
+
+    switch (rw)
+    {
+        // e2p r
+        case 'r':
+            printf("[DEBUG] EEPROM Read Cmd, Page [%d] Read\r\n", cmd_arg_e2p_page);
+            drv_eeprom_read_page(cmd_arg_e2p_page, (uint8_t *)&e2p_page_buf[0]);
+            app_util_mem_dump((const uint8_t *)&e2p_page_buf[0], EEPROM_24C64_PAGE_BYTE_SIZE);
+            break;
+
+        // e2p w
+        case 'w':
+            // TODO: EEPROMの書き込みコマンド対応
+            printf( ANSI_TXT_COLOR_RED    \
+                    "[ERROR] EEPROM Write Cmd, Not Support\r\n"    \
+                    ANSI_TXT_COLOR_RESET);
+            break;
+
+        default:
+            // NOP
+            break;
+    }
+}
+#endif // EEPROM_USE
 
 static void _cmd_exec(const char *p_buf)
 {

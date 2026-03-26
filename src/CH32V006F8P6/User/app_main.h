@@ -70,6 +70,7 @@ __attribute__( ( always_inline ) ) static inline void _EI(void)
 }
 
 // ----------------------------------------------------------------------
+void app_util_mem_dump(const uint8_t *p_buf, uint32_t size);
 void app_util_chip_uid_read(uint32_t *p_buf);
 void app_main_init(void);
 void app_main(void);
