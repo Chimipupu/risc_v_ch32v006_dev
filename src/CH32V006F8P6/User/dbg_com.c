@@ -12,9 +12,12 @@
 // [DEBUG関連]
 
 // -----------------------------------------------------------
-// コマンド関連のマクロ
-#define DBG_CMD_UART_BUF_SIZE           128 // UART受信バッファのサイズ
-#define DBG_CMD_MAX_LEN                 32  // コマンドの最大長
+// UART受信バッファのサイズ
+#define DBG_CMD_UART_BUF_SIZE           128
+// コマンドの最大長
+#define DBG_CMD_MAX_LEN                 32
+// コマンド引数バッファサイズ
+#define DBG_CMD_ARGS_BUF_SIZE           (DBG_CMD_UART_BUF_SIZE - DBG_CMD_MAX_LEN)
 
 // コマンド構造体
 typedef struct {
@@ -40,20 +43,23 @@ static void cmd_reg(const char *p_args);
 // コマンドテーブル
 const dbg_cmd_info_t g_cmd_tbl[] = {
 //  | コマンド    | 短縮コマンド | コールバック関数   | コマンド説明 |
-    { "help",      "?",          &cmd_help,         "Show All Cmd"},
-    { "clear",     "cls",        &cmd_cls,          "Display Clear"},
-    { "sysinfo",   "sif",        &cmd_system,       "Show SysInfo"},
-    { "memdump",   "md",         &cmd_mem_dump,     "MemDump Cmd"},
-    { "ioreg",     "ir",         &cmd_reg,          "I/O Reg R/W Cmd"},
+    { "help",      "?",          &cmd_help,         "Show All Cmd"    },
+    { "clear",     "cls",        &cmd_cls,          "Display Clear"   },
+    { "sysinfo",   "sif",        &cmd_system,       "Show SysInfo"    },
+    { "memdump",   "mdp",        &cmd_mem_dump,     "MemDump Cmd"     },
+    { "ioreg",     "irg",        &cmd_reg,          "I/O Reg R/W Cmd" },
 };
 #define CMD_TBL_CNT    sizeof(g_cmd_tbl) / sizeof(g_cmd_tbl[0])
 
 static void _cmd_exec(const char *p_buf);
 
-// コマンドバッファ
+// UART受信バッファ関連
 static char s_uart_recv_buf[DBG_CMD_UART_BUF_SIZE];
+static uint8_t s_recv_buf_idx = 0;
+
+// コマンド/コマンド引数バッファ
 static char s_cmd_buf[DBG_CMD_MAX_LEN];
-static uint8_t s_buf_idx = 0;
+static char s_cmd_args_buf[DBG_CMD_ARGS_BUF_SIZE];
 
 // -----------------------------------------------------------
 // [Static関数]
@@ -119,7 +125,10 @@ static void cmd_reg(const char *p_args)
 static void _cmd_exec(const char *p_buf)
 {
     uint8_t i;
-    uint8_t *p_ptr;
+    uint8_t *p_ptr = NULL;
+    uint8_t cmd_buf_idx = 0;
+    uint8_t cmd_args_buf_idx = 0;
+    bool is_cmd_recv = true;
 
     if(p_buf == NULL) {
         return;
@@ -130,12 +139,27 @@ static void _cmd_exec(const char *p_buf)
     // コマンド解析
     for(i = 0; i < DBG_CMD_UART_BUF_SIZE; i++)
     {
+        // デリミタ(CR or LF)かヌル文字が来たら、もう何もコマンド関連のデータが無いからここで終了
         if((*p_ptr == '\r') || (*p_ptr == '\n') || (*p_ptr == '\0')) {
             break; // Break For Loop
-        } else {
-            s_cmd_buf[i] = *p_ptr;
-            p_ptr++;
         }
+        else if(*p_ptr == ' ') {
+            // スペースが来る時点でもうコマンドちゃうからフラグを降ろしとく
+            is_cmd_recv = false;
+        } else {
+            if(is_cmd_recv != false) {
+                // コマンドを格納 (受信バッファの冒頭からスペースの手前まで)
+                s_cmd_buf[cmd_buf_idx] = *p_ptr;
+                cmd_buf_idx = (cmd_buf_idx + 1) % DBG_CMD_MAX_LEN;
+            } else {
+                // コマンド引数を格納 (受信バッファのスペースの後～残りの部分まで)
+                s_cmd_args_buf[cmd_args_buf_idx] = *p_ptr;
+                cmd_args_buf_idx = (cmd_args_buf_idx + 1) % DBG_CMD_ARGS_BUF_SIZE;
+            }
+        }
+
+        // 次のデータへ
+        p_ptr++;
     }
 
     // コマンド実行
@@ -144,7 +168,7 @@ static void _cmd_exec(const char *p_buf)
         if( (strcmp(&s_cmd_buf[0], g_cmd_tbl[i].p_cmd_str) == 0) ||     // コマンドと一致か？
             (strcmp(&s_cmd_buf[0], g_cmd_tbl[i].p_cmd_short_str) == 0)  // 短縮コマンドと一致か？
         ) {
-            g_cmd_tbl[i].p_func(NULL);
+            g_cmd_tbl[i].p_func(&s_cmd_args_buf[0]);
         }
     }
 }
@@ -157,7 +181,10 @@ static void _cmd_exec(const char *p_buf)
  */
 void dbg_com_init(void)
 {
-    s_buf_idx = 0;
+    memset(&s_uart_recv_buf[0], 0x00, DBG_CMD_UART_BUF_SIZE);
+    memset(&s_cmd_buf[0], 0x00, DBG_CMD_MAX_LEN);
+    memset(&s_cmd_args_buf[0], 0x00, DBG_CMD_ARGS_BUF_SIZE);
+
     // printf(ANSI_ESC_CLS);
     cmd_help(NULL);
 }
@@ -177,21 +204,25 @@ void dbg_com_main(void)
     }
 
     // リングバッファ更新
-    s_uart_recv_buf[s_buf_idx] = c;
-    s_buf_idx = (s_buf_idx + 1) % DBG_CMD_MAX_LEN;
+    s_uart_recv_buf[s_recv_buf_idx] = c;
+    s_recv_buf_idx = (s_recv_buf_idx + 1) % DBG_CMD_MAX_LEN;
 
-    // デリミタでCRかLFが来てたらコマンドを受付ける
+    // デリミタ'CRかLF)の受信でコマンド受付け
     if ((c == '\r') || (c == '\n')) {
-        if (s_buf_idx > 0) {
+        // 何かしらデータが受信出来てたら処理
+        if (s_recv_buf_idx > 0) {
             printf("\n");
 
             // コマンド解析 & 実行
             _cmd_exec((const char *)&s_uart_recv_buf[0]);
+
+            // バッファ関連お掃除
+            memset(&s_uart_recv_buf[0], 0x00, DBG_CMD_UART_BUF_SIZE);
+            s_recv_buf_idx = 0;
+            memset(&s_cmd_buf[0], 0x00, DBG_CMD_MAX_LEN);
+            memset(&s_cmd_args_buf[0], 0x00, DBG_CMD_ARGS_BUF_SIZE);
         }
 
-        memset(&s_uart_recv_buf[0], 0x00, DBG_CMD_UART_BUF_SIZE);
-        memset(&s_cmd_buf[0], 0x00, DBG_CMD_MAX_LEN);
-        s_buf_idx = 0;
         printf("\n> ");
     }
 }
