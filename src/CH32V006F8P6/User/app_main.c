@@ -23,8 +23,8 @@
 #endif // USE_DEBUG_PRINTF
 
 #ifdef DEBUG_UART_USE
-#include "dbg_com.h"
-#endif // DEBUG_UART_USE && DBG_COM_USE
+#include "dbg_mon.h"
+#endif // DEBUG_UART_USE && DBG_MON_USE
 
 // -----------------------------------------------------------
 // [アプリメイン関連]
@@ -36,7 +36,7 @@ static uint8_t _app_io_reg_proc(void *p_arg);
 static uint8_t _i2c_proc(void *p_arg);
 #endif // DEBUG_I2C_USE
 
-#if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
+#if defined(DEBUG_UART_USE) && defined(DBG_MON_USE)
 static uint8_t _debug_proc(void *p_arg);
 #endif
 
@@ -47,7 +47,7 @@ typedef struct {
 
 // アプリメインコールバック関数テーブル
 app_main_func_tbl_t g_app_func_tbl[] = {
-#if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
+#if defined(DEBUG_UART_USE) && defined(DBG_MON_USE)
     {_debug_proc,      10}, // デバッグ処理
 #endif
 
@@ -344,13 +344,13 @@ static uint8_t _app_io_reg_proc(void *p_arg)
     return APP_PROC_END;
 }
 
-#if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
+#if defined(DEBUG_UART_USE) && defined(DBG_MON_USE)
 static uint8_t _debug_proc(void *p_arg)
 {
     // DEBUG_PRINTF("[DEBUG] Debug Proc\r\n");
 
     // デバッグモニタ メイン
-    dbg_com_main();
+    dbg_mon_main();
 
     return APP_PROC_END;
 }
@@ -429,8 +429,8 @@ void app_main_init(void)
     drv_i2c_write(I2C_ADDR_SENSOR_BMP280, (uint8_t *)&g_bmp280_reset_data, 2, true);
 #endif //I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280
 
-#if defined(DEBUG_UART_USE) && defined(DBG_COM_USE)
-    dbg_com_init(); // デバッグモニタ 初期化
+#if defined(DEBUG_UART_USE) && defined(DBG_MON_USE)
+    dbg_mon_init(); // デバッグモニタ 初期化
 #endif //DEBUG_UART_USE
 
     // S/Wタイマースタート

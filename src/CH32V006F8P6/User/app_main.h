@@ -18,7 +18,7 @@
 // [コンパイルスイッチ]
 #define DEBUG_APP
 // #define USE_DEBUG_PRINTF
-#define DBG_COM_USE
+#define DBG_MON_USE
 
 // ----------------------------------------------------------------------
 // [マクロ]

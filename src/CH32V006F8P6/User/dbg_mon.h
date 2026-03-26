@@ -1,13 +1,13 @@
 /**
- * @file dbg_com.h
+ * @file dbg_mon.h
  * @author Chimipupu(https://github.com/Chimipupu)
- * @brief デバッグUARTモニタ
+ * @brief デバッグモニタ(軽量板)
  * @version 0.1
  * @date 2026-03-26
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  */
-#ifndef DBG_COM_H
-#define DBG_COM_H
+#ifndef DBG_MON_H
+#define DBG_MON_H
 
 #include "app_main.h"
 #include "pcb_board_define.h"
@@ -22,13 +22,13 @@
 
 // -----------------------------------------------------------
 // [コンパイルスイッチ]
-// #define DEBUG_DBG_COM
+#define DEBUG_DBG_MON
 
 // -----------------------------------------------------------
 // バージョン情報
-#define DBG_COM_VER_MAJOR               0
-#define DBG_COM_VER_MINOR               0
-#define DBG_COM_VER_REVISION            1
+#define DBG_MON_VER_MAJOR               0
+#define DBG_MON_VER_MINOR               0
+#define DBG_MON_VER_REVISION            1
 
 // [キーボード関連定義]
 #define KEY_ESC                         27              // ESCキー
@@ -133,7 +133,7 @@
 #define ANSI_ESC_ALT_SCREEN_OFF         "\x1b[?1049l"
 
 // -----------------------------------------------------------
-void dbg_com_init(void);
-void dbg_com_main(void);
+void dbg_mon_init(void);
+void dbg_mon_main(void);
 
-#endif // DBG_COM_H
+#endif // DBG_MON_H

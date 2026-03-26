@@ -1,15 +1,17 @@
 /**
- * @file dbg_com.c
+ * @file dbg_mon.c
  * @author Chimipupu(https://github.com/Chimipupu)
- * @brief デバッグUARTモニタ
+ * @brief デバッグモニタ(軽量板)
  * @version 0.1
  * @date 2026-03-26
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  */
-#include "dbg_com.h"
+#include "dbg_mon.h"
 
 // -----------------------------------------------------------
 // [DEBUG関連]
+#ifdef DEBUG_DBG_MON
+#endif // DEBUG_DBG_MON
 
 // -----------------------------------------------------------
 // UART受信バッファのサイズ
@@ -33,7 +35,7 @@ typedef struct {
 #define MCU_FLASH_SIZE         62
 #define MCU_RAM_SIZE           8
 
-static void dbg_com_init_msg(const char *p_args);
+static void dbg_mon_init_msg(const char *p_args);
 
 static void cmd_help(const char *p_args);
 static void cmd_cls(const char *p_args);
@@ -64,18 +66,18 @@ static char s_cmd_args_buf[DBG_CMD_ARGS_BUF_SIZE];
 // -----------------------------------------------------------
 // [Static関数]
 
-static void dbg_com_init_msg(const char *p_args)
+static void dbg_mon_init_msg(const char *p_args)
 {
-    printf("\nDebug Cmd for %s Ver%d.%d.%d\n",  MCU_NAME,
-                                                DBG_COM_VER_MAJOR,
-                                                DBG_COM_VER_MINOR,
-                                                DBG_COM_VER_REVISION);
+    printf("\nDebug Monior for %s Ver%d.%d.%d\n",  MCU_NAME,
+                                                DBG_MON_VER_MAJOR,
+                                                DBG_MON_VER_MINOR,
+                                                DBG_MON_VER_REVISION);
     printf("Copyright (c) 2026 Chimipupu All Rights Reserved.\n");
 }
 
 static void cmd_help(const char *p_args)
 {
-    dbg_com_init_msg(p_args);
+    dbg_mon_init_msg(p_args);
 
     printf("\nCmd Cnt: [%d]\n", CMD_TBL_CNT);
     for (uint8_t i = 0; i < CMD_TBL_CNT; i++)
@@ -162,12 +164,19 @@ static void _cmd_exec(const char *p_buf)
         p_ptr++;
     }
 
-    // コマンド実行
+
+    // テーブルから該当コマンドのコールバック関数を検索
     for(i = 0; i < CMD_TBL_CNT; i++)
     {
         if( (strcmp(&s_cmd_buf[0], g_cmd_tbl[i].p_cmd_str) == 0) ||     // コマンドと一致か？
             (strcmp(&s_cmd_buf[0], g_cmd_tbl[i].p_cmd_short_str) == 0)  // 短縮コマンドと一致か？
         ) {
+#ifdef DEBUG_DBG_MON
+            printf("[DEBUG] cmd: %s\r\n", s_cmd_buf);
+            printf("[DEBUG] cmd agrs: %s\r\n", s_cmd_args_buf);
+#endif // DEBUG_DBG_MON
+
+            // コマンド実行
             g_cmd_tbl[i].p_func(&s_cmd_args_buf[0]);
         }
     }
@@ -179,7 +188,7 @@ static void _cmd_exec(const char *p_buf)
 /**
  * @brief デバッグコマンドモニターの初期化
  */
-void dbg_com_init(void)
+void dbg_mon_init(void)
 {
     memset(&s_uart_recv_buf[0], 0x00, DBG_CMD_UART_BUF_SIZE);
     memset(&s_cmd_buf[0], 0x00, DBG_CMD_MAX_LEN);
@@ -192,7 +201,7 @@ void dbg_com_init(void)
 /**
  * @brief デバッグコマンドモニターのメイン処理
  */
-void dbg_com_main(void)
+void dbg_mon_main(void)
 {
     uint8_t c;
     bool drv_ret;
@@ -210,7 +219,7 @@ void dbg_com_main(void)
     // デリミタ'CRかLF)の受信でコマンド受付け
     if ((c == '\r') || (c == '\n')) {
         // 何かしらデータが受信出来てたら処理
-        if (s_recv_buf_idx > 0) {
+        if (s_recv_buf_idx > 3) {
             printf("\n");
 
             // コマンド解析 & 実行
