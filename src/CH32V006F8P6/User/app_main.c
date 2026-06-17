@@ -28,6 +28,15 @@
 
 // -----------------------------------------------------------
 // [アプリメイン関連]
+
+// テストデータ（ASCII）: "CH32V006 DEVELOP BY CHIMIPUPU"
+static const uint8_t g_test_ascii_tbl[32] = {
+    0x43, 0x48, 0x33, 0x32, 0x56, 0x30, 0x30, 0x36,
+    0x20, 0x44, 0x45, 0x56, 0x45, 0x4C, 0x4F, 0x50,
+    0x42, 0x59, 0x20, 0x43, 0x48, 0x49, 0x4D, 0x49,
+    0x50, 0x55, 0x50, 0x55, 0x20, 0x20, 0x20, 0x20
+};
+
 typedef uint8_t (*p_func_app_main)(void *p_arg);
 static uint8_t _app_btn_proc(void *p_arg);
 static uint8_t _app_io_reg_proc(void *p_arg);
@@ -59,10 +68,10 @@ app_main_func_tbl_t g_app_func_tbl[] = {
 #endif // DEBUG_I2C_USE
 };
 #define APP_FUNC_TBL_CNT    sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0])
+
 const uint8_t g_app_func_tbl_cnt = APP_FUNC_TBL_CNT;
 static uint8_t s_app_sw_timer_buf[APP_FUNC_TBL_CNT] = {0};
 static uint8_t s_idx = 0;
-
 // -----------------------------------------------------------
 // [Private]
 
@@ -104,21 +113,47 @@ typedef enum {
 #endif
 #endif // DEBUG_I2C_USE
 
-volatile uint32_t g_chip_uid[3] = {0};
-
 #if defined(DEBUG_I2C_USE) && defined(EEPROM_USE)
-volatile const uint8_t g_eeprom_page_0_init_data[EEPROM_24C64_PAGE_BYTE_SIZE] = {
-    0x43, 0x48, 0x33, 0x32, 0x56, 0x30, 0x30, 0x36,
-    0x20, 0x44, 0x45, 0x56, 0x45, 0x4C, 0x4F, 0x50,
-    0x42, 0x59, 0x20, 0x43, 0x48, 0x49, 0x4D, 0x49,
-    0x50, 0x55, 0x50, 0x55, 0x20, 0x20, 0x20, 0x20
-};
 volatile uint8_t g_eeprom_page_buf[EEPROM_24C64_PAGE_BYTE_SIZE] = {0};
 static bool _app_eeprom_factory_reset(void);
 #endif // EEPROM_USE
 
+volatile uint32_t g_chip_uid[3] = {0};
+static void _chip_uid_read(void);
+
+static void _dma_test(void);
 // -----------------------------------------------------------
 // [Static関数]
+
+static void _chip_uid_read(void)
+{
+    app_util_chip_uid_read((uint32_t *) &g_chip_uid[0]); // 96bitのUID読み出し
+    DEBUG_PRINTF("[DEBUG] Chip UID(96bit): 0x%08X 0x%08X 0x%08X\r\n", g_chip_uid[2], g_chip_uid[1], g_chip_uid[0]);
+}
+
+static void _dma_test(void)
+{
+    int cmp_ret;
+    uint8_t dbg_dma_test_buf[32] = {0};
+    drv_dma_config_t dma_cfg = {
+        .data_type = DATA_TYPE_BYTE,
+        .size_byte = 32,
+        .p_src = (void *)&g_test_ascii_tbl[0],
+        .p_dst = (void *)&dbg_dma_test_buf[0],
+    };
+
+    drv_dma_init(DMA_CH_1, MODE_MEM2MEM, &dma_cfg);
+    drv_dma_start(DMA_CH_1);
+
+    while(drv_dma_tc_check(DMA_CH_1) == false);
+
+    cmp_ret = memcmp((const void *)&dbg_dma_test_buf, (const void *)&g_test_ascii_tbl, 32);
+    if(cmp_ret == 0) {
+        DEBUG_PRINTF("[DEBUG] DMA Compare Succes!\r\n");
+    } else {
+        DEBUG_PRINTF("[DEBUG] Error! DMA Compare Fail!\r\n");
+    }
+}
 
 #if defined(DEBUG_I2C_USE) && defined(EEPROM_USE)
 static bool _app_eeprom_factory_reset(void)
@@ -127,14 +162,14 @@ static bool _app_eeprom_factory_reset(void)
     int ret_cmp;
 
     drv_eeprom_read_page(0x00, (uint8_t *)&g_eeprom_page_buf[0]);
-    ret_cmp = memcmp((const void *)&g_eeprom_page_0_init_data,
+    ret_cmp = memcmp((const void *)&g_test_ascii_tbl,
                      (const void *)&g_eeprom_page_buf,
                         EEPROM_24C64_PAGE_BYTE_SIZE);
 
     // EEPROMを工場出荷リセット
     if(ret_cmp != 0) {
         ret = true;
-        drv_eeprom_write_page(0x00, (uint8_t *)&g_eeprom_page_0_init_data[0]);
+        drv_eeprom_write_page(0x00, (uint8_t *)&g_test_ascii_tbl[0]);
         drv_tick_delay_ms(10); // EEPROMの書き込み待ち時間の8ms以上待つ
         drv_eeprom_read_page(0x00, (uint8_t *)&g_eeprom_page_buf[0]);
 #ifdef USE_DEBUG_PRINTF
@@ -358,7 +393,7 @@ void app_util_mem_dump(const uint8_t *p_buf, uint32_t size)
 }
 
 /**
- * @brief マイコンのユニークID(96bit)読み出し
+ * @brief CH32V006のレジスタからユニークID(96bit)を読み出し
  * @param p_buf 96bit分のバッファポインタ(32bit x 3 = 96bit)
  */
 void app_util_chip_uid_read(uint32_t *p_buf)
@@ -388,34 +423,14 @@ void app_main_init(void)
 {
     uint8_t i;
 
-    app_io_reg_init();                              // アプリI/Oレジスタ初期化
+    app_io_reg_init(); // アプリI/Oレジスタ初期化
 
 #ifdef USE_DEBUG_PRINTF
-    util_chip_uid_read((uint32_t *)&g_chip_uid[0]); // 96bitのUID読み出し
     DEBUG_PRINTF("[DEBUG] PCB Info: Type = %s\r\n", PCB_NAME_STR);
-    DEBUG_PRINTF("[DEBUG] Chip UID(96bit): 0x%08X 0x%08X 0x%08X\r\n", g_chip_uid[2], g_chip_uid[1], g_chip_uid[0]);
 
-    // DMAテスト
-    int cmp_ret;
-    uint8_t dbg_dma_test_buf[32] = {0};
-    drv_dma_config_t dma_cfg = {
-        .data_type = DATA_TYPE_BYTE,
-        .size_byte = 32,
-        .p_src = (void *)&g_eeprom_page_0_init_data[0],
-        .p_dst = (void *)&dbg_dma_test_buf[0],
-    };
+    _chip_uid_read(); // UID読み出し
 
-    drv_dma_init(DMA_CH_1, MODE_MEM2MEM, &dma_cfg);
-    drv_dma_start(DMA_CH_1);
-
-    while(drv_dma_tc_check(DMA_CH_1) == false);
-
-    cmp_ret = memcmp((const void *)&dbg_dma_test_buf, (const void *)&g_eeprom_page_0_init_data, 32);
-    if(cmp_ret == 0) {
-        DEBUG_PRINTF("[DEBUG] DMA Compare Succes!\r\n");
-    } else {
-        DEBUG_PRINTF("[DEBUG] Error! DMA Compare Fail!\r\n");
-    }
+    _dma_test(); // DMAテスト
 #endif // USE_DEBUG_PRINTF
 
 // #ifdef EEPROM_USE
