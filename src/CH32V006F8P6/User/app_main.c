@@ -106,7 +106,7 @@ typedef enum {
 
 volatile uint32_t g_chip_uid[3] = {0};
 
-#ifdef EEPROM_USE
+#if defined(DEBUG_I2C_USE) && defined(EEPROM_USE)
 volatile const uint8_t g_eeprom_page_0_init_data[EEPROM_24C64_PAGE_BYTE_SIZE] = {
     0x43, 0x48, 0x33, 0x32, 0x56, 0x30, 0x30, 0x36,
     0x20, 0x44, 0x45, 0x56, 0x45, 0x4C, 0x4F, 0x50,
@@ -120,8 +120,7 @@ static bool _app_eeprom_factory_reset(void);
 // -----------------------------------------------------------
 // [Static関数]
 
-#ifdef DEBUG_I2C_USE
-#ifdef EEPROM_USE
+#if defined(DEBUG_I2C_USE) && defined(EEPROM_USE)
 static bool _app_eeprom_factory_reset(void)
 {
     bool ret;
@@ -265,6 +264,7 @@ static void rtc_time_read(void)
 }
 #endif
 
+#ifdef DEBUG_I2C_USE
 static uint8_t _i2c_proc(void *p_arg)
 {
     // DEBUG_PRINTF("[DEBUG] I2C Proc\r\n");

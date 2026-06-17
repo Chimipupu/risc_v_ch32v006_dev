@@ -1,9 +1,9 @@
 /**
  * @file drv_i2c_eeprom_24c64.h
  * @author Chimipupu(https://github.com/Chimipupu)
- * @brief EEPROM 24C64 I2Cドライバ
+ * @brief EEPROM(24C64) I2Cドライバ
  * @version 0.1
- * @date 2026-03-11
+ * @date 2026-06-17
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  */
 
@@ -29,4 +29,5 @@ drv_i2c_ret drv_eeprom_read_byte(uint16_t addr, uint8_t *p_data);
 drv_i2c_ret drv_eeprom_read_page(uint8_t read_page, uint8_t *p_page_data_buf);
 drv_i2c_ret drv_eeprom_write_page(uint8_t write_page, uint8_t *p_page_data_buf);
 // -----------------------------------------------------------
+
 #endif // DRV_I2C_EEPROM_24C64_H

@@ -3,10 +3,8 @@
  * @author Chimipupu(https://github.com/Chimipupu)
  * @brief  CH32V003 メイン
  * @version 0.1
- * @date 2025-08-06
- * 
+ * @date 2026-06-17
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
- * 
  */
 
 // C Std Lib

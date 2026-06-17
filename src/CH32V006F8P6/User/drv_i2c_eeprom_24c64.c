@@ -1,9 +1,9 @@
 /**
  * @file drv_i2c_eeprom_24c64.c
  * @author Chimipupu(https://github.com/Chimipupu)
- * @brief EEPROM 24C64 I2Cドライバ
+ * @brief EEPROM(24C64) I2Cドライバ
  * @version 0.1
- * @date 2026-03-11
+ * @date 2026-06-17
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  */
 

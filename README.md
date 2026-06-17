@@ -51,7 +51,7 @@ WCH製25円 RISC-Vマイコン CH32V006の評価F/W個人開発リポジトリ
 
 ```shell
 Memory region         Used Size  Region Size  %age Used
-           FLASH:       13264 B        62 KB     20.89%
+           FLASH:       10880 B        62 KB     17.14%
              RAM:        1288 B         8 KB     15.72%
 ```
 
