@@ -119,17 +119,10 @@ static bool _app_eeprom_factory_reset(void);
 #endif // EEPROM_USE
 
 volatile uint32_t g_chip_uid[3] = {0};
-static void _chip_uid_read(void);
 
 static void _dma_test(void);
 // -----------------------------------------------------------
 // [Static関数]
-
-static void _chip_uid_read(void)
-{
-    app_util_chip_uid_read((uint32_t *) &g_chip_uid[0]); // 96bitのUID読み出し
-    DEBUG_PRINTF("[DEBUG] Chip UID(96bit): 0x%08X 0x%08X 0x%08X\r\n", g_chip_uid[2], g_chip_uid[1], g_chip_uid[0]);
-}
 
 static void _dma_test(void)
 {
@@ -339,7 +332,7 @@ static uint8_t _app_btn_proc(void *p_arg)
 
 static uint8_t _app_io_reg_proc(void *p_arg)
 {
-#ifdef USE_DEBUG_PRINTF
+#if 0
     uint8_t i, reg;
 
     for(i = 0; i < IO_REG_STR_TBL_CNT; i++)
@@ -394,26 +387,32 @@ void app_util_mem_dump(const uint8_t *p_buf, uint32_t size)
 
 /**
  * @brief CH32V006のレジスタからユニークID(96bit)を読み出し
- * @param p_buf 96bit分のバッファポインタ(32bit x 3 = 96bit)
+ * @return uint32_t* 読み出したUIDのバッファポインタ
  */
-void app_util_chip_uid_read(uint32_t *p_buf)
+uint32_t* app_util_chip_uid_read(void)
 {
+    static bool s_is_uid_readed = false;
     uint32_t *p_ptr;
 
-    if(p_buf == NULL) {
-        return;
+    if(s_is_uid_readed != true) {
+        memset(&g_chip_uid[0], 0x00, sizeof(g_chip_uid));
+        p_ptr = &g_chip_uid[0];
+
+        // UID 95~64 bit
+        *p_ptr = *((uint32_t *) REG_ADDR_R32_ESIG_UNIID3);
+        p_ptr++;
+        // UID 63~32 bit
+        *p_ptr = *((uint32_t *) REG_ADDR_R32_ESIG_UNIID2);
+        p_ptr++;
+        // UID 0~31 bit
+        *p_ptr = *((uint32_t *) REG_ADDR_R32_ESIG_UNIID1);
+
+        s_is_uid_readed = true;
+    } else {
+#ifdef USE_DEBUG_PRINTF
+        DEBUG_PRINTF("Chip UID(96bit): 0x%08X 0x%08X 0x%08X\r\n", g_chip_uid[2], g_chip_uid[1], g_chip_uid[0]);
+#endif // USE_DEBUG_PRINTF
     }
-
-    p_ptr = p_buf;
-
-    // UID 0~31 bit
-    *p_ptr = *((uint32_t *) REG_ADDR_R32_ESIG_UNIID1);
-    p_ptr++;
-    // UID 32~63 bit
-    *p_ptr = *((uint32_t *) REG_ADDR_R32_ESIG_UNIID2);
-    p_ptr++;
-    // UID 64~95bit
-    *p_ptr = *((uint32_t *) REG_ADDR_R32_ESIG_UNIID3);
 }
 
 /**
@@ -428,7 +427,7 @@ void app_main_init(void)
 #ifdef USE_DEBUG_PRINTF
     DEBUG_PRINTF("[DEBUG] PCB Info: Type = %s\r\n", PCB_NAME_STR);
 
-    _chip_uid_read(); // UID読み出し
+    app_util_chip_uid_read(); // UID読み出し
 
     _dma_test(); // DMAテスト
 #endif // USE_DEBUG_PRINTF

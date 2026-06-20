@@ -113,6 +113,7 @@ static void cmd_system(const char *p_args)
     // マイコン
     printf("MCU: %s\n", MCU_NAME);
     printf("CPU: RISC-V RV32EmC (QingKe V2C)\n");
+    app_util_chip_uid_read();
 
     // ROM/RAM
     printf("Flash: %d KB\n", MCU_FLASH_SIZE);
