@@ -135,16 +135,23 @@ static void _dma_test(void)
         .p_dst = (void *)&dbg_dma_test_buf[0],
     };
 
+    printf("[DMA Test] Start\r\n");
+    printf("[DMA Test] Src Buf\r\n");
+    app_util_mem_dump((const uint8_t *)&g_test_ascii_tbl[0], 32);
+
     drv_dma_init(DMA_CH_1, MODE_MEM2MEM, &dma_cfg);
     drv_dma_start(DMA_CH_1);
 
     while(drv_dma_tc_check(DMA_CH_1) == false);
 
+    printf("[DMA Test] Dst Buf\r\n");
+    app_util_mem_dump((const uint8_t *)&dbg_dma_test_buf[0], 32);
+
     cmp_ret = memcmp((const void *)&dbg_dma_test_buf, (const void *)&g_test_ascii_tbl, 32);
     if(cmp_ret == 0) {
-        DEBUG_PRINTF("[DEBUG] DMA Compare Succes!\r\n");
+        DEBUG_PRINTF("[DMA Test]] DMA Compare Succes!\r\n");
     } else {
-        DEBUG_PRINTF("[DEBUG] Error! DMA Compare Fail!\r\n");
+        DEBUG_PRINTF("[DMA Test]] Error! DMA Compare Fail!\r\n");
     }
 }
 
@@ -360,25 +367,47 @@ static uint8_t _debug_proc(void *p_arg)
 // -----------------------------------------------------------
 // [アプリ]
 
-void app_util_mem_dump(const uint8_t *p_buf, uint32_t size)
+void app_util_mem_dump(const uint8_t *p_buf, uint32_t size_byte)
 {
-    uint8_t c, h, i;
+    uint32_t i;
+    uint8_t c;
+    uint32_t offset;
+    uint32_t line_len;
+    uint32_t addr;
 
-    for(h = 0; h < (size / 16); h++)
+    if (p_buf == NULL || size_byte == 0) {
+        return;
+    }
+
+    addr = (uint32_t)(uintptr_t)(const void *)p_buf;
+
+    printf("[Memory Dump] Addr: 0x%08X, Size: %u byte\r\n", addr, size_byte);
+    printf("Addr      | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F | ASCII\r\n");
+
+    for (offset = 0; offset < size_byte; offset += 16)
     {
-        printf("%04X: ", h * 16);
+        addr += offset;
+        printf("0x%08X| ", addr);
+        
+        line_len = (size_byte - offset < 16) ? (size_byte - offset) : 16;
+
         // HEX形式でダンプ
-        for(i = 0; i < 16; i++)
+        for (i = 0; i < 16; i++)
         {
-            printf("%02X ", p_buf[h * 16 + i]);
+            if (i < line_len) {
+                printf("%02X ", p_buf[offset + i]);
+            } else {
+                printf("   "); 
+            }
         }
-        printf(" |");
+        printf("|");
+
         // ASCIIでダンプ
-        for(i = 0; i < 16; i++)
+        for (i = 0; i < line_len; i++)
         {
-            c = p_buf[h * 16 + i];
-            // 0x20(スペース) から 0x7E(~) までを表示
-            c = ((c >= 0x20) && (c <= 0x7E)) ? c : ' ';
+            c = p_buf[offset + i];
+            // ASCIIは0x20(スペース) から 0x7E(~) までを表示
+            c = ((c >= 0x20) && (c <= 0x7E)) ? c : '.';
             printf("%c", c);
         }
         printf("|\r\n");
@@ -392,11 +421,10 @@ void app_util_mem_dump(const uint8_t *p_buf, uint32_t size)
 uint32_t* app_util_chip_uid_read(void)
 {
     static bool s_is_uid_readed = false;
-    uint32_t *p_ptr;
+    uint32_t *p_ptr = (uint32_t *) &g_chip_uid[0];
 
     if(s_is_uid_readed != true) {
-        memset(&g_chip_uid[0], 0x00, sizeof(g_chip_uid));
-        p_ptr = &g_chip_uid[0];
+        memset((void *) &g_chip_uid[0], 0x00, sizeof(g_chip_uid));
 
         // UID 95~64 bit
         *p_ptr = *((uint32_t *) REG_ADDR_R32_ESIG_UNIID3);
@@ -413,6 +441,8 @@ uint32_t* app_util_chip_uid_read(void)
         DEBUG_PRINTF("Chip UID(96bit): 0x%08X 0x%08X 0x%08X\r\n", g_chip_uid[2], g_chip_uid[1], g_chip_uid[0]);
 #endif // USE_DEBUG_PRINTF
     }
+
+    return p_ptr;
 }
 
 /**

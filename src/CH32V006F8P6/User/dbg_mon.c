@@ -105,6 +105,8 @@ static void cmd_cls(const char *p_args)
 
 static void cmd_system(const char *p_args)
 {
+    uint32_t *p_uid_buf;
+
     // printf("\n[System Information]\n");
 
     // 基板
@@ -113,7 +115,6 @@ static void cmd_system(const char *p_args)
     // マイコン
     printf("MCU: %s\n", MCU_NAME);
     printf("CPU: RISC-V RV32EmC (QingKe V2C)\n");
-    app_util_chip_uid_read();
 
     // ROM/RAM
     printf("Flash: %d KB\n", MCU_FLASH_SIZE);
@@ -121,6 +122,10 @@ static void cmd_system(const char *p_args)
 
     // クロック関連
     printf("System Clock: %d MHz\r\n", SystemCoreClock / 1000000);
+
+    // 96bit UID
+    p_uid_buf = app_util_chip_uid_read();
+    app_util_mem_dump((const uint8_t *) p_uid_buf, 12);
 }
 
 static void cmd_mem_dump(const char *p_args)
