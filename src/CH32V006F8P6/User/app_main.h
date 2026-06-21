@@ -19,7 +19,7 @@
 #define DEBUG_APP
 #define USE_DEBUG_PRINTF
 #define DBG_MON_USE
-
+// #define USE_APP_IO_REG
 // ----------------------------------------------------------------------
 // [マクロ]
 #define APP_PROC_EXEC     0x00 // アプリ実行継続

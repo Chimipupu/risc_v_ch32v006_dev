@@ -1,4 +1,4 @@
-#  CH32V006 評価F/W 個人開発
+# CH32V006 評価F/W 個人開発
 
 WCH製25円 RISC-Vマイコン CH32V006の評価F/W個人開発リポジトリ
 
@@ -41,18 +41,13 @@ WCH製25円 RISC-Vマイコン CH32V006の評価F/W個人開発リポジトリ
 
 - 最適化
   - `-O0`
-- ペリフェラル
-  - 使用中
-    - UART
-    - I2C
-    - SPI
-    - 16bitタイマー
-      - TIM1
+- EEPROM
+  - **あり**
 
 ```shell
 Memory region         Used Size  Region Size  %age Used
-           FLASH:       15608 B        62 KB     24.58%
-             RAM:        1416 B         8 KB     17.29%
+           FLASH:       13172 B        62 KB     20.75%
+             RAM:        1276 B         8 KB     15.58%
 ```
 
 ## ピンアサイン
@@ -92,3 +87,26 @@ Memory region         Used Size  Region Size  %age Used
 | SCK  | PC5 (SCK)  |
 | MOSI | PC6 (MOSI) |
 | MISO | PC7 (MISO) |
+
+## 評価総評
+
+- 総評
+  - ★★★★☆ 90/100点
+
+- 良い点
+  - 単価25円で破格すぎるRISC-Vマイコン
+  - 5Vでも3.3Vでも動かせる貴重な32bitのマイコン
+  - CPUがRV32EmCで乗算（かけ算）をCPU命令のハードウェア
+  - ROMとRAMが単価を考えてもかなり多い
+  - I2CとSPIは1本、UARTは2本、16bitタイマーは3本
+  - DMAが7本も使える
+  - ADCが12bitで8本も使える
+  - デバッグが1本のシリアルで出来る
+  - マイコンのチップ毎にUIDが96bitも付与されてる
+  - 内蔵の24MHz HSIが誤差2%
+- 悪い点
+  - 内蔵フラッシュROMで2ウェイトも発生する（48MHz時）
+  - PLLが2逓倍固定で2倍にしかクロックの周波数を上げれない
+  - DeepSleepが10μAでESP32の約2倍
+  - WCHからSDKの更新がない
+  - 除算（割り算）がソフトウェア

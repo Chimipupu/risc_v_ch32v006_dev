@@ -8,7 +8,6 @@
  */
 
 #include "app_main.h"
-#include "app_io_reg.h"
 #include "drv_gpio.h"
 #include "drv_dma.h"
 #include "drv_i2c.h"
@@ -16,10 +15,14 @@
 #include "drv_i2c_eeprom_24c64.h"
 #include "pcb_board_define.h"
 
+#ifdef USE_APP_IO_REG
+#include "app_io_reg.h"
+#endif
+
 // -----------------------------------------------------------
 // [DEBUG関連]
 #ifdef USE_DEBUG_PRINTF
-    #define DEBUG_PRINTF        printf
+#define DEBUG_PRINTF        printf
 #endif // USE_DEBUG_PRINTF
 
 #ifdef DEBUG_UART_USE
@@ -39,7 +42,10 @@ static const uint8_t g_test_ascii_tbl[32] = {
 
 typedef uint8_t (*p_func_app_main)(void *p_arg);
 static uint8_t _app_btn_proc(void *p_arg);
+
+#ifdef USE_APP_IO_REG
 static uint8_t _app_io_reg_proc(void *p_arg);
+#endif
 
 #ifdef DEBUG_I2C_USE
 static uint8_t _i2c_proc(void *p_arg);
@@ -50,22 +56,25 @@ static uint8_t _debug_proc(void *p_arg);
 #endif
 
 typedef struct {
-    p_func_app_main pfunc; // アプリコールバック関数ポインタ
-    uint16_t interval_ms;  // アプリコールバック関数の実行周期(ms)
+    p_func_app_main pfunc; // 各アプリのコールバック関数ポインタ
+    uint16_t interval_ms;  // 各アプリの実行周期(ms)
 } app_main_func_tbl_t;
 
 // アプリメインコールバック関数テーブル
 app_main_func_tbl_t g_app_func_tbl[] = {
-#if defined(DEBUG_UART_USE) && defined(DBG_MON_USE)
-    {_debug_proc,      10}, // デバッグ処理
+#ifdef USE_APP_IO_REG
+    {_app_io_reg_proc, 10}, // I/Oレジスタアプリ
 #endif
 
-    {_app_btn_proc,    500}, // ボタン処理アプリ
-    {_app_io_reg_proc, 900}, // I/Oレジスタアプリ
+#if defined(DEBUG_UART_USE) && defined(DBG_MON_USE)
+    {_debug_proc,      30}, // デバッグ処理
+#endif
 
 #ifdef DEBUG_I2C_USE
-    {_i2c_proc,        1000}, // I2C処理
+    {_i2c_proc,        100}, // I2C処理
 #endif // DEBUG_I2C_USE
+
+    {_app_btn_proc,    500}, // ボタン処理アプリ
 };
 #define APP_FUNC_TBL_CNT    sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0])
 
@@ -115,7 +124,7 @@ typedef enum {
 
 #if defined(DEBUG_I2C_USE) && defined(EEPROM_USE)
 volatile uint8_t g_eeprom_page_buf[EEPROM_24C64_PAGE_BYTE_SIZE] = {0};
-// static bool _app_eeprom_factory_reset(void);
+// static bool _eeprom_factory_reset(void);
 #endif // EEPROM_USE
 
 volatile uint32_t g_chip_uid[3] = {0};
@@ -157,7 +166,7 @@ static void _dma_test(void)
 
 #if 0
 // #if defined(DEBUG_I2C_USE) && defined(EEPROM_USE)
-static bool _app_eeprom_factory_reset(void)
+static bool _eeprom_factory_reset(void)
 {
     bool ret;
     int ret_cmp;
@@ -330,9 +339,9 @@ static uint8_t _app_btn_proc(void *p_arg)
     return APP_PROC_END;
 }
 
+#ifdef USE_APP_IO_REG
 static uint8_t _app_io_reg_proc(void *p_arg)
 {
-#if 0
     uint8_t i, reg;
 
     for(i = 0; i < IO_REG_STR_TBL_CNT; i++)
@@ -340,10 +349,10 @@ static uint8_t _app_io_reg_proc(void *p_arg)
         reg = app_io_reg_read(g_io_reg_data_tbl[i].addr);
         DEBUG_PRINTF("[APP I/O Reg] %s, Addr: 0x%02X, Val: 0x%02X\r\n", g_io_reg_data_tbl[i].p_str,  g_io_reg_data_tbl[i].addr, reg);
     }
-#endif // USE_DEBUG_PRINTF
 
     return APP_PROC_END;
 }
+#endif
 
 #if defined(DEBUG_UART_USE) && defined(DBG_MON_USE)
 static uint8_t _debug_proc(void *p_arg)
@@ -445,7 +454,9 @@ void app_main_init(void)
 {
     uint8_t i;
 
+#ifdef USE_APP_IO_REG
     app_io_reg_init(); // アプリI/Oレジスタ初期化
+#endif
 
 #ifdef USE_DEBUG_PRINTF
     DEBUG_PRINTF("[DEBUG] PCB Info: Type = %s\r\n", PCB_NAME_STR);
@@ -456,7 +467,7 @@ void app_main_init(void)
 #endif // USE_DEBUG_PRINTF
 
 // #ifdef EEPROM_USE
-//     _app_eeprom_factory_reset(); // EEPROMの工場出荷リセット
+//     _eeprom_factory_reset(); // EEPROMの工場出荷リセット
 // #endif // EEPROM_USE
 
 #if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280)

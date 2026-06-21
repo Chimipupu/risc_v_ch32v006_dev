@@ -18,7 +18,7 @@ typedef struct {
 } app_io_reg_t;
 
 // I/Oレジスタ属性テーブル
-volatile const app_io_reg_t g_app_io_reg_attr_tbl[APP_IO_REG_NUM] = {
+static const app_io_reg_t g_app_io_reg_attr_tbl[APP_IO_REG_NUM] = {
     // -----------------------------------------------------------------
     // [設定・状態関連レジスタ]
     {0xFF, 0xFF}, // Addr: 0, コントロール0レジスタ(属性: R/W @8bit)
@@ -166,13 +166,13 @@ volatile const app_io_reg_t g_app_io_reg_attr_tbl[APP_IO_REG_NUM] = {
 };
 
 // I/Oレジスタデータテーブル
-volatile const io_reg_data_t g_io_reg_data_tbl[] = {
+const io_reg_data_t g_io_reg_data_tbl[] = {
     {APP_IO_REG_ADDR_WHO_I_AM, "WIA"  , WHO_I_AM_IOCPS},
     {APP_IO_REG_ADDR_DBG_0,    "DBG_0", 0x00},
     {APP_IO_REG_ADDR_DBG_1,    "DBG_1", 0x00},
     {APP_IO_REG_ADDR_DBG_2,    "DBG_2", 0x00},
 };
-volatile const uint8_t IO_REG_STR_TBL_CNT = sizeof(g_io_reg_data_tbl) / sizeof(g_io_reg_data_tbl[0]);
+const uint8_t IO_REG_STR_TBL_CNT = sizeof(g_io_reg_data_tbl) / sizeof(g_io_reg_data_tbl[0]);
 
 static uint8_t s_app_io_reg[APP_IO_REG_NUM] = {0};
 

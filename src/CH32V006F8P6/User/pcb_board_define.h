@@ -25,7 +25,7 @@
 #define I2C_ENV_SENSOR_AHT20          0
 #define I2C_ENV_SENSOR_BMP280         1
 
-#define EEPROM_USE     // EEPROMの使用有無
+// #define EEPROM_USE     // EEPROMの使用有無
 #define DEBUG_UART_USE // UARTの使用有無
 #define DEBUG_I2C_USE  // I2Cの使用有無
 

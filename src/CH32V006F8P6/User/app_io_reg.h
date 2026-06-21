@@ -37,8 +37,8 @@ typedef struct {
     uint8_t init_val;
 } io_reg_data_t;
 
-extern volatile const io_reg_data_t g_io_reg_data_tbl[];
-extern volatile const uint8_t IO_REG_STR_TBL_CNT;
+extern const io_reg_data_t g_io_reg_data_tbl[];
+extern const uint8_t IO_REG_STR_TBL_CNT;
 
 // -----------------------------------------------------------
 void app_io_reg_init(void);

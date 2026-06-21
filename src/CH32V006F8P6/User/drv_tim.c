@@ -15,7 +15,7 @@ typedef struct {
     uint16_t div_config_val;
 } drv_tim_div_t;
 
-volatile const drv_tim_div_t g_tim_div_tbl[] = {
+static const drv_tim_div_t g_tim_div_tbl[] = {
     {1, TIM_CKD_DIV1},
     {2, TIM_CKD_DIV2},
     {4, TIM_CKD_DIV4},
@@ -23,10 +23,10 @@ volatile const drv_tim_div_t g_tim_div_tbl[] = {
 #define TIM_DIV_TBL_CNT    sizeof(g_tim_div_tbl) / sizeof(g_tim_div_tbl[0])
 
 volatile uint32_t g_systick_cnt_ms = 0;
-volatile software_timer_config_t g_sw_timer_buf[SW_TIMER_BUG_SIZE];
-
+software_timer_config_t g_sw_timer_buf[SW_TIMER_BUG_SIZE];
 static void _sw_timer_init(uint8_t timer_no);
 static void _sw_timer_all_init(void);
+
 // -----------------------------------------------------------
 // [割り込みハンドラ]
 
@@ -82,13 +82,6 @@ static void _sw_timer_all_init(void)
 
 // -----------------------------------------------------------
 // [ドライバ]
-void drv_tick_delay_ms(uint32_t ms)
-{
-    uint32_t start_tick = drv_get_systick_cnt();
-    while ((drv_get_systick_cnt() - start_tick) < ms) {
-        __asm__ __volatile__("nop");
-    }
-}
 
 bool soft_timer_start(uint16_t config_time_ms, bool is_intervel, uint8_t *p_timer_no)
 {
@@ -121,6 +114,8 @@ void soft_timer_stop(uint8_t timer_no)
 
 bool get_soft_timer_cnt_match(uint8_t timer_no)
 {
+    bool ret = false;
+
     if(timer_no <= (SW_TIMER_BUG_SIZE - 1)) {
         if(g_sw_timer_buf[timer_no].is_cnt_start != false) {
             // コンペアマッチしてるか？
@@ -131,12 +126,12 @@ bool get_soft_timer_cnt_match(uint8_t timer_no)
                 } else {
                     g_sw_timer_buf[timer_no].cnt_time_ms = 0;
                 }
-                return true;
-            } else {
-                return false;
+                ret = true; // コンペアマッチ
             }
         }
     }
+
+    return ret;
 }
 
 void soft_timer_proc(void)
@@ -156,6 +151,17 @@ void soft_timer_proc(void)
             g_sw_timer_buf[i].cnt_time_ms += delta_ms; // 1ms加算
         }
     }
+}
+
+void drv_systick_init(void)
+{
+    NVIC_EnableIRQ(SysTick_IRQn);                 // SysTick割り込み有効化
+    SysTick->SR &= ~(1 << 0);                     // SysTick割り込みフラグクリア
+    SysTick->CMP = (SystemCoreClock - 1) / 1000;  // SysTick割り込み = 1ms周期
+    SysTick->CNT = 0;                             // SysTickカウント値をクリア
+    SysTick->CTLR = 0xF;
+
+    _sw_timer_all_init();                         // S/Wタイマーカウント初期化
 }
 
 /**
@@ -207,14 +213,10 @@ void drv_tim_init(uint16_t arr, uint16_t psc, uint16_t div)
     TIM_Cmd(TIM1, ENABLE);
 }
 
-void drv_systick_init(void)
+void drv_tick_delay_ms(uint32_t ms)
 {
-    NVIC_EnableIRQ(SysTick_IRQn);                 // SysTick割り込み有効化
-    SysTick->SR &= ~(1 << 0);                     // SysTick割り込みフラグクリア
-    SysTick->CMP = (SystemCoreClock - 1) / 1000;  // SysTick割り込み = 1ms周期
-    SysTick->CNT = 0;                             // SysTickカウント値をクリア
-    SysTick->CTLR = 0xF;
-
-    // S/Wタイマーカウント初期化
-    _sw_timer_all_init();
+    uint32_t start_tick = drv_get_systick_cnt();
+    while ((drv_get_systick_cnt() - start_tick) < ms) {
+        __asm__ __volatile__("nop");
+    }
 }

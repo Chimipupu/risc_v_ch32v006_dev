@@ -43,11 +43,12 @@ typedef struct {
 } software_timer_config_t;
 
 // -----------------------------------------------------------
-void drv_tick_delay_ms(uint32_t ms);
 bool soft_timer_start(uint16_t config_time_ms, bool is_intervel, uint8_t *p_timer_no);
 void soft_timer_stop(uint8_t timer_no);
 bool get_soft_timer_cnt_match(uint8_t timer_no);
 void soft_timer_proc(void);
-void drv_tim_init(uint16_t arr, uint16_t psc, uint16_t div);
 void drv_systick_init(void);
+void drv_tim_init(uint16_t arr, uint16_t psc, uint16_t div);
+void drv_tick_delay_ms(uint32_t ms);
+
 #endif // DRV_TIM_H
