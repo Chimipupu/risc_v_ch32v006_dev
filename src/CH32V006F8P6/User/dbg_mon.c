@@ -7,6 +7,11 @@
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  */
 #include "dbg_mon.h"
+
+// WCH SDK
+#include <ch32v00X_it.h>
+
+// MY App
 #include "app_io_reg.h"
 #include "app_main.h"
 #include "pcb_board_define.h"
@@ -41,6 +46,7 @@ typedef struct {
 static void dbg_mon_init_msg(const uint8_t *p_args);
 
 static void cmd_help(const uint8_t *p_args);
+static void cmd_rst(const uint8_t *p_args);
 static void cmd_cls(const uint8_t *p_args);
 static void cmd_system(const uint8_t *p_args);
 static void cmd_mem_dump(const uint8_t *p_args);
@@ -54,6 +60,7 @@ static const dbg_cmd_info_t g_cmd_tbl[] = {
 //  | コマンド    | 短縮コマンド | コールバック関数   | コマンド説明 |
     // [システム関連コマンド]
     { "help",      "?",          &cmd_help,         "Show All Cmd"    },
+    { "rst",       ";",          &cmd_rst,          "Reset Cmd"       },
     { "clear",     "cls",        &cmd_cls,          "Display Clear"   },
     { "sysinfo",   "sif",        &cmd_system,       "Show SysInfo"    },
     { "memdump",   "mdp",        &cmd_mem_dump,     "MemDump Cmd"     },
@@ -87,6 +94,12 @@ static void dbg_mon_init_msg(const uint8_t *p_args)
     printf("Copyright (c) 2026 Chimipupu All Rights Reserved.\n");
 }
 
+static void cmd_rst(const uint8_t *p_args)
+{
+    printf("Now on Reset System! Will Be Restart.\r\n");
+    NVIC_SystemReset(); // S/Wリセット
+}
+
 static void cmd_help(const uint8_t *p_args)
 {
     dbg_mon_init_msg(p_args);
@@ -113,7 +126,8 @@ static void cmd_system(const uint8_t *p_args)
     printf("\nPCB: %s\n", PCB_NAME);
 
     // マイコン
-    printf("MCU: %s\n", MCU_NAME);
+    // printf("MCU: %s\n", MCU_NAME);
+    app_util_print_mcu_chip_type();
     printf("CPU: RISC-V RV32EmC (QingKe V2C)\n");
     printf("Clock: %d MHz\r\n", SystemCoreClock / 1000000);
     printf("Flash: %d KB\n", MCU_FLASH_SIZE);

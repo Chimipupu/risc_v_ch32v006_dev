@@ -127,6 +127,20 @@ volatile uint8_t g_eeprom_page_buf[EEPROM_24C64_PAGE_BYTE_SIZE] = {0};
 // static bool _eeprom_factory_reset(void);
 #endif // EEPROM_USE
 
+typedef struct {
+    uint32_t chip_id_reg_val;
+    const char *p_chip_type_str;
+} chip_id_t;
+static const chip_id_t g_chip_id_tbl[] = {
+    {0x00600620, "CH32V006K8U6"},
+    // {0x00610620, "CH32V006E8R6"},
+    // {0x00620620, "CH32V006F8U6"},
+    {0x00630620, "CH32V006F8P6"},
+    // {0x00640620, "CH32V006F4U6"},
+};
+static const uint8_t g_chip_id_tbl_size = sizeof(g_chip_id_tbl) / sizeof(g_chip_id_tbl[0]);
+uint32_t g_chip_id;
+
 volatile uint32_t g_chip_uid[3] = {0};
 
 static void _dma_test(void);
@@ -416,6 +430,28 @@ void app_util_mem_dump(const uint8_t *p_buf, uint32_t size_byte)
     }
 }
 
+void app_util_print_mcu_chip_type(void)
+{
+    uint8_t i;
+    bool is_chip_id_matched = false;
+
+    g_chip_id = *((uint32_t *) REG_ADDR_CHIPID);
+
+    for(i = 0; i < g_chip_id_tbl_size; i++)
+    {
+        if(g_chip_id_tbl[i].chip_id_reg_val == g_chip_id) {
+            is_chip_id_matched = true;
+            break;
+        }
+    }
+
+    if(is_chip_id_matched) {
+        DEBUG_PRINTF("MCU Chip Type: 0x%08X (%s)\r\n", g_chip_id, g_chip_id_tbl[i].p_chip_type_str);
+    } else {
+        DEBUG_PRINTF("Unknown MCU Chip Type\r\n");
+    }
+}
+
 /**
  * @brief CH32V006のレジスタからユニークID(96bit)を読み出し
  * @return uint32_t* 読み出したUIDのバッファポインタ
@@ -459,9 +495,12 @@ void app_main_init(void)
 #endif
 
 #ifdef USE_DEBUG_PRINTF
-    DEBUG_PRINTF("[DEBUG] PCB Info: Type = %s\r\n", PCB_NAME_STR);
+    DEBUG_PRINTF("PCB Info: Type = %s\r\n", PCB_NAME_STR);
 
+    DEBUG_PRINTF("CH32V006F8P6 Develop\r\n");
+    app_util_print_mcu_chip_type();
     app_util_chip_uid_read(); // UID読み出し
+    DEBUG_PRINTF("Clock: %d MHz\r\n", SystemCoreClock / 1000000);
 
     _dma_test(); // DMAテスト
 #endif // USE_DEBUG_PRINTF

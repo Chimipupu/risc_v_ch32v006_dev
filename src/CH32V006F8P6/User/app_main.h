@@ -44,6 +44,7 @@
 // [define]
 
 // CH32V006 レジスタアドレス
+#define REG_ADDR_CHIPID                       0x1FFFF704
 #define REG_ADDR_R16_ESIG_FLACAP              0x1FFFF7E0
 #define REG_ADDR_R32_ESIG_UNIID1              0x1FFFF7E8
 #define REG_ADDR_R32_ESIG_UNIID2              0x1FFFF7EC
@@ -71,6 +72,7 @@ __attribute__( ( always_inline ) ) static inline void _EI(void)
 
 // ----------------------------------------------------------------------
 void app_util_mem_dump(const uint8_t *p_buf, uint32_t size_byte);
+void app_util_print_mcu_chip_type(void);
 uint32_t* app_util_chip_uid_read(void);
 void app_main_init(void);
 void app_main(void);
