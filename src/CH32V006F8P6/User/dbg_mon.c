@@ -154,7 +154,7 @@ static void cmd_eeprom(const uint8_t *p_args)
     p_ptr = (uint8_t *) s_cmd_buf[1];
     rw = *p_ptr;
 
-    // コマンド引数: 「page=xx」の「xx」部分
+    // コマンド引数: 「page=xxx」の「xxx」部分 (xxx=0~255まで)
     p_ptr = (uint8_t *) s_cmd_buf[2];
     while((*p_ptr != '\0') && (*p_ptr != '\r') && (*p_ptr != '\n'))
     {
@@ -288,11 +288,10 @@ void dbg_mon_main(void)
             // コマンド解析 & 実行
             _cmd_exec((const uint8_t *)&s_uart_recv_buf[0]);
 
-            // バッファ関連をお掃除
+            // バッファ関連のメモリをお掃除
             memset(&s_uart_recv_buf[0], 0x00, DBG_CMD_UART_BUF_SIZE);
+            memset(&s_cmd_buf[0], 0x00, sizeof(s_cmd_buf));
             s_recv_buf_idx = 0;
-            memset(&s_cmd_buf[0], 0x00, DBG_CMD_MAX_LEN);
-            memset(&s_cmd_buf[0], 0x00, DBG_CMD_ARGS_BUF_SIZE);
         }
 
         printf("\n> ");
