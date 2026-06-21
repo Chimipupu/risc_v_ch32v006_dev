@@ -149,12 +149,18 @@ static void cmd_eeprom(const uint8_t *p_args)
     uint16_t cmd_arg_e2p_page = 0;
     uint8_t e2p_page_buf[EEPROM_24C64_PAGE_BYTE_SIZE] = {0};
 
-
-    // コマンド引数: 「e2p r」 or 「e2p w」の'r' or 'w'の部分
+    // コマンド第1引数: 「e2p r」 or 「e2p w」の'r' or 'w'の部分
     p_ptr = (uint8_t *) s_cmd_buf[1];
     rw = *p_ptr;
+    // エラー: 第1引数が'r'でも'w'でもない
+    if((rw != 'r') && (rw != 'w')) {
+        printf( ANSI_TXT_COLOR_RED    \
+                "[ERROR] EEPROM Cmd Unknown Args: '%c' (must be 'r' or 'w')\r\n"    \
+                ANSI_TXT_COLOR_RESET, rw);
+        return;
+    }
 
-    // コマンド引数: 「page=xxx」の「xxx」部分 (xxx=0~255まで)
+    // コマンド第2引数: 「page=xxx」の「xxx」部分 (xxx=0~255まで)
     p_ptr = (uint8_t *) s_cmd_buf[2];
     while((*p_ptr != '\0') && (*p_ptr != '\r') && (*p_ptr != '\n'))
     {

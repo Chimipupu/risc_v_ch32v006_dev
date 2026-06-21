@@ -381,7 +381,7 @@ void app_util_mem_dump(const uint8_t *p_buf, uint32_t size_byte)
     {
         addr += offset;
         printf("0x%08X| ", addr);
-        
+
         line_len = (size_byte - offset < 16) ? (size_byte - offset) : 16;
 
         // HEX形式でダンプ
@@ -390,7 +390,7 @@ void app_util_mem_dump(const uint8_t *p_buf, uint32_t size_byte)
             if (i < line_len) {
                 printf("%02X ", p_buf[offset + i]);
             } else {
-                printf("   "); 
+                printf("   ");
             }
         }
         printf("|");
