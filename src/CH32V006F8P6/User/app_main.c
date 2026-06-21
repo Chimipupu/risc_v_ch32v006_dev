@@ -115,7 +115,7 @@ typedef enum {
 
 #if defined(DEBUG_I2C_USE) && defined(EEPROM_USE)
 volatile uint8_t g_eeprom_page_buf[EEPROM_24C64_PAGE_BYTE_SIZE] = {0};
-static bool _app_eeprom_factory_reset(void);
+// static bool _app_eeprom_factory_reset(void);
 #endif // EEPROM_USE
 
 volatile uint32_t g_chip_uid[3] = {0};
@@ -155,7 +155,8 @@ static void _dma_test(void)
     }
 }
 
-#if defined(DEBUG_I2C_USE) && defined(EEPROM_USE)
+#if 0
+// #if defined(DEBUG_I2C_USE) && defined(EEPROM_USE)
 static bool _app_eeprom_factory_reset(void)
 {
     bool ret;
@@ -189,7 +190,7 @@ static bool _app_eeprom_factory_reset(void)
 }
 #endif // EEPROM_USE
 
-#if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_AHT20) || (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280) 
+#if (I2C_ENV_SENSOR_DEVICE != I2C_ENV_SENSOR_NONE)
 static void env_sensor_read(void)
 {
     volatile uint8_t tmp_u8;
@@ -303,14 +304,6 @@ static void rtc_time_read(void)
 static uint8_t _i2c_proc(void *p_arg)
 {
     // DEBUG_PRINTF("[DEBUG] I2C Proc\r\n");
-
-#ifdef EEPROM_USE
-    // EEPORM メモリダンプ
-    #ifdef USE_DEBUG_PRINTF
-    DEBUG_PRINTF("[DEBUG] EEPROM Memory Dump\r\n");
-    app_util_mem_dump((const uint8_t *)&g_eeprom_page_buf[0], EEPROM_24C64_PAGE_BYTE_SIZE);
-    #endif // USE_DEBUG_PRINTF
-#endif // EEPROM_USE
 
 #if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_AHT20) || (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280)
     env_sensor_read(); // 環境センサー値取得 (温度、湿度)

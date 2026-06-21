@@ -19,18 +19,17 @@
 #endif // DEBUG_DBG_MON
 
 // -----------------------------------------------------------
-// UART受信バッファのサイズ
-#define DBG_CMD_UART_BUF_SIZE           128
-// コマンドの最大長
-#define DBG_CMD_MAX_LEN                 32
-// コマンド引数バッファサイズ
-#define DBG_CMD_ARGS_BUF_SIZE           (DBG_CMD_UART_BUF_SIZE - DBG_CMD_MAX_LEN)
+// バッファ関連
+#define DBG_CMD_UART_BUF_SIZE           128 // UART受信バッファのサイズ
+#define DBG_CMD_MAX_LEN                 16  // コマンドの最大長
+#define DBG_CMD_ARGS_BUF_SIZE           32  // コマンド引数バッファサイズ
+#define DBG_CMD_ARGS_BUF_NUM            4   // コマンド引数バッファの段数
 
 // コマンド構造体
 typedef struct {
     const char *p_cmd_str;                   // コマンド
     const char *p_cmd_short_str;             // 短縮コマンド
-    void (*p_func)(const char *p_args);      // コマンドコールバック関数ポインタ
+    void (*p_func)(const uint8_t *p_args);   // コマンドコールバック関数ポインタ
     const char* p_description;               // コマンドの説明
 } dbg_cmd_info_t;
 
@@ -40,15 +39,15 @@ typedef struct {
 #define MCU_FLASH_SIZE         62
 #define MCU_RAM_SIZE           8
 
-static void dbg_mon_init_msg(const char *p_args);
+static void dbg_mon_init_msg(const uint8_t *p_args);
 
-static void cmd_help(const char *p_args);
-static void cmd_cls(const char *p_args);
-static void cmd_system(const char *p_args);
-static void cmd_mem_dump(const char *p_args);
-static void cmd_reg(const char *p_args);
+static void cmd_help(const uint8_t *p_args);
+static void cmd_cls(const uint8_t *p_args);
+static void cmd_system(const uint8_t *p_args);
+static void cmd_mem_dump(const uint8_t *p_args);
+static void cmd_reg(const uint8_t *p_args);
 #ifdef EEPROM_USE
-static void cmd_eeprom(const char *p_args);
+static void cmd_eeprom(const uint8_t *p_args);
 #endif // EEPROM_USE
 // コマンドテーブル
 const dbg_cmd_info_t g_cmd_tbl[] = {
@@ -66,19 +65,19 @@ const dbg_cmd_info_t g_cmd_tbl[] = {
 };
 #define CMD_TBL_CNT    sizeof(g_cmd_tbl) / sizeof(g_cmd_tbl[0])
 
-static void _cmd_exec(const char *p_buf);
+static void _cmd_exec(const uint8_t *p_buf);
 
 // UART受信バッファ関連
-static char s_uart_recv_buf[DBG_CMD_UART_BUF_SIZE];
+static uint8_t s_uart_recv_buf[DBG_CMD_UART_BUF_SIZE];
 static uint8_t s_recv_buf_idx = 0;
 
-// コマンド/コマンド引数バッファ
-static char s_cmd_buf[DBG_CMD_MAX_LEN];
-static char s_cmd_args_buf[DBG_CMD_ARGS_BUF_SIZE];
+// コマンドバッファ
+static uint8_t s_cmd_buf[DBG_CMD_ARGS_BUF_NUM][DBG_CMD_ARGS_BUF_SIZE];
 
 // -----------------------------------------------------------
 // [Static関数]
-static void dbg_mon_init_msg(const char *p_args)
+
+static void dbg_mon_init_msg(const uint8_t *p_args)
 {
     printf("\nDebug Monior for %s Ver%d.%d.%d\n",  MCU_NAME,
                                                 DBG_MON_VER_MAJOR,
@@ -87,7 +86,7 @@ static void dbg_mon_init_msg(const char *p_args)
     printf("Copyright (c) 2026 Chimipupu All Rights Reserved.\n");
 }
 
-static void cmd_help(const char *p_args)
+static void cmd_help(const uint8_t *p_args)
 {
     dbg_mon_init_msg(p_args);
 
@@ -98,16 +97,16 @@ static void cmd_help(const char *p_args)
     }
 }
 
-static void cmd_cls(const char *p_args)
+static void cmd_cls(const uint8_t *p_args)
 {
     printf(ANSI_ESC_CLS);
 }
 
-static void cmd_system(const char *p_args)
+static void cmd_system(const uint8_t *p_args)
 {
     uint32_t *p_uid_buf;
 
-    // printf("\n[System Information]\n");
+    printf("\n[System Info]\n");
 
     // 基板
     printf("\nPCB: %s\n", PCB_NAME);
@@ -115,20 +114,14 @@ static void cmd_system(const char *p_args)
     // マイコン
     printf("MCU: %s\n", MCU_NAME);
     printf("CPU: RISC-V RV32EmC (QingKe V2C)\n");
-
-    // ROM/RAM
+    printf("Clock: %d MHz\r\n", SystemCoreClock / 1000000);
     printf("Flash: %d KB\n", MCU_FLASH_SIZE);
     printf("SRAM: %d KB\n", MCU_RAM_SIZE);
-
-    // クロック関連
-    printf("System Clock: %d MHz\r\n", SystemCoreClock / 1000000);
-
-    // 96bit UID
-    p_uid_buf = app_util_chip_uid_read();
+    p_uid_buf = app_util_chip_uid_read(); // 96bit UID
     app_util_mem_dump((const uint8_t *) p_uid_buf, 12);
 }
 
-static void cmd_mem_dump(const char *p_args)
+static void cmd_mem_dump(const uint8_t *p_args)
 {
     // TODO
 }
@@ -137,7 +130,7 @@ static void cmd_mem_dump(const char *p_args)
  * @brief アプリ I/O レジスタR/Wコマンド関数
  * @param p_args コマンド引数
  */
-static void cmd_reg(const char *p_args)
+static void cmd_reg(const uint8_t *p_args)
 {
     // TODO
 }
@@ -149,22 +142,20 @@ static void cmd_reg(const char *p_args)
  * @note EEPROM ページ指定Read  ... 例 「e2p r page=0」
  * @note EEPROM ページ指定Write: 未実装
  */
-static void cmd_eeprom(const char *p_args)
+static void cmd_eeprom(const uint8_t *p_args)
 {
     uint8_t *p_ptr;
     uint8_t rw;
     uint16_t cmd_arg_e2p_page = 0;
     uint8_t e2p_page_buf[EEPROM_24C64_PAGE_BYTE_SIZE] = {0};
 
-    p_ptr = p_args;
 
-    // コマンド引数: 「e2p r」 or 「e2p w」の部分
-    rw = *p_ptr; // 'r' or 'w'
-
-    // 「page=xx」までポインタを進める
-    p_ptr += 6;
+    // コマンド引数: 「e2p r」 or 「e2p w」の'r' or 'w'の部分
+    p_ptr = (uint8_t *) s_cmd_buf[1];
+    rw = *p_ptr;
 
     // コマンド引数: 「page=xx」の「xx」部分
+    p_ptr = (uint8_t *) s_cmd_buf[2];
     while((*p_ptr != '\0') && (*p_ptr != '\r') && (*p_ptr != '\n'))
     {
         if((*p_ptr >= '0') && (*p_ptr <= '9')) {
@@ -205,13 +196,12 @@ static void cmd_eeprom(const char *p_args)
 }
 #endif // EEPROM_USE
 
-static void _cmd_exec(const char *p_buf)
+static void _cmd_exec(const uint8_t *p_buf)
 {
     uint8_t i;
+    uint8_t buf_idx = 0;
+    uint8_t buf_number = 0;
     uint8_t *p_ptr = NULL;
-    uint8_t cmd_buf_idx = 0;
-    uint8_t cmd_args_buf_idx = 0;
-    bool is_cmd_recv = true;
 
     if(p_buf == NULL) {
         return;
@@ -227,21 +217,13 @@ static void _cmd_exec(const char *p_buf)
             break; // Break For Loop
         }
         else if(*p_ptr == ' ') {
-            // スペースが来る時点でもうコマンドちゃうからフラグを降ろしとく
-            is_cmd_recv = false;
+            buf_idx = 0;
+            buf_number++;
         } else {
-            if(is_cmd_recv != false) {
-                // コマンドを格納 (受信バッファの冒頭からスペースの手前まで)
-                s_cmd_buf[cmd_buf_idx] = *p_ptr;
-                cmd_buf_idx = (cmd_buf_idx + 1) % DBG_CMD_MAX_LEN;
-            } else {
-                // コマンド引数を格納 (受信バッファのスペースの後～残りの部分まで)
-                s_cmd_args_buf[cmd_args_buf_idx] = *p_ptr;
-                cmd_args_buf_idx = (cmd_args_buf_idx + 1) % DBG_CMD_ARGS_BUF_SIZE;
-            }
+            s_cmd_buf[buf_number][buf_idx] = *p_ptr;
+            buf_idx = (buf_idx + 1) % DBG_CMD_MAX_LEN;
         }
 
-        // 次のデータへ
         p_ptr++;
     }
 
@@ -249,16 +231,16 @@ static void _cmd_exec(const char *p_buf)
     // テーブルから該当コマンドのコールバック関数を検索
     for(i = 0; i < CMD_TBL_CNT; i++)
     {
-        if( (strcmp(&s_cmd_buf[0], g_cmd_tbl[i].p_cmd_str) == 0) ||     // コマンドと一致か？
-            (strcmp(&s_cmd_buf[0], g_cmd_tbl[i].p_cmd_short_str) == 0)  // 短縮コマンドと一致か？
+        if( (strcmp((const char *) s_cmd_buf[0], g_cmd_tbl[i].p_cmd_str) == 0) ||     // コマンドと一致か？
+            (strcmp((const char *) s_cmd_buf[0], g_cmd_tbl[i].p_cmd_short_str) == 0)  // 短縮コマンドと一致か？
         ) {
 #ifdef DEBUG_DBG_MON
-            printf("[DEBUG] cmd: %s\r\n", s_cmd_buf);
-            printf("[DEBUG] cmd agrs: %s\r\n", s_cmd_args_buf);
+            printf("[DEBUG] cmd: %s\r\n", s_cmd_buf[0]);
+            printf("[DEBUG] cmd agrs: %s\r\n", s_cmd_buf[1]);
 #endif // DEBUG_DBG_MON
 
             // コマンド実行
-            g_cmd_tbl[i].p_func(&s_cmd_args_buf[0]);
+            g_cmd_tbl[i].p_func(&s_cmd_buf[0][0]);
         }
     }
 }
@@ -273,7 +255,7 @@ void dbg_mon_init(void)
 {
     memset(&s_uart_recv_buf[0], 0x00, DBG_CMD_UART_BUF_SIZE);
     memset(&s_cmd_buf[0], 0x00, DBG_CMD_MAX_LEN);
-    memset(&s_cmd_args_buf[0], 0x00, DBG_CMD_ARGS_BUF_SIZE);
+    memset(&s_cmd_buf[0], 0x00, DBG_CMD_ARGS_BUF_SIZE);
 
     // printf(ANSI_ESC_CLS);
     cmd_help(NULL);
@@ -304,13 +286,13 @@ void dbg_mon_main(void)
             printf("\n");
 
             // コマンド解析 & 実行
-            _cmd_exec((const char *)&s_uart_recv_buf[0]);
+            _cmd_exec((const uint8_t *)&s_uart_recv_buf[0]);
 
-            // バッファ関連お掃除
+            // バッファ関連をお掃除
             memset(&s_uart_recv_buf[0], 0x00, DBG_CMD_UART_BUF_SIZE);
             s_recv_buf_idx = 0;
             memset(&s_cmd_buf[0], 0x00, DBG_CMD_MAX_LEN);
-            memset(&s_cmd_args_buf[0], 0x00, DBG_CMD_ARGS_BUF_SIZE);
+            memset(&s_cmd_buf[0], 0x00, DBG_CMD_ARGS_BUF_SIZE);
         }
 
         printf("\n> ");
