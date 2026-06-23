@@ -49,6 +49,8 @@ bool drv_uart_get_char(uint8_t *p_data)
 {
     bool ret = false;
 
+    *p_data = '\0';
+
     if(s_is_rx == true) {
         s_rx_buf[s_rx_buf_write_idx] = s_rx_data_byte;
         s_rx_buf_write_idx = (s_rx_buf_write_idx + 1) % UART_RX_BUF_SIZE;

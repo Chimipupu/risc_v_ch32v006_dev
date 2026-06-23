@@ -268,8 +268,8 @@ void dbg_mon_main(void)
     drv_ret = drv_uart_get_char(&c);
 
     if(drv_ret == true) {
-        // デリミタ(CRかLF)かヌル文字を受信でコマンド実行へ
-        if((c == '\0') || (c == '\r') || (c == '\n')) {
+        // デリミタ(CR, LF)を受信でコマンド実行へ
+        if((c == '\r') || (c == '\n')) {
             // コマンド実行
             if(s_rx_data_byte > 0) {
                 _cmd_exec();
