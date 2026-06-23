@@ -125,7 +125,6 @@ app_main_func_tbl_t g_app_func_tbl[] = {
 #define APP_FUNC_TBL_CNT    sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0])
 
 const uint8_t g_app_func_tbl_cnt = APP_FUNC_TBL_CNT;
-static uint8_t s_app_sw_timer_buf[APP_FUNC_TBL_CNT] = {0};
 static uint8_t s_idx = 0;
 
 #ifdef DEBUG_APP
@@ -471,8 +470,6 @@ uint32_t* app_util_chip_uid_read(void)
  */
 void app_main_init(void)
 {
-    uint8_t i;
-
 #ifdef USE_APP_IO_REG
     app_io_reg_init(); // アプリI/Oレジスタ初期化
 #endif
@@ -501,11 +498,13 @@ void app_main_init(void)
     dbg_mon_init(); // デバッグモニタ 初期化
 #endif //DEBUG_UART_USE
 
+#ifdef USE_SW_TIMER
     // S/Wタイマースタート
-    for(i = 0; i < APP_FUNC_TBL_CNT; i++)
+    for(uint8_t i = 0; i < APP_FUNC_TBL_CNT; i++)
     {
         soft_timer_start(g_app_func_tbl[i].interval_ms, true, &s_app_sw_timer_buf[i]);
     }
+#endif
 }
 
 /**
@@ -514,8 +513,11 @@ void app_main_init(void)
  */
 void app_main(void)
 {
-    bool ret_sw_timer;
+#ifdef USE_SW_TIMER
     uint8_t cbK_ret;
+
+    bool ret_sw_timer;
+    static uint8_t s_app_sw_timer_buf[APP_FUNC_TBL_CNT] = {0};
 
     ret_sw_timer = get_soft_timer_cnt_match(s_app_sw_timer_buf[s_idx]);
 
@@ -530,6 +532,9 @@ void app_main(void)
             }
         }
     }
+#else
+    g_app_func_tbl[s_idx].pfunc(NULL);
+#endif
 
     s_idx = (s_idx + 1) % g_app_func_tbl_cnt;
 }
