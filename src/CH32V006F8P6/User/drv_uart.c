@@ -10,12 +10,17 @@
 #include "drv_uart.h"
 #include "app_main.h"
 
-#define USART_RX_BUF_SIZE    128
-
-static uint8_t s_rx_buf[USART_RX_BUF_SIZE] = {0}; // UASRT受信リングバッファ
-static uint8_t s_rx_data_size = 0;                // 受信データサイズ
+// -----------------------------------------------------------
+static uint8_t s_rx_buf[UART_RX_BUF_SIZE] = {0}; // UASRT受信リングバッファ
 static uint8_t s_rx_buf_write_idx = 0;            // 受信バッファ書き込みインデックス
-static uint8_t s_rx_buf_read_idx = 0;             // 受信バッファ読み出しインデックス
+// static uint8_t s_rx_buf_read_idx = 0;             // 受信バッファ読み出しインデックス
+static uint8_t s_rx_data_byte;
+static bool s_is_rx = false;
+// -----------------------------------------------------------
+// [Static関数]
+
+// -----------------------------------------------------------
+// [API]
 
 void USART1_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 /**
@@ -28,12 +33,9 @@ void USART1_IRQHandler(void)
     tmp = USART_GetITStatus(USART1, USART_IT_RXNE);
 
     // 受信データをリングバッファに詰める
-    while(tmp == SET)
-    {
-        s_rx_buf[s_rx_buf_write_idx] = (uint8_t)(USART1->DATAR & 0x00FF);
-        s_rx_data_size = (s_rx_data_size + 1) % USART_RX_BUF_SIZE;
-        s_rx_buf_write_idx = (s_rx_buf_write_idx + 1) % USART_RX_BUF_SIZE;
-        tmp = USART_GetITStatus(USART1, USART_IT_RXNE);
+    if(tmp == SET) {
+        s_rx_data_byte = (uint8_t)(USART1->DATAR & 0x00FF);
+        s_is_rx = true;
     }
 
     USART_ClearITPendingBit(USART1, USART_IT_RXNE);
@@ -47,14 +49,11 @@ bool drv_uart_get_char(uint8_t *p_data)
 {
     bool ret = false;
 
-    if(p_data == NULL) {
-        return false;
-    }
-
-    if(s_rx_data_size > 0) {
-        *p_data = s_rx_buf[s_rx_buf_read_idx];
-        s_rx_buf_read_idx = (s_rx_buf_read_idx + 1) % USART_RX_BUF_SIZE;
-        s_rx_data_size--;
+    if(s_is_rx == true) {
+        s_rx_buf[s_rx_buf_write_idx] = s_rx_data_byte;
+        s_rx_buf_write_idx = (s_rx_buf_write_idx + 1) % UART_RX_BUF_SIZE;
+        *p_data = s_rx_data_byte;
+        s_is_rx = false;
         ret = true;
     }
 

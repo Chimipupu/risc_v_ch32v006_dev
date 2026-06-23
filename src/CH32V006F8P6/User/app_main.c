@@ -21,68 +21,27 @@
 
 // -----------------------------------------------------------
 // [DEBUG関連]
-#ifdef USE_DEBUG_PRINTF
 #define DEBUG_PRINTF        printf
-#endif // USE_DEBUG_PRINTF
 
 #ifdef DEBUG_UART_USE
 #include "dbg_mon.h"
 #endif // DEBUG_UART_USE && DBG_MON_USE
 
 // -----------------------------------------------------------
-// [アプリメイン関連]
-
-// テストデータ（ASCII）: "CH32V006 DEVELOP BY CHIMIPUPU"
-static const uint8_t g_test_ascii_tbl[32] = {
-    0x43, 0x48, 0x33, 0x32, 0x56, 0x30, 0x30, 0x36,
-    0x20, 0x44, 0x45, 0x56, 0x45, 0x4C, 0x4F, 0x50,
-    0x42, 0x59, 0x20, 0x43, 0x48, 0x49, 0x4D, 0x49,
-    0x50, 0x55, 0x50, 0x55, 0x20, 0x20, 0x20, 0x20
-};
-
-typedef uint8_t (*p_func_app_main)(void *p_arg);
-static uint8_t _app_btn_proc(void *p_arg);
-
-#ifdef USE_APP_IO_REG
-static uint8_t _app_io_reg_proc(void *p_arg);
-#endif
-
-#ifdef DEBUG_I2C_USE
-static uint8_t _i2c_proc(void *p_arg);
-#endif // DEBUG_I2C_USE
-
-#if defined(DEBUG_UART_USE) && defined(DBG_MON_USE)
-static uint8_t _debug_proc(void *p_arg);
-#endif
-
 typedef struct {
-    p_func_app_main pfunc; // 各アプリのコールバック関数ポインタ
-    uint16_t interval_ms;  // 各アプリの実行周期(ms)
-} app_main_func_tbl_t;
-
-// アプリメインコールバック関数テーブル
-app_main_func_tbl_t g_app_func_tbl[] = {
-#ifdef USE_APP_IO_REG
-    {_app_io_reg_proc, 10}, // I/Oレジスタアプリ
-#endif
-
-#if defined(DEBUG_UART_USE) && defined(DBG_MON_USE)
-    {_debug_proc,      30}, // デバッグ処理
-#endif
-
-#ifdef DEBUG_I2C_USE
-    {_i2c_proc,        100}, // I2C処理
-#endif // DEBUG_I2C_USE
-
-    {_app_btn_proc,    500}, // ボタン処理アプリ
+    uint32_t chip_id_reg_val;
+    const char *p_chip_type_str;
+} chip_id_t;
+static const chip_id_t g_chip_id_tbl[] = {
+    {0x00600620, "CH32V006K8U6"},
+    // {0x00610620, "CH32V006E8R6"},
+    // {0x00620620, "CH32V006F8U6"},
+    {0x00630620, "CH32V006F8P6"},
+    // {0x00640620, "CH32V006F4U6"},
 };
-#define APP_FUNC_TBL_CNT    sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0])
-
-const uint8_t g_app_func_tbl_cnt = APP_FUNC_TBL_CNT;
-static uint8_t s_app_sw_timer_buf[APP_FUNC_TBL_CNT] = {0};
-static uint8_t s_idx = 0;
-// -----------------------------------------------------------
-// [Private]
+static const uint8_t g_chip_id_tbl_size = sizeof(g_chip_id_tbl) / sizeof(g_chip_id_tbl[0]);
+uint32_t g_chip_id;
+volatile uint32_t g_chip_uid[3] = {0};
 
 // アプリメイン用ステートマシーンの各処理ステップ
 typedef enum {
@@ -127,26 +86,64 @@ volatile uint8_t g_eeprom_page_buf[EEPROM_24C64_PAGE_BYTE_SIZE] = {0};
 // static bool _eeprom_factory_reset(void);
 #endif // EEPROM_USE
 
-typedef struct {
-    uint32_t chip_id_reg_val;
-    const char *p_chip_type_str;
-} chip_id_t;
-static const chip_id_t g_chip_id_tbl[] = {
-    {0x00600620, "CH32V006K8U6"},
-    // {0x00610620, "CH32V006E8R6"},
-    // {0x00620620, "CH32V006F8U6"},
-    {0x00630620, "CH32V006F8P6"},
-    // {0x00640620, "CH32V006F4U6"},
-};
-static const uint8_t g_chip_id_tbl_size = sizeof(g_chip_id_tbl) / sizeof(g_chip_id_tbl[0]);
-uint32_t g_chip_id;
+typedef uint8_t (*p_func_app_main)(void *p_arg);
+static uint8_t _app_btn_proc(void *p_arg);
 
-volatile uint32_t g_chip_uid[3] = {0};
+#ifdef USE_APP_IO_REG
+static uint8_t _app_io_reg_proc(void *p_arg);
+#endif
+
+#ifdef DEBUG_I2C_USE
+static uint8_t _i2c_proc(void *p_arg);
+#endif // DEBUG_I2C_USE
+
+#if defined(DEBUG_UART_USE) && defined(DBG_MON_USE)
+static uint8_t _debug_proc(void *p_arg);
+#endif
+
+typedef struct {
+    p_func_app_main pfunc; // 各アプリのコールバック関数ポインタ
+    uint16_t interval_ms;  // 各アプリの実行周期(ms)
+} app_main_func_tbl_t;
+
+// アプリメインコールバック関数テーブル
+app_main_func_tbl_t g_app_func_tbl[] = {
+#ifdef USE_APP_IO_REG
+    {_app_io_reg_proc, 10}, // I/Oレジスタアプリ
+#endif
+
+#if defined(DEBUG_UART_USE) && defined(DBG_MON_USE)
+    {_debug_proc,      30}, // デバッグ処理
+#endif
+
+#ifdef DEBUG_I2C_USE
+    {_i2c_proc,        100}, // I2C処理
+#endif // DEBUG_I2C_USE
+
+    {_app_btn_proc,    500}, // ボタン処理アプリ
+};
+#define APP_FUNC_TBL_CNT    sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0])
+
+const uint8_t g_app_func_tbl_cnt = APP_FUNC_TBL_CNT;
+static uint8_t s_app_sw_timer_buf[APP_FUNC_TBL_CNT] = {0};
+static uint8_t s_idx = 0;
+
+#ifdef DEBUG_APP
+
+// テストデータ（ASCII）: "CH32V006 DEVELOP BY CHIMIPUPU"
+static const uint8_t g_test_ascii_tbl[32] = {
+    0x43, 0x48, 0x33, 0x32, 0x56, 0x30, 0x30, 0x36,
+    0x20, 0x44, 0x45, 0x56, 0x45, 0x4C, 0x4F, 0x50,
+    0x42, 0x59, 0x20, 0x43, 0x48, 0x49, 0x4D, 0x49,
+    0x50, 0x55, 0x50, 0x55, 0x20, 0x20, 0x20, 0x20
+};
 
 static void _dma_test(void);
+#endif
 // -----------------------------------------------------------
 // [Static関数]
 
+#ifdef DEBUG_APP
 static void _dma_test(void)
 {
     int cmp_ret;
@@ -177,6 +174,7 @@ static void _dma_test(void)
         DEBUG_PRINTF("[DMA Test]] Error! DMA Compare Fail!\r\n");
     }
 }
+#endif
 
 #if 0
 // #if defined(DEBUG_I2C_USE) && defined(EEPROM_USE)
@@ -196,14 +194,10 @@ static bool _eeprom_factory_reset(void)
         drv_eeprom_write_page(0x00, (uint8_t *)&g_test_ascii_tbl[0]);
         drv_tick_delay_ms(10); // EEPROMの書き込み待ち時間の8ms以上待つ
         drv_eeprom_read_page(0x00, (uint8_t *)&g_eeprom_page_buf[0]);
-#ifdef USE_DEBUG_PRINTF
         DEBUG_PRINTF("[DEBUG] EEPROM Factory Reset Done!\r\n");
-#endif // USE_DEBUG_PRINTF
     } else {
         ret = false;
-#ifdef USE_DEBUG_PRINTF
         DEBUG_PRINTF("[DEBUG] This EEPROM Aleady Factory Reseted!\r\n");
-#endif // USE_DEBUG_PRINTF
     }
 
     // EEPORM メモリダンプ
@@ -250,9 +244,7 @@ static void env_sensor_read(void)
             tmp_u32 |= ((uint32_t)aht20_read_buf[5]);               // 温度のBit[7:0]
             aht20_temp_data = ((float)tmp_u32 / 1048576.0f) * 200.0f - 50.0f;
         }
-    #ifdef USE_DEBUG_PRINTF
         DEBUG_PRINTF("[DEBUG] AHT20: Temp = %d °C, Humdity = %d %%RH\r\n", (int32_t)aht20_temp_data, (uint32_t)aht20_humdity_data);
-    #endif // USE_DEBUG_PRINTF
 #endif
     }
 
@@ -285,9 +277,7 @@ static void env_sensor_read(void)
             tmp_u32 |= ((uint32_t)bmp280_read_buf[5]);               // 気圧のBit[7:0]
             bmp280_press_data = (float)tmp_u32;
 
-            #ifdef USE_DEBUG_PRINTF
             DEBUG_PRINTF("[DEBUG] BMP280: Temp = %d °C, Press = %d hPa\r\n", (int32_t)bmp280_temp_data, (int32_t)bmp280_press_data);
-            #endif // USE_DEBUG_PRINTF
         }
     }
 #endif
@@ -316,9 +306,7 @@ static void rtc_time_read(void)
 #endif
 
     if((drv_send_ret != I2C_RET_BUSY) && (drv_recv_ret != I2C_RET_BUSY)) {
-        #ifdef USE_DEBUG_PRINTF
         DEBUG_PRINTF("[DEBUG] RTC: %02X:%02X:%02X\r\n", rtc_read_buf[2], rtc_read_buf[1], rtc_read_buf[0]);
-        #endif // USE_DEBUG_PRINTF
     }
 }
 #endif
@@ -344,10 +332,7 @@ static uint8_t _app_btn_proc(void *p_arg)
 {
     if(g_is_btn_on_flg != false) {
         g_is_btn_on_flg = false;
-
-#ifdef USE_DEBUG_PRINTF
         DEBUG_PRINTF("[DEBUG] EXTI0 IRQ (= PCB Button ON)\r\n");
-#endif // USE_DEBUG_PRINTF
     }
 
     return APP_PROC_END;
@@ -475,9 +460,7 @@ uint32_t* app_util_chip_uid_read(void)
 
         s_is_uid_readed = true;
     } else {
-#ifdef USE_DEBUG_PRINTF
         DEBUG_PRINTF("Chip UID(96bit): 0x%08X 0x%08X 0x%08X\r\n", g_chip_uid[2], g_chip_uid[1], g_chip_uid[0]);
-#endif // USE_DEBUG_PRINTF
     }
 
     return p_ptr;
@@ -494,7 +477,6 @@ void app_main_init(void)
     app_io_reg_init(); // アプリI/Oレジスタ初期化
 #endif
 
-#ifdef USE_DEBUG_PRINTF
     DEBUG_PRINTF("PCB Info: Type = %s\r\n", PCB_NAME_STR);
 
     DEBUG_PRINTF("CH32V006F8P6 Develop\r\n");
@@ -502,8 +484,9 @@ void app_main_init(void)
     app_util_chip_uid_read(); // UID読み出し
     DEBUG_PRINTF("Clock: %d MHz\r\n", SystemCoreClock / 1000000);
 
+#ifdef DEBUG_APP
     _dma_test(); // DMAテスト
-#endif // USE_DEBUG_PRINTF
+#endif
 
 // #ifdef EEPROM_USE
 //     _eeprom_factory_reset(); // EEPROMの工場出荷リセット

@@ -25,8 +25,7 @@
 
 // -----------------------------------------------------------
 // バッファ関連
-#define UART_BUF_SIZE           128 // UART受信バッファのサイズ
-#define CMD_BUF_SIZE            32  // コマンドバッファサイズ
+#define CMD_BUF_SIZE            16  // コマンドバッファサイズ
 #define CMD_BUF_NUM             4   // コマンドバッファ段数
 
 // コマンド構造体
@@ -73,14 +72,12 @@ static const dbg_cmd_info_t g_cmd_tbl[] = {
 };
 #define CMD_TBL_CNT    sizeof(g_cmd_tbl) / sizeof(g_cmd_tbl[0])
 
-static void _cmd_exec(const uint8_t *p_buf);
-
-// UART受信バッファ関連
-static uint8_t s_uart_recv_buf[UART_BUF_SIZE];
-static uint8_t s_recv_buf_idx = 0;
+static void _cmd_exec(void);
 
 // コマンドバッファ
 static uint8_t s_cmd_buf[CMD_BUF_NUM][CMD_BUF_SIZE];
+static uint8_t s_rx_buf_idx = 0;
+static uint8_t s_rx_buf_number = 0;
 
 // -----------------------------------------------------------
 // [Static関数]
@@ -217,39 +214,11 @@ static void cmd_eeprom(const uint8_t *p_args)
 }
 #endif // EEPROM_USE
 
-static void _cmd_exec(const uint8_t *p_buf)
+static void _cmd_exec(void)
 {
     uint8_t i;
-    uint8_t buf_idx = 0;
-    uint8_t buf_number = 0;
-    uint8_t *p_ptr = NULL;
 
-    if(p_buf == NULL) {
-        return;
-    }
-
-    p_ptr = (uint8_t *)p_buf;
-
-    // コマンド解析
-    for(i = 0; i < UART_BUF_SIZE; i++)
-    {
-        // デリミタ(CR or LF)かヌル文字が来たら、もう何もコマンド関連のデータが無いからここで終了
-        if((*p_ptr == '\r') || (*p_ptr == '\n') || (*p_ptr == '\0')) {
-            break; // Break For Loop
-        }
-        else if(*p_ptr == ' ') {
-            buf_idx = 0;
-            buf_number++;
-        } else {
-            s_cmd_buf[buf_number][buf_idx] = *p_ptr;
-            buf_idx = (buf_idx + 1) % CMD_BUF_SIZE;
-        }
-
-        p_ptr++;
-    }
-
-
-    // テーブルから該当コマンドのコールバック関数を検索
+    // テーブルから該当コマンドを検索
     for(i = 0; i < CMD_TBL_CNT; i++)
     {
         if( (strcmp((const char *) s_cmd_buf[0], g_cmd_tbl[i].p_cmd_str) == 0) ||     // コマンドと一致か？
@@ -274,9 +243,8 @@ static void _cmd_exec(const uint8_t *p_buf)
  */
 void dbg_mon_init(void)
 {
-    memset(&s_uart_recv_buf[0], 0x00, UART_BUF_SIZE);
     memset(&s_cmd_buf[0], 0x00, sizeof(s_cmd_buf));
-    s_recv_buf_idx = 0;
+    s_rx_buf_idx = 0;
 
     // printf(ANSI_ESC_CLS);
     cmd_help(NULL);
@@ -292,29 +260,25 @@ void dbg_mon_main(void)
 
     // UARTから1バイト受信
     drv_ret = drv_uart_get_char(&c);
-    if(drv_ret == false) {
-        return;
-    }
+    if(drv_ret != false) {
+        // デリミタ'CRかLF)の受信でコマンド実行へ
+        if ((c == '\r') || (c == '\n')) {
+            // コマンド実行
+            _cmd_exec();
 
-    // リングバッファ更新
-    s_uart_recv_buf[s_recv_buf_idx] = c;
-    s_recv_buf_idx = (s_recv_buf_idx + 1) % CMD_BUF_SIZE;
-
-    // デリミタ'CRかLF)の受信でコマンド受付け
-    if ((c == '\r') || (c == '\n')) {
-        // 何かしらデータが受信出来てたら処理
-        if (s_recv_buf_idx > 3) {
-            printf("\n");
-
-            // コマンド解析 & 実行
-            _cmd_exec((const uint8_t *)&s_uart_recv_buf[0]);
-
-            // バッファ関連のメモリをお掃除
-            memset(&s_uart_recv_buf[0], 0x00, UART_BUF_SIZE);
+            // バッファ関連メモリお掃除
             memset(&s_cmd_buf[0], 0x00, sizeof(s_cmd_buf));
-            s_recv_buf_idx = 0;
-        }
+            s_rx_buf_idx = 0;
+            s_rx_buf_number = 0;
 
-        printf("\n> ");
+            printf("\n> ");
+        } else if(c == '\0') {
+            s_rx_buf_idx = 0;
+            s_rx_buf_number = (s_rx_buf_number + 1) % CMD_BUF_NUM;
+        } else {
+            // バッファにデータを詰める更新
+            s_cmd_buf[s_rx_buf_number][s_rx_buf_idx] = c;
+            s_rx_buf_idx = (s_rx_buf_idx + 1) % CMD_BUF_SIZE;
+        }
     }
 }
