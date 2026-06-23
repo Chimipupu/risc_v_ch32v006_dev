@@ -25,7 +25,7 @@
 
 // -----------------------------------------------------------
 // バッファ関連
-#define CMD_BUF_SIZE            16  // コマンドバッファサイズ
+#define CMD_BUF_SIZE            32  // コマンドバッファサイズ
 #define CMD_BUF_NUM             4   // コマンドバッファ段数
 
 // コマンド構造体
@@ -59,7 +59,7 @@ static const dbg_cmd_info_t g_cmd_tbl[] = {
 //  | コマンド    | 短縮コマンド | コールバック関数   | コマンド説明 |
     // [システム関連コマンド]
     { "help",      "?",          &cmd_help,         "Show All Cmd"    },
-    { "rst",       ";",          &cmd_rst,          "Reset Cmd"       },
+    { "reset",     "rst",        &cmd_rst,          "Reset Cmd"       },
     { "clear",     "cls",        &cmd_cls,          "Display Clear"   },
     { "sysinfo",   "sif",        &cmd_system,       "Show SysInfo"    },
     { "memdump",   "mdp",        &cmd_mem_dump,     "MemDump Cmd"     },
@@ -67,7 +67,7 @@ static const dbg_cmd_info_t g_cmd_tbl[] = {
     // [ペリフェラル関連コマンド]
     { "ioreg",     "irg",        &cmd_reg,          "I/O Reg R/W Cmd" },
 #ifdef EEPROM_USE
-    { "e2p",       "e2p",        &cmd_eeprom,       "EEPROM R/W Cmd" },
+    { "eeprom",    "e2p",         &cmd_eeprom,       "EEPROM R/W Cmd" },
 #endif // EEPROM_USE
 };
 #define CMD_TBL_CNT    sizeof(g_cmd_tbl) / sizeof(g_cmd_tbl[0])
@@ -78,7 +78,7 @@ static void _cmd_exec(void);
 static uint8_t s_cmd_buf[CMD_BUF_NUM][CMD_BUF_SIZE];
 static uint8_t s_rx_buf_idx = 0;
 static uint8_t s_rx_buf_number = 0;
-
+static uint32_t s_rx_data_byte = 0;
 // -----------------------------------------------------------
 // [Static関数]
 
@@ -151,19 +151,22 @@ static void cmd_reg(const uint8_t *p_args)
 /**
  * @brief EEPROM R/Wコマンド関数
  * @param p_args コマンド引数
- * @note EEPROM ページ指定Read  ... 例 「e2p r page=0」
+ * @note EEPROM ページ指定Read  ... 例 「e2p r p0」
  * @note EEPROM ページ指定Write: 未実装
  */
 static void cmd_eeprom(const uint8_t *p_args)
 {
+    uint8_t i;
     uint8_t *p_ptr;
-    uint8_t rw;
+    uint8_t rw = '\0';
     uint16_t cmd_arg_e2p_page = 0;
     uint8_t e2p_page_buf[EEPROM_24C64_PAGE_BYTE_SIZE] = {0};
 
     // コマンド第1引数: 「e2p r」 or 「e2p w」の'r' or 'w'の部分
-    p_ptr = (uint8_t *) s_cmd_buf[1];
-    rw = *p_ptr;
+    if(s_cmd_buf[1][0] != '\0') {
+        p_ptr = (uint8_t *) s_cmd_buf[1];
+        rw = *p_ptr;
+    }
     // エラー: 第1引数が'r'でも'w'でもない
     if((rw != 'r') && (rw != 'w')) {
         printf( ANSI_TXT_COLOR_RED    \
@@ -172,17 +175,19 @@ static void cmd_eeprom(const uint8_t *p_args)
         return;
     }
 
-    // コマンド第2引数: 「page=xxx」の「xxx」部分 (xxx=0~255まで)
-    p_ptr = (uint8_t *) s_cmd_buf[2];
-    while((*p_ptr != '\0') && (*p_ptr != '\r') && (*p_ptr != '\n'))
-    {
-        if((*p_ptr >= '0') && (*p_ptr <= '9')) {
-            cmd_arg_e2p_page = (cmd_arg_e2p_page * 10) + (uint16_t)((*p_ptr - '0'));
-        }
-        p_ptr++;
-    }
+    // コマンド第2引数: ページ指定(xxx=0~255まで)
+    if(s_cmd_buf[2][0] != '0') {
+        p_ptr = (uint8_t *) s_cmd_buf[2];
+        for(i = 0; i < CMD_BUF_SIZE; i++)
+        {
+            if((*p_ptr >= '0') && (*p_ptr <= '9')) {
+                cmd_arg_e2p_page = (cmd_arg_e2p_page * 10) + (uint16_t)((*p_ptr - '0'));
+            }
 
-    // エラー: 指定ページ数がEEPROMのページ数以上
+            p_ptr++;
+        }
+    }
+    // エラー: 第2引数のページ指定がEEPROMのページ数以上
     if(cmd_arg_e2p_page > EEPROM_24C64_PAGE_NUM) {
         printf( ANSI_TXT_COLOR_RED    \
                 "[ERROR] EEPROM Cmd, Page = %d, must be Page <= %d\r\n"    \
@@ -217,6 +222,7 @@ static void cmd_eeprom(const uint8_t *p_args)
 static void _cmd_exec(void)
 {
     uint8_t i;
+    bool is_hit = false;
 
     // テーブルから該当コマンドを検索
     for(i = 0; i < CMD_TBL_CNT; i++)
@@ -224,14 +230,13 @@ static void _cmd_exec(void)
         if( (strcmp((const char *) s_cmd_buf[0], g_cmd_tbl[i].p_cmd_str) == 0) ||     // コマンドと一致か？
             (strcmp((const char *) s_cmd_buf[0], g_cmd_tbl[i].p_cmd_short_str) == 0)  // 短縮コマンドと一致か？
         ) {
-#ifdef DEBUG_DBG_MON
-            printf("[DEBUG] cmd: %s\r\n", s_cmd_buf[0]);
-            printf("[DEBUG] cmd agrs: %s\r\n", s_cmd_buf[1]);
-#endif // DEBUG_DBG_MON
-
-            // コマンド実行
-            g_cmd_tbl[i].p_func(&s_cmd_buf[0][0]);
+            is_hit = true;
+            break;
         }
+    }
+
+    if(is_hit != false) {
+        g_cmd_tbl[i].p_func(NULL); // コマンド実行
     }
 }
 
@@ -248,6 +253,7 @@ void dbg_mon_init(void)
 
     // printf(ANSI_ESC_CLS);
     cmd_help(NULL);
+    printf("\n>");
 }
 
 /**
@@ -260,25 +266,32 @@ void dbg_mon_main(void)
 
     // UARTから1バイト受信
     drv_ret = drv_uart_get_char(&c);
-    if(drv_ret != false) {
-        // デリミタ'CRかLF)の受信でコマンド実行へ
-        if ((c == '\r') || (c == '\n')) {
+
+    if(drv_ret == true) {
+        // デリミタ(CRかLF)かヌル文字を受信でコマンド実行へ
+        if((c == '\0') || (c == '\r') || (c == '\n')) {
             // コマンド実行
-            _cmd_exec();
+            if(s_rx_data_byte > 0) {
+                _cmd_exec();
+            }
 
             // バッファ関連メモリお掃除
             memset(&s_cmd_buf[0], 0x00, sizeof(s_cmd_buf));
             s_rx_buf_idx = 0;
             s_rx_buf_number = 0;
+            s_rx_data_byte = 0;
 
-            printf("\n> ");
-        } else if(c == '\0') {
+            printf("\n>");
+        }
+        else if(c == ' ') {
             s_rx_buf_idx = 0;
             s_rx_buf_number = (s_rx_buf_number + 1) % CMD_BUF_NUM;
-        } else {
-            // バッファにデータを詰める更新
+        }
+        // バッファにデータを詰める更新
+        else {
             s_cmd_buf[s_rx_buf_number][s_rx_buf_idx] = c;
             s_rx_buf_idx = (s_rx_buf_idx + 1) % CMD_BUF_SIZE;
+            s_rx_data_byte++;
         }
     }
 }
