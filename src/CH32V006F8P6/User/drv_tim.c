@@ -23,7 +23,7 @@ static const drv_tim_div_t g_tim_div_tbl[] = {
 #define TIM_DIV_TBL_CNT    sizeof(g_tim_div_tbl) / sizeof(g_tim_div_tbl[0])
 
 volatile uint32_t g_systick_cnt_ms = 0;
-software_timer_config_t g_sw_timer_buf[SW_TIMER_BUG_SIZE];
+software_timer_config_t g_sw_timer_buf[SW_TIMER_NUM];
 static void _sw_timer_init(uint8_t timer_no);
 static void _sw_timer_all_init(void);
 
@@ -62,7 +62,7 @@ void TIM1_UP_IRQHandler(void)
 
 static void _sw_timer_init(uint8_t timer_no)
 {
-    if(timer_no <= (SW_TIMER_BUG_SIZE - 1)) {
+    if(timer_no <= (SW_TIMER_NUM - 1)) {
         g_sw_timer_buf[timer_no].is_cnt_start = false;
         g_sw_timer_buf[timer_no].is_intervel = false;
         g_sw_timer_buf[timer_no].config_time_ms = 0;
@@ -74,7 +74,7 @@ static void _sw_timer_all_init(void)
 {
     uint8_t i;
 
-    for(i = 0; i < SW_TIMER_BUG_SIZE; i++)
+    for(i = 0; i < SW_TIMER_NUM; i++)
     {
         _sw_timer_init(i);
     }
@@ -89,7 +89,7 @@ bool soft_timer_start(uint16_t config_time_ms, bool is_intervel, uint8_t *p_time
     uint8_t i;
 
     // 空いてるタイマーを探す
-    for(i = 0; i < SW_TIMER_BUG_SIZE; i++)
+    for(i = 0; i < SW_TIMER_NUM; i++)
     {
         if(g_sw_timer_buf[i].is_cnt_start != true) {
             g_sw_timer_buf[i].is_intervel = is_intervel;
@@ -107,7 +107,7 @@ bool soft_timer_start(uint16_t config_time_ms, bool is_intervel, uint8_t *p_time
 
 void soft_timer_stop(uint8_t timer_no)
 {
-    if(timer_no <= (SW_TIMER_BUG_SIZE - 1)) {
+    if(timer_no <= (SW_TIMER_NUM - 1)) {
         g_sw_timer_buf[timer_no].is_cnt_start = false;
     }
 }
@@ -116,7 +116,7 @@ bool get_soft_timer_cnt_match(uint8_t timer_no)
 {
     bool ret = false;
 
-    if(timer_no <= (SW_TIMER_BUG_SIZE - 1)) {
+    if(timer_no <= (SW_TIMER_NUM - 1)) {
         if(g_sw_timer_buf[timer_no].is_cnt_start != false) {
             // コンペアマッチしてるか？
             if(g_sw_timer_buf[timer_no].cnt_time_ms >= g_sw_timer_buf[timer_no].config_time_ms) {
@@ -145,7 +145,7 @@ void soft_timer_proc(void)
     delta_ms = current_tick_cnt - s_prev_tick_cnt;
     s_prev_tick_cnt = current_tick_cnt;
 
-    for(i = 0; i < SW_TIMER_BUG_SIZE; i++)
+    for(i = 0; i < SW_TIMER_NUM; i++)
     {
         if(g_sw_timer_buf[i].is_cnt_start != false) {
             g_sw_timer_buf[i].cnt_time_ms += delta_ms; // 1ms加算

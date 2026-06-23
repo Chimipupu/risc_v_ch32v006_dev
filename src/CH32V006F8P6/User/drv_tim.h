@@ -34,7 +34,8 @@ __attribute__((always_inline)) static inline uint32_t drv_get_systick_cnt(void)
 }
 
 // -----------------------------------------------------------
-#define SW_TIMER_BUG_SIZE     32
+#define SW_TIMER_NUM     8 // ソフトウェアタイマーの本数
+
 typedef struct {
     bool is_cnt_start;        // カウント開始有無
     bool is_intervel;         // 周期タイマー有無(false=ワンショット、true=周期タイマー)
