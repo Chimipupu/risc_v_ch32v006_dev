@@ -3,9 +3,10 @@
  * @author Chimipupu(https://github.com/Chimipupu)
  * @brief I/Oレジスタアプリ
  * @version 0.1
- * @date 2026-03-09
+ * @date 2026-06-27
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  */
+
 #ifndef APP_IO_REG_H
 #define APP_IO_REG_H
 

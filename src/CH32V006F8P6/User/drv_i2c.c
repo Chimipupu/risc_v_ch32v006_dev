@@ -1,25 +1,15 @@
 /**
  * @file drv_i2c.c
  * @author Chimipupu(https://github.com/Chimipupu)
- * @brief CH32V006 I2Cドライバ
+ * @brief I2Cドライバ for CH32V006
  * @version 0.1
- * @date 2026-02-23
+ * @date 2026-06-27
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  */
 
 #include "drv_i2c.h"
 
-#if 0
-#define I2C_SEND_BUF_SIZE    32
-#define I2C_RECV_BUF_SIZE    32
-
-volatile uint8_t g_i2c_send_buf[I2C_SEND_BUF_SIZE] = {0};
-volatile uint8_t g_i2c_recv_buf[I2C_RECV_BUF_SIZE] = {0};
-volatile uint8_t g_idx_i2c_send_buf = 0;
-volatile uint8_t g_idx_i2c_recv_buf = 0;
-#endif
-
-//*********************************************************************]
+// -----------------------------------------------------------
 // [API]
 
 #if (I2C_MODE == I2C_SLAVE_MODE)
@@ -31,7 +21,6 @@ void drc_i2c_Init(uint32_t bound)
     GPIO_InitTypeDef GPIO_InitStructure = {0};
     I2C_InitTypeDef I2C_InitTSturcture  = {0};
 
-    // ----------------------------------------------------------------------
     // [I2CのGPIO初期化]
     RCC_PB2PeriphClockCmd( RCC_PB2Periph_GPIOC | RCC_PB2Periph_AFIO, ENABLE );
     RCC_PB1PeriphClockCmd( RCC_PB1Periph_I2C1, ENABLE );
@@ -63,7 +52,6 @@ void drc_i2c_Init(uint32_t bound)
     I2C_InitTSturcture.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
     I2C_Init( I2C1, &I2C_InitTSturcture );
     I2C_Cmd( I2C1, ENABLE );
-    // ----------------------------------------------------------------------
 }
 
 /**
@@ -80,14 +68,10 @@ drv_i2c_ret drv_i2c_write(uint8_t slave_addr, uint8_t *p_send_data_buf, uint8_t 
     uint8_t *p_data;
     volatile FlagStatus drv_sts;
 
-#if 1
     drv_sts = I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY);
     if(drv_sts != RESET) {
         return I2C_RET_BUSY;
     }
-#else
-    while(I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY) != RESET);
-#endif
 
     if((p_send_data_buf == NULL) || (data_len == 0)) {
         return I2C_RET_ERR;
@@ -134,14 +118,10 @@ drv_i2c_ret drv_i2c_read(uint8_t slave_addr, uint8_t *p_recv_data_buf, uint8_t d
     uint8_t *p_data;
     volatile FlagStatus drv_sts;
 
-#if 1
     drv_sts = I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY);
     if(drv_sts != RESET) {
         return I2C_RET_BUSY;
     }
-#else
-    while(I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY) != RESET);
-#endif
 
     if((p_recv_data_buf == NULL) || (data_len == 0)) {
         return I2C_RET_ERR;
@@ -180,4 +160,4 @@ drv_i2c_ret drv_i2c_read(uint8_t slave_addr, uint8_t *p_recv_data_buf, uint8_t d
     return I2C_RET_END;
 }
 
-//*********************************************************************
+// -----------------------------------------------------------

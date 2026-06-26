@@ -3,9 +3,10 @@
  * @author Chimipupu(https://github.com/Chimipupu)
  * @brief アプリメインのヘッダ
  * @version 0.1
- * @date 2026-02-25
+ * @date 2026-06-27
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  */
+
 #ifndef APP_MAIN_H
 #define APP_MAIN_H
 
@@ -19,7 +20,7 @@
 // #define DEBUG_APP
 #define DBG_MON_USE
 // #define USE_APP_IO_REG
-// #define USE_SW_TIMER
+#define USE_SW_TIMER
 
 // ----------------------------------------------------------------------
 // [マクロ]

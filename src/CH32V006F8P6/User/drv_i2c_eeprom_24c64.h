@@ -3,7 +3,7 @@
  * @author Chimipupu(https://github.com/Chimipupu)
  * @brief EEPROM(24C64) I2Cドライバ
  * @version 0.1
- * @date 2026-06-17
+ * @date 2026-06-27
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  */
 

@@ -3,7 +3,7 @@
  * @author Chimipupu(https://github.com/Chimipupu)
  * @brief CH32V006 I2Cドライバ
  * @version 0.1
- * @date 2026-02-23
+ * @date 2026-06-27
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  */
 
@@ -71,7 +71,7 @@ typedef enum {
     I2C_RET_ERR = 0xFF, // エラー
 } drv_i2c_ret;
 
-//*********************************************************************]
+// -----------------------------------------------------------
 // [API]
 
 #if (I2C_MODE == I2C_SLAVE_MODE)
@@ -100,6 +100,6 @@ drv_i2c_ret drv_i2c_write(uint8_t slave_addr, uint8_t *p_send_data_buf, uint8_t 
  * @return drv_i2c_ret処理結果
  */
 drv_i2c_ret drv_i2c_read(uint8_t slave_addr, uint8_t *p_recv_data_buf, uint8_t data_len, bool nack_opt, bool is_stop_bit);
-//*********************************************************************
+// -----------------------------------------------------------
 
 #endif // DRV_I2C_H

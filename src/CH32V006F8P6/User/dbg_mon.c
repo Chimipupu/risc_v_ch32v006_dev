@@ -3,9 +3,10 @@
  * @author Chimipupu(https://github.com/Chimipupu)
  * @brief デバッグモニタ(軽量板)
  * @version 0.1
- * @date 2026-03-26
+ * @date 2026-06-27
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  */
+
 #include "dbg_mon.h"
 
 // WCH SDK
@@ -35,12 +36,6 @@ typedef struct {
     void (*p_func)(const uint8_t *p_args);   // コマンドコールバック関数ポインタ
     const char* p_description;               // コマンドの説明
 } dbg_cmd_info_t;
-
-#define MCU_NAME               "CH32V006F8P6"
-#define PCB_NAME               "DEV PCB"
-// #define PCB_NAME               "CH32V003F4P6-R0-1V1"
-#define MCU_FLASH_SIZE         62
-#define MCU_RAM_SIZE           8
 
 static void dbg_mon_init_msg(const uint8_t *p_args);
 
