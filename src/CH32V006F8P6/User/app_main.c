@@ -67,40 +67,36 @@ typedef enum {
 } app_main_step;
 
 #ifdef DEBUG_I2C_USE
-    // I2C用アプリステートマシーンの各処理ステップ
-    typedef enum {
-        STEP_I2C_INIT = 0x00, // 初期化ステップ
-        STEP_I2C_SEND,        // 送信ステップ
-        STEP_I2C_RECV,        // 受信ステップ
-        STEP_I2C_RESULT       // 処理結果ステップ
-    } app_i2c_step;
-    // uint8_t g_app_i2c_recv_data_buf[16] = {0};
+// I2C用アプリステートマシーンの各処理ステップ
+typedef enum {
+    STEP_I2C_INIT = 0x00, // 初期化ステップ
+    STEP_I2C_SEND,        // 送信ステップ
+    STEP_I2C_RECV,        // 受信ステップ
+    STEP_I2C_RESULT       // 処理結果ステップ
+} app_i2c_step;
+// uint8_t g_app_i2c_recv_data_buf[16] = {0};
 
-#if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_AHT20) || (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280) 
-    #if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_AHT20)
-    const uint8_t g_aht20_cmd[3] = {0xAC, 0x33, 0x00};
-    #endif // I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_AHT20
+#if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_AHT20)
+const uint8_t g_aht20_cmd[3] = {0xAC, 0x33, 0x00};
+#endif // I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_AHT20
 
-    #if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280)
-    const uint8_t g_bmp280_reset_data[2] = {BMP280_REG_ADDR_RESET, BMP280_RESET_REG_EXP_VAL};
-    const uint8_t g_bmp280_id_reg_data[2] = {BMP280_REG_ADDR_ID, BMP280_ID_REG_EXP_VAL};
-    #endif //I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280
+#if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280)
+const uint8_t g_bmp280_reset_data[2] = {BMP280_REG_ADDR_RESET, BMP280_RESET_REG_EXP_VAL};
+const uint8_t g_bmp280_id_reg_data[2] = {BMP280_REG_ADDR_ID, BMP280_ID_REG_EXP_VAL};
+#endif //I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280
 
-    static void _i2c_sensor_read(void);
+static void _i2c_sensor_read(void);
+
+#if (I2C_RTC_DEVICE == I2C_RTC_RX8900)
+const uint8_t g_dbg_i2c_send_data_buf[2] = {RTC_RX8900_REG_CTRL, 0x01};
 #endif
-
-#if (I2C_RTC_DEVICE == I2C_RTC_DS3231) || (I2C_RTC_DEVICE == I2C_RTC_RX8900)
-    #if (I2C_RTC_DEVICE == I2C_RTC_RX8900)
-    const uint8_t g_dbg_i2c_send_data_buf[2] = {RTC_RX8900_REG_CTRL, 0x01};
-    #endif
-    static void rtc_time_read(void);
-#endif
-#endif // DEBUG_I2C_USE
+static void rtc_time_read(void);
 
 #if defined(DEBUG_I2C_USE) && defined(EEPROM_USE)
 uint8_t g_eeprom_page_buf[EEPROM_24C64_PAGE_BYTE_SIZE] = {0};
 // static bool _eeprom_factory_reset(void);
 #endif // EEPROM_USE
+#endif // DEBUG_I2C_USE
 
 typedef uint8_t (*p_func_app_main)(void *p_arg);
 static uint8_t _app_btn_proc(void *p_arg);
@@ -235,7 +231,8 @@ static bool _eeprom_factory_reset(void)
 }
 #endif // EEPROM_USE
 
-#if (I2C_ENV_SENSOR_DEVICE != I2C_ENV_SENSOR_NONE)
+#ifdef DEBUG_I2C_USE
+// NOTE: 浮動小数のfloatをprintf()できないので整数で処理して表示
 static void _i2c_sensor_read(void)
 {
     uint8_t tmp_u8 = 0;
@@ -293,34 +290,34 @@ static void _i2c_sensor_read(void)
     drv_send_ret = drv_i2c_write(I2C_ADDR_SENSOR_BMP280, (uint8_t *)&tx_data, 1, true);
     drv_recv_ret = drv_i2c_read(I2C_ADDR_SENSOR_BMP280, (uint8_t *)&tmp_u8, 1, false, true);
 
-    if((drv_recv_ret == I2C_RET_END) && (REG_BIT_CHK(tmp_u8, 3) != 1)) {
-        // [BMP280から温度と気圧を読み出し]
-        memset((uint8_t *)&bmp280_read_buf[0], 0x00, sizeof(bmp280_read_buf));
-        tx_data = BMP280_REG_ADDR_PRESS_MSB;
-        drv_send_ret = drv_i2c_write(I2C_ADDR_SENSOR_BMP280, (uint8_t *)&tx_data, 1, true);
-        // BMP280から6Byte一括読み出し
-        drv_recv_ret = drv_i2c_read(I2C_ADDR_SENSOR_BMP280, (uint8_t *)&bmp280_read_buf[0], 6, false, true);
-        if(drv_recv_ret == I2C_RET_END) {
-            // 20bit 気圧（-40~85°C ±1.0°C)を取得
-            tmp_u32 = ((uint32_t)bmp280_read_buf[0]) << 12;          // 温度のBit[19:12]
-            tmp_u32 |= ((uint32_t)bmp280_read_buf[1]) << 4;          // 温度のBit[11:4]
-            tmp_u32 |= (bmp280_read_buf[2] >> 4);                    // 温度のBit[3:0]
-            bmp280_temp_data = (float)tmp_u32;
+    if((drv_recv_ret == I2C_RET_END)) {
+        if(REG_BIT_CHK(tmp_u8, 3) != 1) {
+            // [BMP280から温度と気圧を読み出し]
+            memset((uint8_t *)&bmp280_read_buf[0], 0x00, sizeof(bmp280_read_buf));
+            tx_data = BMP280_REG_ADDR_PRESS_MSB;
+            drv_send_ret = drv_i2c_write(I2C_ADDR_SENSOR_BMP280, (uint8_t *)&tx_data, 1, true);
+            // BMP280から6Byte一括読み出し
+            drv_recv_ret = drv_i2c_read(I2C_ADDR_SENSOR_BMP280, (uint8_t *)&bmp280_read_buf[0], 6, false, true);
+            if(drv_recv_ret == I2C_RET_END) {
+                // 20bit 気圧（-40~85°C ±1.0°C)を取得
+                tmp_u32 = ((uint32_t)bmp280_read_buf[0]) << 12;          // 温度のBit[19:12]
+                tmp_u32 |= ((uint32_t)bmp280_read_buf[1]) << 4;          // 温度のBit[11:4]
+                tmp_u32 |= (bmp280_read_buf[2] >> 4);                    // 温度のBit[3:0]
+                bmp280_temp_data = (float)tmp_u32;
 
-            // 20bit 気圧（300~1100hPa ±2hPa)を取得
-            tmp_u32 = ((uint32_t)(bmp280_read_buf[3] & 0x0F)) << 16; // 気圧のBit[19:16]
-            tmp_u32 |= ((uint32_t)bmp280_read_buf[4]) << 8;          // 気圧のBit[15:8]
-            tmp_u32 |= ((uint32_t)bmp280_read_buf[5]);               // 気圧のBit[7:0]
-            bmp280_press_data = (float)tmp_u32;
+                // 20bit 気圧（300~1100hPa ±2hPa)を取得
+                tmp_u32 = ((uint32_t)(bmp280_read_buf[3] & 0x0F)) << 16; // 気圧のBit[19:16]
+                tmp_u32 |= ((uint32_t)bmp280_read_buf[4]) << 8;          // 気圧のBit[15:8]
+                tmp_u32 |= ((uint32_t)bmp280_read_buf[5]);               // 気圧のBit[7:0]
+                bmp280_press_data = (float)tmp_u32;
 
-            DEBUG_PRINTF("[DEBUG] BMP280: Temp = %d °C, Press = %d hPa\r\n", (int32_t)bmp280_temp_data, (int32_t)bmp280_press_data);
+                DEBUG_PRINTF("[DEBUG] BMP280: Temp = %d °C, Press = %d hPa\r\n", (int32_t)bmp280_temp_data, (int32_t)bmp280_press_data);
+            }
         }
     }
 #endif
 }
-#endif
 
-#if (I2C_RTC_DEVICE == I2C_RTC_DS3231) || (I2C_RTC_DEVICE == I2C_RTC_RX8900)
 static void rtc_time_read(void)
 {
     uint8_t tx_data = 0;
@@ -345,18 +342,16 @@ static void rtc_time_read(void)
         DEBUG_PRINTF("[DEBUG] RTC: %02X:%02X:%02X\r\n", rtc_read_buf[2], rtc_read_buf[1], rtc_read_buf[0]);
     }
 }
-#endif
 
-#ifdef DEBUG_I2C_USE
 static uint8_t _i2c_proc(void *p_arg)
 {
     // DEBUG_PRINTF("[DEBUG] I2C Proc\r\n");
 
-#if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_AHT20) || (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280)
+#if (I2C_ENV_SENSOR_DEVICE != I2C_ENV_SENSOR_NONE)
     _i2c_sensor_read(); // 環境センサー値取得 (温度、湿度)
 #endif // I2C_ENV_SENSOR_DEVICE
 
-#if (I2C_RTC_DEVICE == I2C_RTC_DS3231) || (I2C_RTC_DEVICE == I2C_RTC_RX8900)
+#if (I2C_RTC_DEVICE != I2C_ENV_SENSOR_NONE)
     rtc_time_read(); // RTCから時刻取得
 #endif // I2C_RTC_DEVICE
 
@@ -486,7 +481,7 @@ uint32_t* app_util_chip_uid_read(void)
         // UID 63~32 bit
         *p_ptr = *((uint32_t *) REG_ADDR_R32_ESIG_UNIID2);
         p_ptr++;
-        // UID 0~31 bit
+        // UID 31~0 bit
         *p_ptr = *((uint32_t *) REG_ADDR_R32_ESIG_UNIID1);
 
         s_is_uid_readed = true;
