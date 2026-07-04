@@ -6,7 +6,7 @@ WCH製25円 RISC-Vマイコン CH32V006の評価F/W個人開発リポジトリ
 
 - S/W
   - IDE/SDK/コンパイラ
-    - [MounRiver Studio (MRS) V2.4.0](https://www.mounriver.com/download)🔗
+    - [MounRiver Studio (MRS) V2.5.0](https://www.mounriver.com/download)🔗
   - 最適化
     - `-O0`
   - コーディング規約
@@ -46,7 +46,7 @@ WCH製25円 RISC-Vマイコン CH32V006の評価F/W個人開発リポジトリ
 
 ```shell
 Memory region         Used Size  Region Size  %age Used
-           FLASH:       10528 B        62 KB     16.58%
+           FLASH:       10560 B        62 KB     16.63%
              RAM:         820 B         8 KB     10.01%
 ```
 

@@ -1,16 +1,16 @@
 {
 	"folders": [
 		{
+			"name": ".mrs",
 			"path": "."
 		},
 		{
-			"name": "CH32V006F8P6",
-			"path": "../"
+			"name": "CH32V006F8P",
+			"path": "../../../../tmp_ch32v006/CH32V006F8P"
 		}
 	],
 	"settings": {
 		"mrs.workspace.type": "project",
-		"mrs.init.arg": "",
 		"files.associations": {
 			"*.c": "c",
 			"*.h": "cpp",

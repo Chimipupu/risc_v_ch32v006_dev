@@ -12,9 +12,20 @@
 
 #include "drv_i2c.h"
 
+// ----------------------------------------------------------------------
+// [コンパイルスイッチ]
+
+// TODO: 24C256と24C512に対応する
+#define EEPROM_24C64
+// #define EEPROM_24C256
+// #define EEPROM_24C512
+
+#define USE_EEPROM    EEPROM_24C64
+// #define USE_EEPROM    EEPROM_24C256
+// #define USE_EEPROM    EEPROM_24C512
+
 // -----------------------------------------------------------
 // [Define]
-
 #define I2C_ADDR_EEPROM_24C64         0x50 // EEPROM 24C64 I2Cスレーブアドレス
 #define EEPROM_24C64_PAGE_BYTE_SIZE   32   // EEPROM 24C64 ページサイズ 32Byte
 #define EEPROM_24C64_SIZE_BYTE        8192 // EEPROM 24C64 全容量 8192Byte
@@ -23,11 +34,11 @@
 
 // -----------------------------------------------------------
 // [ドライバ]
-
 drv_i2c_ret drv_eeprom_write_byte(uint16_t addr, uint8_t data);
 drv_i2c_ret drv_eeprom_read_byte(uint16_t addr, uint8_t *p_data);
 drv_i2c_ret drv_eeprom_read_page(uint8_t read_page, uint8_t *p_page_data_buf);
 drv_i2c_ret drv_eeprom_write_page(uint8_t write_page, uint8_t *p_page_data_buf);
+
 // -----------------------------------------------------------
 
 #endif // DRV_I2C_EEPROM_24C64_H
