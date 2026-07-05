@@ -16,11 +16,12 @@
 #endif
 
 // -----------------------------------------------------------
+#ifdef USE_BUTTON
 bool g_is_btn_on_flg = false;
-
+#endif
 // -----------------------------------------------------------
+#ifdef USE_BUTTON
 // [外部割り込み(EXTI0) 割り込みハンドラ]
-
 void EXTI7_0_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 
 void EXTI7_0_IRQHandler(void)
@@ -31,11 +32,13 @@ void EXTI7_0_IRQHandler(void)
         EXTI_ClearITPendingBit(EXTI_Line0);
     }
 }
+#endif
 // -----------------------------------------------------------
 // [API]
 
 void drv_gpio_init(void)
 {
+#ifdef USE_BUTTON
     GPIO_InitTypeDef pd0_cfg = {0};
     EXTI_InitTypeDef EXTI_InitStructure = {0};
     NVIC_InitTypeDef NVIC_InitStructure = {0};
@@ -64,6 +67,7 @@ void drv_gpio_init(void)
     NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&NVIC_InitStructure);
     // ------------------------------------------------------
+#endif
 
 #ifdef USE_74HC595
     GPIO_InitTypeDef pd2_cfg = {0}; // PD2: 74HC595 RCLKピン

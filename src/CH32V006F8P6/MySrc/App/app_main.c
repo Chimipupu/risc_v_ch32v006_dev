@@ -116,10 +116,12 @@ uint8_t g_eeprom_page_buf[EEPROM_24C64_PAGE_BYTE_SIZE] = {0};
 #endif // DEBUG_I2C_USE
 
 typedef uint8_t (*p_func_app_main)(void *p_arg);
+
+#ifdef USE_BUTTON
 static uint8_t _app_btn_proc(void *p_arg);
+#endif
 
 #ifdef USE_74HC595
-// シリアル -> パラレル変換処理
 static uint8_t _siri2para_proc(void *p_arg);
 #endif
 
@@ -142,7 +144,9 @@ app_main_func_tbl_t g_app_func_tbl[] = {
     {_siri2para_proc,  100}, // シリアル -> パラレル変換処理
 #endif
 
+#ifdef USE_BUTTON
     {_app_btn_proc,    300}, // ボタン処理アプリ
+#endif
 
 #ifdef DEBUG_I2C_USE
     {_i2c_proc,        1000}, // I2C処理
@@ -383,6 +387,7 @@ static uint8_t _i2c_proc(void *p_arg)
 }
 #endif // DEBUG_I2C_USE
 
+#ifdef USE_BUTTON
 static uint8_t _app_btn_proc(void *p_arg)
 {
     if(g_is_btn_on_flg != false) {
@@ -392,6 +397,7 @@ static uint8_t _app_btn_proc(void *p_arg)
 
     return APP_PROC_END;
 }
+#endif
 
 #ifdef USE_APP_IO_REG
 static uint8_t _app_io_reg_proc(void *p_arg)

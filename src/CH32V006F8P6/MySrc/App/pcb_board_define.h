@@ -20,9 +20,10 @@
 #define I2C_ENV_SENSOR_AHT20          0
 #define I2C_ENV_SENSOR_BMP280         1
 
-// #define EEPROM_USE     // EEPROMの使用有無
 #define DEBUG_UART_USE // UARTの使用有無
 // #define DEBUG_I2C_USE  // I2Cの使用有無
+// #define USE_BUTTON  // 基板のボタン使用有無
+// #define EEPROM_USE     // EEPROMの使用有無
 #define USE_74HC595  // 74HC595の使用有無
 
 #define I2C_RTC_DEVICE                I2C_ENV_SENSOR_NONE
@@ -35,7 +36,6 @@
 
 // -----------------------------------------------------------
 // [Define]
-
 #define MCU_NAME               "CH32V006F8P6"
 #define PCB_NAME               "DEV_PCB"
 // #define PCB_NAME               "CH32V003F4P6-R0-1V1"
