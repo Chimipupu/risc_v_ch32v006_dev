@@ -12,7 +12,6 @@
 
 // -----------------------------------------------------------
 // [コンパイルスイッチ]
-
 #define I2C_RTC_NONE                  0xFF
 #define I2C_RTC_DS3231                0
 #define I2C_RTC_RX8900                1
@@ -24,6 +23,7 @@
 // #define EEPROM_USE     // EEPROMの使用有無
 #define DEBUG_UART_USE // UARTの使用有無
 // #define DEBUG_I2C_USE  // I2Cの使用有無
+#define USE_74HC595  // 74HC595の使用有無
 
 #define I2C_RTC_DEVICE                I2C_ENV_SENSOR_NONE
 // #define I2C_RTC_DEVICE                I2C_RTC_DS3231

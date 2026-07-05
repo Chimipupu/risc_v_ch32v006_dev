@@ -1,3 +1,6 @@
 [submodule "doc/コーディング規約/c_lang_coding_conventions_for_chimipupu"]
 	path = doc/コーディング規約/c_lang_coding_conventions_for_chimipupu
 	url = https://github.com/Chimipupu/c_lang_coding_conventions_for_chimipupu.git
+[submodule "src/CH32V006F8P6/MySrc/Lib/drv_74hc595"]
+	path = src/CH32V006F8P6/MySrc/Lib/drv_74hc595
+	url = https://github.com/Chimipupu/drv_74hc595.git

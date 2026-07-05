@@ -9,7 +9,15 @@
 
 #include "drv_gpio.h"
 
+#include "pcb_board_define.h"
+#ifdef USE_74HC595
+// 自前の74HC595ドライバ (https://github.com/Chimipupu/drv_74hc595.git)
+#include "drv_74hc595.h"
+#endif
+
+// -----------------------------------------------------------
 bool g_is_btn_on_flg = false;
+
 // -----------------------------------------------------------
 // [外部割り込み(EXTI0) 割り込みハンドラ]
 
@@ -23,12 +31,12 @@ void EXTI7_0_IRQHandler(void)
         EXTI_ClearITPendingBit(EXTI_Line0);
     }
 }
-
 // -----------------------------------------------------------
+// [API]
 
 void drv_gpio_init(void)
 {
-    GPIO_InitTypeDef GPIO_InitStructure = {0};
+    GPIO_InitTypeDef pd0_cfg = {0};
     EXTI_InitTypeDef EXTI_InitStructure = {0};
     NVIC_InitTypeDef NVIC_InitStructure = {0};
 
@@ -37,10 +45,10 @@ void drv_gpio_init(void)
 
     // ------------------------------------------------------
     // PD0 ... 動作: GPIO外部割り込み(EXTI0)、内蔵プルアップ=有効
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_30MHz;
-    GPIO_Init(GPIOD, &GPIO_InitStructure);
+    pd0_cfg.GPIO_Pin = GPIO_Pin_0;
+    pd0_cfg.GPIO_Mode = GPIO_Mode_IPU;
+    pd0_cfg.GPIO_Speed = GPIO_Speed_30MHz;
+    GPIO_Init(GPIOD, &pd0_cfg);
 
     // EXTI0 ... アクティブLOW
     GPIO_EXTILineConfig(GPIO_PortSourceGPIOD, GPIO_PinSource0);
@@ -56,4 +64,55 @@ void drv_gpio_init(void)
     NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&NVIC_InitStructure);
     // ------------------------------------------------------
+
+#ifdef USE_74HC595
+    GPIO_InitTypeDef pd4_cfg = {0}; // PD4: 74HC595 SERピン
+    GPIO_InitTypeDef pd3_cfg = {0}; // PD3: 74HC595 SRCLKピン
+    GPIO_InitTypeDef pd2_cfg = {0}; // PD2: 74HC595 RCLKピン
+
+    pd2_cfg.GPIO_Pin = GPIO_Pin_2;
+    pd2_cfg.GPIO_Mode = GPIO_Mode_Out_PP;
+    pd2_cfg.GPIO_Speed = GPIO_Speed_30MHz;
+    GPIO_Init(GPIOD, &pd2_cfg);
+
+    pd3_cfg.GPIO_Pin = GPIO_Pin_3;
+    pd3_cfg.GPIO_Mode = GPIO_Mode_Out_PP;
+    pd3_cfg.GPIO_Speed = GPIO_Speed_30MHz;
+    GPIO_Init(GPIOD, &pd3_cfg);
+
+    pd4_cfg.GPIO_Pin = GPIO_Pin_4;
+    pd4_cfg.GPIO_Mode = GPIO_Mode_Out_PP;
+    pd4_cfg.GPIO_Speed = GPIO_Speed_30MHz;
+    GPIO_Init(GPIOD, &pd4_cfg);
+#endif
+}
+
+void drv_gpio_port_onoff(uint8_t gpio_pin, uint8_t pin_val)
+{
+    GPIO_TypeDef *p_gpio_port;
+    uint8_t pin_number;
+
+    // PA: 0~7
+    if((gpio_pin >= GPIO_PORT_A_0) && (gpio_pin <= GPIO_PORT_A_7)) {
+        p_gpio_port = GPIOA;
+    }
+    // PB: 8~15
+    else if((gpio_pin >= GPIO_PORT_B_0) && (gpio_pin <= GPIO_PORT_B_7)) {
+        p_gpio_port = GPIOB;
+    }
+    // PC: 16~23
+    else if((gpio_pin >= GPIO_PORT_C_0) && (gpio_pin <= GPIO_PORT_C_7)) {
+        p_gpio_port = GPIOC;
+    }
+    // PD: 24~31
+    else if((gpio_pin >= GPIO_PORT_D_0) && (gpio_pin <= GPIO_PORT_D_7)) {
+        p_gpio_port = GPIOD;
+    }
+    else {
+        return;
+    }
+
+    pin_val = pin_val & 1;
+    pin_number = gpio_pin & 0x07;
+    GPIO_WriteBit(p_gpio_port, pin_number, (pin_val == 0) ? (pin_val = Bit_SET) : (pin_val = Bit_RESET));
 }

@@ -19,6 +19,23 @@
 #include "app_io_reg.h"
 #endif
 
+#ifdef USE_74HC595
+// 自前の74HC595ドライバ (https://github.com/Chimipupu/drv_74hc595.git)
+#include "drv_74hc595.h"
+
+#define SER_PIN    GPIO_PORT_D_4 // PD4: 74HC595 SERピン
+#define SRCLK_PIN  GPIO_PORT_D_3 // PD3: 74HC595 SRCLKピン
+#define RCLK_PIN   GPIO_PORT_D_2 // PD2: 74HC595 RCLKピン
+
+static const drv_74hc595_config_t g_74hc595_cfg = {
+    .ser_gpio_pin = SER_PIN,
+    .srclk_gpio_pin = SRCLK_PIN,
+    .rclk_gpio_pin = RCLK_PIN,
+    .p_gpio_func = drv_gpio_port_onoff,
+    .p_delay_ms_func = drv_tick_delay_ms
+};
+#endif
+
 // -----------------------------------------------------------
 // [DEBUG関連]
 #define DEBUG_PRINTF        printf
@@ -101,6 +118,11 @@ uint8_t g_eeprom_page_buf[EEPROM_24C64_PAGE_BYTE_SIZE] = {0};
 typedef uint8_t (*p_func_app_main)(void *p_arg);
 static uint8_t _app_btn_proc(void *p_arg);
 
+#ifdef USE_74HC595
+// シリアル -> パラレル変換処理
+static uint8_t _siri2para_proc(void *p_arg);
+#endif
+
 #ifdef USE_APP_IO_REG
 static uint8_t _app_io_reg_proc(void *p_arg);
 #endif
@@ -116,6 +138,10 @@ typedef struct {
 
 // アプリメインコールバック関数テーブル
 app_main_func_tbl_t g_app_func_tbl[] = {
+#ifdef USE_74HC595
+    {_siri2para_proc,   100}, // シリアル -> パラレル変換処理
+#endif
+
     {_app_btn_proc,    200}, // ボタン処理アプリ
 
 #ifdef DEBUG_I2C_USE
@@ -123,8 +149,6 @@ app_main_func_tbl_t g_app_func_tbl[] = {
 #endif // DEBUG_I2C_USE
 };
 #define APP_FUNC_TBL_CNT    sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0])
-
-const uint8_t g_app_func_tbl_cnt = APP_FUNC_TBL_CNT;
 static uint8_t s_idx = 0;
 static uint8_t s_app_sw_timer_buf[APP_FUNC_TBL_CNT] = {0};
 
@@ -164,7 +188,7 @@ static void _period_proc(void)
         }
     }
 
-    s_idx = (s_idx + 1) % g_app_func_tbl_cnt;
+    s_idx = (s_idx + 1) % APP_FUNC_TBL_CNT;
 }
 
 #ifdef DEBUG_APP
@@ -391,6 +415,16 @@ static void _debug_proc(void)
 }
 #endif
 
+#ifdef USE_74HC595
+// シリアル -> パラレル変換処理
+static uint8_t _siri2para_proc(void *p_arg)
+{
+    static uint8_t s_siripara_out = 0;
+    drv_74hc595_write_data_byte(s_siripara_out);
+    s_siripara_out++;
+}
+#endif
+
 // -----------------------------------------------------------
 // [アプリ]
 
@@ -501,8 +535,12 @@ void app_main_init(void)
     app_io_reg_init(); // アプリI/Oレジスタ初期化
 #endif
 
-    DEBUG_PRINTF("PCB Info: Type = %s\r\n", PCB_NAME);
+#ifdef USE_74HC595
+    // 自前の74HC595ドライバ (https://github.com/Chimipupu/drv_74hc595.git)
+    drv_74hc595_init((drv_74hc595_config_t*) &g_74hc595_cfg);
+#endif
 
+    DEBUG_PRINTF("PCB Info: Type = %s\r\n", PCB_NAME);
     DEBUG_PRINTF("CH32V006F8P6 Develop\r\n");
     app_util_print_mcu_chip_type();
     app_util_chip_uid_read(); // UID読み出し

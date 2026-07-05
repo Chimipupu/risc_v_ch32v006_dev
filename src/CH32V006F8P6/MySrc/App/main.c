@@ -23,13 +23,15 @@
 #include "drv_tim.h"
 #include "drv_i2c.h"
 #include "drv_uart.h"
-
-// My Lib
 #include "drv_i2c_eeprom_24c64.h"
 #include "pcb_board_define.h"
 
+// My Lib
+#ifdef USE_74HC595
+// 自前の74HC595ドライバ (https://github.com/Chimipupu/drv_74hc595.git)
+#include "drv_74hc595.h"
+#endif
 // -----------------------------------------------------------
-// [Private]
 static void hw_clock_init(void);
 static void hw_gpio_init(void);
 static void hw_timer_init(void);
