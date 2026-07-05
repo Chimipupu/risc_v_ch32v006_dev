@@ -3,7 +3,7 @@
  * @author Chimipupu(https://github.com/Chimipupu)
  * @brief アプリメイン
  * @version 0.1
- * @date 2026-06-27
+ * @date 2026-07-05
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  */
 
@@ -139,10 +139,10 @@ typedef struct {
 // アプリメインコールバック関数テーブル
 app_main_func_tbl_t g_app_func_tbl[] = {
 #ifdef USE_74HC595
-    {_siri2para_proc,  50}, // シリアル -> パラレル変換処理
+    {_siri2para_proc,  100}, // シリアル -> パラレル変換処理
 #endif
 
-    {_app_btn_proc,    200}, // ボタン処理アプリ
+    {_app_btn_proc,    300}, // ボタン処理アプリ
 
 #ifdef DEBUG_I2C_USE
     {_i2c_proc,        1000}, // I2C処理

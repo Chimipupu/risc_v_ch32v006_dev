@@ -3,7 +3,7 @@
  * @author Chimipupu(https://github.com/Chimipupu)
  * @brief 基板固有定義ヘッダ
  * @version 0.1
- * @date 2026-06-27
+ * @date 2026-07-05
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  */
 

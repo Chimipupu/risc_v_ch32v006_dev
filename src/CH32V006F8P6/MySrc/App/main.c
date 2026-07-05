@@ -1,9 +1,9 @@
 /**
  * @file main.c
  * @author Chimipupu(https://github.com/Chimipupu)
- * @brief  CH32V003 メイン
+ * @brief  CH32V006 メイン
  * @version 0.1
- * @date 2026-06-27
+ * @date 2026-07-05
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  */
 

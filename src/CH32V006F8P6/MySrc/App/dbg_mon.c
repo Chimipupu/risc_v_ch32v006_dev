@@ -3,7 +3,7 @@
  * @author Chimipupu(https://github.com/Chimipupu)
  * @brief デバッグモニタ(軽量板)
  * @version 0.1
- * @date 2026-06-27
+ * @date 2026-07-05
  * @copyright Copyright (c) 2026 Chimipupu All Rights Reserved.
  */
 
@@ -268,6 +268,7 @@ void dbg_mon_main(void)
             // コマンド実行
             if(s_rx_data_byte > 0) {
                 _cmd_exec();
+                printf("\n>");
             }
 
             // バッファ関連メモリお掃除
@@ -276,7 +277,8 @@ void dbg_mon_main(void)
             s_rx_buf_number = 0;
             s_rx_data_byte = 0;
 
-            printf("\n>");
+            c = 0;
+            drv_ret = false;
         }
         else if(c == ' ') {
             s_rx_buf_idx = 0;
