@@ -66,9 +66,9 @@ void drv_gpio_init(void)
     // ------------------------------------------------------
 
 #ifdef USE_74HC595
-    GPIO_InitTypeDef pd4_cfg = {0}; // PD4: 74HC595 SERピン
-    GPIO_InitTypeDef pd3_cfg = {0}; // PD3: 74HC595 SRCLKピン
     GPIO_InitTypeDef pd2_cfg = {0}; // PD2: 74HC595 RCLKピン
+    GPIO_InitTypeDef pd3_cfg = {0}; // PD3: 74HC595 SRCLKピン
+    GPIO_InitTypeDef pd4_cfg = {0}; // PD4: 74HC595 SERピン
 
     pd2_cfg.GPIO_Pin = GPIO_Pin_2;
     pd2_cfg.GPIO_Mode = GPIO_Mode_Out_PP;
@@ -91,6 +91,7 @@ void drv_gpio_port_onoff(uint8_t gpio_pin, uint8_t pin_val)
 {
     GPIO_TypeDef *p_gpio_port;
     uint8_t pin_number;
+    uint16_t pin_mask;
 
     // PA: 0~7
     if((gpio_pin >= GPIO_PORT_A_0) && (gpio_pin <= GPIO_PORT_A_7)) {
@@ -114,5 +115,6 @@ void drv_gpio_port_onoff(uint8_t gpio_pin, uint8_t pin_val)
 
     pin_val = pin_val & 1;
     pin_number = gpio_pin & 0x07;
-    GPIO_WriteBit(p_gpio_port, pin_number, (pin_val == 0) ? (pin_val = Bit_SET) : (pin_val = Bit_RESET));
+    pin_mask = (uint16_t)(1 << pin_number);
+    GPIO_WriteBit(p_gpio_port, pin_mask, (pin_val == 0) ? Bit_RESET : Bit_SET);
 }

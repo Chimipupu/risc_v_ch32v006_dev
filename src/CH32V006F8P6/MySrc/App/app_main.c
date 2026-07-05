@@ -139,7 +139,7 @@ typedef struct {
 // アプリメインコールバック関数テーブル
 app_main_func_tbl_t g_app_func_tbl[] = {
 #ifdef USE_74HC595
-    {_siri2para_proc,   100}, // シリアル -> パラレル変換処理
+    {_siri2para_proc,  50}, // シリアル -> パラレル変換処理
 #endif
 
     {_app_btn_proc,    200}, // ボタン処理アプリ
@@ -535,11 +535,6 @@ void app_main_init(void)
     app_io_reg_init(); // アプリI/Oレジスタ初期化
 #endif
 
-#ifdef USE_74HC595
-    // 自前の74HC595ドライバ (https://github.com/Chimipupu/drv_74hc595.git)
-    drv_74hc595_init((drv_74hc595_config_t*) &g_74hc595_cfg);
-#endif
-
     DEBUG_PRINTF("PCB Info: Type = %s\r\n", PCB_NAME);
     DEBUG_PRINTF("CH32V006F8P6 Develop\r\n");
     app_util_print_mcu_chip_type();
@@ -562,6 +557,11 @@ void app_main_init(void)
 #if defined(DEBUG_UART_USE) && defined(DBG_MON_USE)
     dbg_mon_init(); // デバッグモニタ 初期化
 #endif //DEBUG_UART_USE
+
+#ifdef USE_74HC595
+    // 自前の74HC595ドライバ (https://github.com/Chimipupu/drv_74hc595.git)
+    drv_74hc595_init((drv_74hc595_config_t*) &g_74hc595_cfg);
+#endif
 
 #ifdef USE_SW_TIMER
     // S/Wタイマースタート
