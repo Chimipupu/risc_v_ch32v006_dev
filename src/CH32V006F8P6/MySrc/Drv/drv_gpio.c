@@ -16,6 +16,55 @@
 #endif
 
 // -----------------------------------------------------------
+typedef struct {
+    GPIO_PORT port_enum;
+    GPIO_TypeDef *p_gpio_port;
+    uint16_t pin_mask;
+} drv_gpio_tbl_t;
+
+static const drv_gpio_tbl_t drv_gpio_tbl[] = {
+    // GPIO: PA 0~7
+    {GPIO_PORT_A_0, GPIOA, (1u << 0)},
+    {GPIO_PORT_A_1, GPIOA, (1u << 1)},
+    {GPIO_PORT_A_2, GPIOA, (1u << 2)},
+    {GPIO_PORT_A_3, GPIOA, (1u << 3)},
+    {GPIO_PORT_A_4, GPIOA, (1u << 4)},
+    {GPIO_PORT_A_5, GPIOA, (1u << 5)},
+    {GPIO_PORT_A_6, GPIOA, (1u << 6)},
+    {GPIO_PORT_A_7, GPIOA, (1u << 7)},
+
+    // GPIO: PB 0~7
+    {GPIO_PORT_B_0, GPIOB, (1u << 0)},
+    {GPIO_PORT_B_1, GPIOB, (1u << 1)},
+    {GPIO_PORT_B_2, GPIOB, (1u << 2)},
+    {GPIO_PORT_B_3, GPIOB, (1u << 3)},
+    {GPIO_PORT_B_4, GPIOB, (1u << 4)},
+    {GPIO_PORT_B_5, GPIOB, (1u << 5)},
+    {GPIO_PORT_B_6, GPIOB, (1u << 6)},
+    {GPIO_PORT_B_7, GPIOB, (1u << 7)},
+
+    // GPIO: PC 0~7
+    {GPIO_PORT_C_0, GPIOC, (1u << 0)},
+    {GPIO_PORT_C_1, GPIOC, (1u << 1)},
+    {GPIO_PORT_C_2, GPIOC, (1u << 2)},
+    {GPIO_PORT_C_3, GPIOC, (1u << 3)},
+    {GPIO_PORT_C_4, GPIOC, (1u << 4)},
+    {GPIO_PORT_C_5, GPIOC, (1u << 5)},
+    {GPIO_PORT_C_6, GPIOC, (1u << 6)},
+    {GPIO_PORT_C_7, GPIOC, (1u << 7)},
+
+    // GPIO: PD 0~7
+    {GPIO_PORT_D_0, GPIOD, (1u << 0)},
+    {GPIO_PORT_D_1, GPIOD, (1u << 1)},
+    {GPIO_PORT_D_2, GPIOD, (1u << 2)},
+    {GPIO_PORT_D_3, GPIOD, (1u << 3)},
+    {GPIO_PORT_D_4, GPIOD, (1u << 4)},
+    {GPIO_PORT_D_5, GPIOD, (1u << 5)},
+    {GPIO_PORT_D_6, GPIOD, (1u << 6)},
+    {GPIO_PORT_D_7, GPIOD, (1u << 7)},
+};
+static const uint8_t GPIO_TBL_CNT =  (sizeof(drv_gpio_tbl) / sizeof(drv_gpio_tbl[0]));
+
 #ifdef USE_BUTTON
 bool g_is_btn_on_flg = false;
 #endif
@@ -91,34 +140,22 @@ void drv_gpio_init(void)
 #endif
 }
 
+// (TODO) テーブル検索でGPIOは遅いしテーブルはROMを食うからどうにしたい
 void drv_gpio_port_onoff(uint8_t gpio_pin, uint8_t pin_val)
 {
-    GPIO_TypeDef *p_gpio_port;
-    uint8_t pin_number;
-    uint16_t pin_mask;
+    uint8_t i;
 
-    // PA: 0~7
-    if((gpio_pin >= GPIO_PORT_A_0) && (gpio_pin <= GPIO_PORT_A_7)) {
-        p_gpio_port = GPIOA;
+    // テーブル検索
+    for(i = 0; i < GPIO_TBL_CNT; i++)
+    {
+        if(drv_gpio_tbl[i].port_enum == gpio_pin) {
+            if(pin_val == 0) {
+                // GPIO -> Low
+                drv_gpio_tbl[i].p_gpio_port->BCR = drv_gpio_tbl[i].pin_mask;
+            } else {
+                // GPIO -> High
+                drv_gpio_tbl[i].p_gpio_port->BSHR = drv_gpio_tbl[i].pin_mask;
+            }
+        }
     }
-    // PB: 8~15
-    else if((gpio_pin >= GPIO_PORT_B_0) && (gpio_pin <= GPIO_PORT_B_7)) {
-        p_gpio_port = GPIOB;
-    }
-    // PC: 16~23
-    else if((gpio_pin >= GPIO_PORT_C_0) && (gpio_pin <= GPIO_PORT_C_7)) {
-        p_gpio_port = GPIOC;
-    }
-    // PD: 24~31
-    else if((gpio_pin >= GPIO_PORT_D_0) && (gpio_pin <= GPIO_PORT_D_7)) {
-        p_gpio_port = GPIOD;
-    }
-    else {
-        return;
-    }
-
-    pin_val = pin_val & 1;
-    pin_number = gpio_pin & 0x07;
-    pin_mask = (uint16_t)(1 << pin_number);
-    GPIO_WriteBit(p_gpio_port, pin_mask, (pin_val == 0) ? Bit_RESET : Bit_SET);
 }

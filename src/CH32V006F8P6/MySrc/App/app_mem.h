@@ -19,6 +19,7 @@
 
 #ifdef EEPROM_USE
 #include "drv_i2c_eeprom_24c64.h"
+bool app_mem_e2p_factory_reset(void);
 void app_mem_get_e2p_data(uint32_t e2p_data_id, void *p_read_buf);
 void app_mem_set_e2p_data(uint32_t e2p_data_id, void *p_write_buf);
 #endif // EEPROM_USE

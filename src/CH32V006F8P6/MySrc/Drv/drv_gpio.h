@@ -25,7 +25,7 @@
 #define GPIO_PORT_D_OFFSET    0x30
 
 typedef enum {
-    // PA
+    // GPIO: PA 0~7
     GPIO_PORT_A_0 = GPIO_PORT_A_OFFSET,
     GPIO_PORT_A_1,
     GPIO_PORT_A_2,
@@ -35,7 +35,7 @@ typedef enum {
     GPIO_PORT_A_6,
     GPIO_PORT_A_7,
 
-    // PB
+    // GPIO: PB 0~7
     GPIO_PORT_B_0 = GPIO_PORT_B_OFFSET,
     GPIO_PORT_B_1,
     GPIO_PORT_B_2,
@@ -45,7 +45,7 @@ typedef enum {
     GPIO_PORT_B_6,
     GPIO_PORT_B_7,
 
-    // PC
+    // GPIO: PC 0~7
     GPIO_PORT_C_0 = GPIO_PORT_C_OFFSET,
     GPIO_PORT_C_1,
     GPIO_PORT_C_2,
@@ -55,7 +55,7 @@ typedef enum {
     GPIO_PORT_C_6,
     GPIO_PORT_C_7,
 
-    // PD
+    // GPIO: PD 0~7
     GPIO_PORT_D_0 = GPIO_PORT_D_OFFSET,
     GPIO_PORT_D_1,
     GPIO_PORT_D_2,

@@ -108,11 +108,6 @@ static void _i2c_sensor_read(void);
 const uint8_t g_dbg_i2c_send_data_buf[2] = {RTC_RX8900_REG_CTRL, 0x01};
 #endif
 static void rtc_time_read(void);
-
-#if defined(DEBUG_I2C_USE) && defined(EEPROM_USE)
-uint8_t g_eeprom_page_buf[EEPROM_24C64_PAGE_BYTE_SIZE] = {0};
-// static bool _eeprom_factory_reset(void);
-#endif // EEPROM_USE
 #endif // DEBUG_I2C_USE
 
 typedef uint8_t (*p_func_app_main)(void *p_arg);
@@ -227,37 +222,6 @@ static void _dma_test(void)
     }
 }
 #endif
-
-#if 0
-// #if defined(DEBUG_I2C_USE) && defined(EEPROM_USE)
-static bool _eeprom_factory_reset(void)
-{
-    bool ret;
-    int ret_cmp;
-
-    drv_eeprom_read_page(0x00, (uint8_t *)&g_eeprom_page_buf[0]);
-    ret_cmp = memcmp((const void *)&g_test_ascii_tbl,
-                     (const void *)&g_eeprom_page_buf,
-                        EEPROM_24C64_PAGE_BYTE_SIZE);
-
-    // EEPROMを工場出荷リセット
-    if(ret_cmp != 0) {
-        ret = true;
-        drv_eeprom_write_page(0x00, (uint8_t *)&g_test_ascii_tbl[0]);
-        drv_tick_delay_ms(10); // EEPROMの書き込み待ち時間の8ms以上待つ
-        drv_eeprom_read_page(0x00, (uint8_t *)&g_eeprom_page_buf[0]);
-        DEBUG_PRINTF("[DEBUG] EEPROM Factory Reset Done!\r\n");
-    } else {
-        ret = false;
-        DEBUG_PRINTF("[DEBUG] This EEPROM Aleady Factory Reseted!\r\n");
-    }
-
-    // EEPORM メモリダンプ
-    app_util_mem_dump((const uint8_t *)&g_eeprom_page_buf[0], EEPROM_24C64_PAGE_BYTE_SIZE);
-
-    return ret;
-}
-#endif // EEPROM_USE
 
 #ifdef DEBUG_I2C_USE
 // NOTE: 浮動小数のfloatをprintf()できないので整数で処理して表示
@@ -425,9 +389,36 @@ static void _debug_proc(void)
 // シリアル -> パラレル変換処理
 static uint8_t _siri2para_proc(void *p_arg)
 {
+#if 1
+    static bool s_is_right_shift = false;
+    static uint8_t s_shift_cnt = 0;
+
+    if(s_is_right_shift == false) {
+        drv_74hc595_write_data_byte(1 << s_shift_cnt);
+    } else {
+        drv_74hc595_write_data_byte(0x80 >> s_shift_cnt);
+    }
+
+    if(s_shift_cnt >= 7) {
+        s_is_right_shift = !s_is_right_shift;
+        s_shift_cnt = 0;
+    } else {
+        s_shift_cnt++;
+    }
+#endif
+
+#if 0
+    static const uint8_t g_dbg_data[2] = {0x55, 0xAA};
+    static uint8_t s_cnt = 0;
+    drv_74hc595_write_data_byte(g_dbg_data[s_cnt]);
+    s_cnt = (s_cnt + 1) % 2;
+#endif
+
+#if 0
     static uint8_t s_siripara_out = 0;
     drv_74hc595_write_data_byte(s_siripara_out);
     s_siripara_out++;
+#endif
 }
 #endif
 
@@ -552,7 +543,7 @@ void app_main_init(void)
 #endif
 
 // #ifdef EEPROM_USE
-//     _eeprom_factory_reset(); // EEPROMの工場出荷リセット
+    // app_mem_e2p_factory_reset(); // EEPROMの工場出荷リセット
 // #endif // EEPROM_USE
 
 #if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280)
