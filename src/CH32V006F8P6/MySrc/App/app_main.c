@@ -23,6 +23,10 @@
 // 自前の74HC595ドライバ (https://github.com/Chimipupu/drv_74hc595.git)
 #include "drv_74hc595.h"
 
+#define APP_74HC595_MODE_SHIFT       0
+#define APP_74HC595_MODE_55AA        1
+#define APP_74HC595_MODE_BYTE_CNT    2
+
 #define SER_PIN    GPIO_PORT_D_4 // PD4: 74HC595 SERピン
 #define SRCLK_PIN  GPIO_PORT_D_3 // PD3: 74HC595 SRCLKピン
 #define RCLK_PIN   GPIO_PORT_D_2 // PD2: 74HC595 RCLKピン
@@ -34,6 +38,8 @@ static const drv_74hc595_config_t g_74hc595_cfg = {
     .p_gpio_func = drv_gpio_port_onoff,
     .p_delay_ms_func = drv_tick_delay_ms
 };
+
+uint8_t g_74hc595_app_mode = 0xFF;
 #endif
 
 // -----------------------------------------------------------
@@ -395,36 +401,43 @@ static void _debug_proc(void)
 // シリアル -> パラレル変換処理
 static uint8_t _siri2para_proc(void *p_arg)
 {
-#if 1
     static bool s_is_right_shift = false;
-    static uint8_t s_shift_cnt = 0;
-
-    if(s_is_right_shift == false) {
-        drv_74hc595_write_data_byte(1 << s_shift_cnt);
-    } else {
-        drv_74hc595_write_data_byte(0x80 >> s_shift_cnt);
-    }
-
-    if(s_shift_cnt >= 7) {
-        s_is_right_shift = !s_is_right_shift;
-        s_shift_cnt = 0;
-    } else {
-        s_shift_cnt++;
-    }
-#endif
-
-#if 0
-    static const uint8_t g_dbg_data[2] = {0x55, 0xAA};
     static uint8_t s_cnt = 0;
-    drv_74hc595_write_data_byte(g_dbg_data[s_cnt]);
-    s_cnt = (s_cnt + 1) % 2;
-#endif
-
-#if 0
+    static uint8_t s_shift_cnt = 0;
     static uint8_t s_siripara_out = 0;
-    drv_74hc595_write_data_byte(s_siripara_out);
-    s_siripara_out++;
-#endif
+    static const uint8_t g_dbg_data[2] = {0x55, 0xAA};
+
+    switch (g_74hc595_app_mode)
+    {
+        case APP_74HC595_MODE_SHIFT:
+            if(s_is_right_shift == false) {
+                drv_74hc595_write_data_byte(1 << s_shift_cnt);
+            } else {
+                drv_74hc595_write_data_byte(0x80 >> s_shift_cnt);
+            }
+
+            if(s_shift_cnt >= 7) {
+                s_is_right_shift = !s_is_right_shift;
+                s_shift_cnt = 0;
+            } else {
+                s_shift_cnt++;
+            }
+            break;
+
+        case APP_74HC595_MODE_55AA:
+        drv_74hc595_write_data_byte(g_dbg_data[s_cnt]);
+        s_cnt = (s_cnt + 1) % 2;
+            break;
+
+        case APP_74HC595_MODE_BYTE_CNT:
+            drv_74hc595_write_data_byte(s_siripara_out);
+            s_siripara_out++;
+            break;
+
+        default:
+            drv_74hc595_write_data_byte(0);
+            break;
+    }
 }
 #endif
 

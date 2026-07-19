@@ -19,6 +19,13 @@
 #include "drv_uart.h"
 #include "drv_i2c_eeprom_24c64.h"
 
+// My Lib
+#ifdef USE_74HC595
+// 自前の74HC595ドライバ (https://github.com/Chimipupu/drv_74hc595.git)
+#include "drv_74hc595.h"
+extern uint8_t g_74hc595_app_mode;
+#endif // USE_74HC595
+
 // -----------------------------------------------------------
 // [DEBUG関連]
 #ifdef DEBUG_DBG_MON
@@ -39,31 +46,37 @@ typedef struct {
 
 static void dbg_mon_init_msg(const uint8_t *p_args);
 
-static void cmd_help(const uint8_t *p_args);
-static void cmd_rst(const uint8_t *p_args);
-static void cmd_cls(const uint8_t *p_args);
-static void cmd_system(const uint8_t *p_args);
-static void cmd_mem_dump(const uint8_t *p_args);
-static void cmd_reg(const uint8_t *p_args);
+static void _cmd_help(const uint8_t *p_args);
+static void _cmd_rst(const uint8_t *p_args);
+static void _cmd_cls(const uint8_t *p_args);
+static void _cmd_system(const uint8_t *p_args);
+static void _cmd_mem_dump(const uint8_t *p_args);
+static void _cmd_reg(const uint8_t *p_args);
 #ifdef EEPROM_USE
-static void cmd_eeprom(const uint8_t *p_args);
+static void _cmd_eeprom(const uint8_t *p_args);
 #endif // EEPROM_USE
+#ifdef USE_74HC595
+static void _cmd_74hc595(const uint8_t *p_args);
+#endif // USE_74HC595
 
 // コマンドテーブル
 static const dbg_cmd_info_t g_cmd_tbl[] = {
 //  | コマンド    | 短縮コマンド | コールバック関数   | コマンド説明 |
     // [システム関連コマンド]
-    { "help",      "?",          &cmd_help,         "Show All Cmd"    },
-    { "reset",     "rst",        &cmd_rst,          "Reset Cmd"       },
-    { "clear",     "cls",        &cmd_cls,          "Display Clear"   },
-    { "sysinfo",   "sif",        &cmd_system,       "Show SysInfo"    },
-    { "memdump",   "mdp",        &cmd_mem_dump,     "MemDump Cmd"     },
+    { "help",      "?",          &_cmd_help,         "Show All Cmd"    },
+    { "reset",     "rst",        &_cmd_rst,          "Reset Cmd"       },
+    { "clear",     "cls",        &_cmd_cls,          "Display Clear"   },
+    { "sysinfo",   "sif",        &_cmd_system,       "Show SysInfo"    },
+    { "memdump",   "mdp",        &_cmd_mem_dump,     "MemDump Cmd"     },
 
     // [ペリフェラル関連コマンド]
-    { "ioreg",     "irg",        &cmd_reg,          "I/O Reg R/W Cmd" },
+    { "ioreg",     "irg",        &_cmd_reg,          "I/O Reg R/W Cmd" },
 #ifdef EEPROM_USE
-    { "eeprom",    "e2p",         &cmd_eeprom,       "EEPROM R/W Cmd" },
+    { "eeprom",    "e2p",        &_cmd_eeprom,       "EEPROM R/W Cmd" },
 #endif // EEPROM_USE
+#ifdef USE_74HC595
+    { "74hc595",   "595",        &_cmd_74hc595,      "74HC595 CtrlCmd" },
+#endif // USE_74HC595
 };
 #define CMD_TBL_CNT    sizeof(g_cmd_tbl) / sizeof(g_cmd_tbl[0])
 
@@ -86,13 +99,13 @@ static void dbg_mon_init_msg(const uint8_t *p_args)
     printf("Copyright (c) 2026 Chimipupu All Rights Reserved.\n");
 }
 
-static void cmd_rst(const uint8_t *p_args)
+static void _cmd_rst(const uint8_t *p_args)
 {
     printf("Now on Reset System! Will Be Restart.\r\n");
     NVIC_SystemReset(); // S/Wリセット
 }
 
-static void cmd_help(const uint8_t *p_args)
+static void _cmd_help(const uint8_t *p_args)
 {
     dbg_mon_init_msg(p_args);
 
@@ -103,12 +116,12 @@ static void cmd_help(const uint8_t *p_args)
     }
 }
 
-static void cmd_cls(const uint8_t *p_args)
+static void _cmd_cls(const uint8_t *p_args)
 {
     printf(ANSI_ESC_CLS);
 }
 
-static void cmd_system(const uint8_t *p_args)
+static void _cmd_system(const uint8_t *p_args)
 {
     uint32_t *p_uid_buf;
 
@@ -128,7 +141,7 @@ static void cmd_system(const uint8_t *p_args)
     app_util_mem_dump((const uint8_t *) p_uid_buf, 12);
 }
 
-static void cmd_mem_dump(const uint8_t *p_args)
+static void _cmd_mem_dump(const uint8_t *p_args)
 {
     // TODO
 }
@@ -137,7 +150,7 @@ static void cmd_mem_dump(const uint8_t *p_args)
  * @brief アプリ I/O レジスタR/Wコマンド関数
  * @param p_args コマンド引数
  */
-static void cmd_reg(const uint8_t *p_args)
+static void _cmd_reg(const uint8_t *p_args)
 {
     // TODO
 }
@@ -149,7 +162,7 @@ static void cmd_reg(const uint8_t *p_args)
  * @note EEPROM ページ指定Read  ... 例 「e2p r p0」
  * @note EEPROM ページ指定Write: 未実装
  */
-static void cmd_eeprom(const uint8_t *p_args)
+static void _cmd_eeprom(const uint8_t *p_args)
 {
     uint8_t i;
     uint8_t *p_ptr;
@@ -214,6 +227,49 @@ static void cmd_eeprom(const uint8_t *p_args)
 }
 #endif // EEPROM_USE
 
+#ifdef USE_74HC595
+static void _cmd_74hc595(const uint8_t *p_args)
+{
+    uint8_t i;
+    uint8_t *p_cmd_op;
+    uint8_t reg_val = 0;
+
+    // コマンド第1引数: 「595 reg」 or 「595 sp」の"reg" or "sp"の部分
+    if(s_cmd_buf[1][0] != '\0') {
+        p_cmd_op = (uint8_t *) s_cmd_buf[1];
+    }
+    // エラー: 第1引数
+    if((strcmp((const char *) p_cmd_op, "reg") != 0) && (strcmp((const char *) p_cmd_op, "mode") != 0)) {
+        printf( ANSI_TXT_COLOR_RED    \
+                "[ERROR] 74HC595 Ctrl Cmd Unknown Args: %s (must be reg or mode)\r\n"    \
+                ANSI_TXT_COLOR_RESET, s_cmd_buf[1]);
+        return;
+    }
+
+    // コマンド第2引数: 値(xxx=0~255まで)
+    while(s_cmd_buf[2][i] != '\0')
+    {
+        if((s_cmd_buf[2][i] >= '0') && (s_cmd_buf[2][i] <= '9')) {
+            reg_val = (reg_val * 10) + (s_cmd_buf[2][i] - '0');
+        }
+        i++;
+    }
+
+    if(strcmp((const char *) p_cmd_op, "reg") == 0) {
+        printf( ANSI_TXT_COLOR_GREEN    \
+                "[ERROR] 74HC595 Reg Val: %d\r\n"    \
+                ANSI_TXT_COLOR_RESET, reg_val);
+        drv_74hc595_write_data_byte(reg_val);
+    } else if(strcmp((const char *) p_cmd_op, "mode") == 0) {
+        g_74hc595_app_mode = reg_val;
+        printf( ANSI_TXT_COLOR_GREEN    \
+                "[ERROR] 74HC595 App Mode: %d\r\n"    \
+                ANSI_TXT_COLOR_RESET, g_74hc595_app_mode);
+    }
+}
+#endif // USE_74HC595
+
+// -----------------------------------------------------------
 static void _cmd_exec(void)
 {
     uint8_t i;
@@ -247,7 +303,7 @@ void dbg_mon_init(void)
     s_rx_buf_idx = 0;
 
     // printf(ANSI_ESC_CLS);
-    cmd_help(NULL);
+    _cmd_help(NULL);
     printf("\n>");
 }
 

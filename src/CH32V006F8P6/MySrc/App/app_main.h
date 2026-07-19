@@ -22,6 +22,11 @@
 // #define USE_APP_IO_REG
 #define USE_SW_TIMER
 
+#ifdef USE_74HC595
+// 自前の74HC595ドライバ (https://github.com/Chimipupu/drv_74hc595.git)
+#include "drv_74hc595.h"
+extern uint8_t g_74hc595_app_mode;
+#endif // USE_74HC595
 // ----------------------------------------------------------------------
 // [マクロ]
 #define APP_PROC_EXEC     0x00 // アプリ実行継続
