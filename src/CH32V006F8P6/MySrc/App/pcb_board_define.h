@@ -22,9 +22,14 @@
 
 #define DEBUG_UART_USE // UARTの使用有無
 // #define DEBUG_I2C_USE  // I2Cの使用有無
+
 // #define USE_BUTTON  // 基板のボタン使用有無
-// #define EEPROM_USE     // EEPROMの使用有無
 #define USE_74HC595  // 74HC595の使用有無
+
+// #define EEPROM_USE     // EEPROMの使用有無
+#if !defined(DEBUG_I2C_USE) && defined(EEPROM_USE)
+#error "[ERROR] Please define -> DEBUG_I2C_USE at pcb_board.h!"
+#endif
 
 #define I2C_RTC_DEVICE                I2C_ENV_SENSOR_NONE
 // #define I2C_RTC_DEVICE                I2C_RTC_DS3231

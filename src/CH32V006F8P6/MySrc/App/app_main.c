@@ -102,12 +102,14 @@ const uint8_t g_bmp280_reset_data[2] = {BMP280_REG_ADDR_RESET, BMP280_RESET_REG_
 const uint8_t g_bmp280_id_reg_data[2] = {BMP280_REG_ADDR_ID, BMP280_ID_REG_EXP_VAL};
 #endif //I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280
 
+#if (I2C_ENV_SENSOR_DEVICE != I2C_ENV_SENSOR_NONE)
 static void _i2c_sensor_read(void);
+#endif
 
 #if (I2C_RTC_DEVICE == I2C_RTC_RX8900)
 const uint8_t g_dbg_i2c_send_data_buf[2] = {RTC_RX8900_REG_CTRL, 0x01};
-#endif
 static void rtc_time_read(void);
+#endif
 #endif // DEBUG_I2C_USE
 
 typedef uint8_t (*p_func_app_main)(void *p_arg);
@@ -223,7 +225,7 @@ static void _dma_test(void)
 }
 #endif
 
-#ifdef DEBUG_I2C_USE
+#if (I2C_ENV_SENSOR_DEVICE != I2C_ENV_SENSOR_NONE)
 // NOTE: 浮動小数のfloatをprintf()できないので整数で処理して表示
 static void _i2c_sensor_read(void)
 {
@@ -309,7 +311,9 @@ static void _i2c_sensor_read(void)
     }
 #endif
 }
+#endif
 
+#if (I2C_RTC_DEVICE == I2C_RTC_RX8900)
 static void rtc_time_read(void)
 {
     uint8_t tx_data = 0;
@@ -334,7 +338,9 @@ static void rtc_time_read(void)
         DEBUG_PRINTF("[DEBUG] RTC: %02X:%02X:%02X\r\n", rtc_read_buf[2], rtc_read_buf[1], rtc_read_buf[0]);
     }
 }
+#endif
 
+#ifdef DEBUG_I2C_USE
 static uint8_t _i2c_proc(void *p_arg)
 {
     // DEBUG_PRINTF("[DEBUG] I2C Proc\r\n");
