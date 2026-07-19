@@ -8,14 +8,15 @@
  */
 
 #include "drv_gpio.h"
-
 #include "pcb_board_define.h"
+
 #ifdef USE_74HC595
 // 自前の74HC595ドライバ (https://github.com/Chimipupu/drv_74hc595.git)
 #include "drv_74hc595.h"
-#endif
+#endif // USE_74HC595
 
 // -----------------------------------------------------------
+#ifdef USE_GPIO_TBL
 typedef struct {
     GPIO_PORT port_enum;
     GPIO_TypeDef *p_gpio_port;
@@ -64,10 +65,11 @@ static const drv_gpio_tbl_t drv_gpio_tbl[] = {
     {GPIO_PORT_D_7, GPIOD, (1u << 7)},
 };
 static const uint8_t GPIO_TBL_CNT =  (sizeof(drv_gpio_tbl) / sizeof(drv_gpio_tbl[0]));
+#endif // USE_GPIO_TBL
 
 #ifdef USE_BUTTON
 bool g_is_btn_on_flg = false;
-#endif
+#endif // USE_BUTTON
 // -----------------------------------------------------------
 #ifdef USE_BUTTON
 // [外部割り込み(EXTI0) 割り込みハンドラ]
@@ -81,7 +83,7 @@ void EXTI7_0_IRQHandler(void)
         EXTI_ClearITPendingBit(EXTI_Line0);
     }
 }
-#endif
+#endif // USE_BUTTON
 // -----------------------------------------------------------
 // [API]
 
@@ -116,7 +118,7 @@ void drv_gpio_init(void)
     NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&NVIC_InitStructure);
     // ------------------------------------------------------
-#endif
+#endif // USE_BUTTON
 
 #ifdef USE_74HC595
     GPIO_InitTypeDef pd2_cfg = {0}; // PD2: 74HC595 RCLKピン
@@ -137,12 +139,13 @@ void drv_gpio_init(void)
     pd4_cfg.GPIO_Mode = GPIO_Mode_Out_PP;
     pd4_cfg.GPIO_Speed = GPIO_Speed_30MHz;
     GPIO_Init(GPIOD, &pd4_cfg);
-#endif
+#endif // USE_74HC595
 }
 
-// (TODO) テーブル検索でGPIOは遅いしテーブルはROMを食うからどうにしたい
 void drv_gpio_port_onoff(uint8_t gpio_pin, uint8_t pin_val)
 {
+// テーブル検索方式: ROMを食う（最適化なしで408バイト）
+#ifdef USE_GPIO_TBL
     uint8_t i;
 
     // テーブル検索
@@ -158,4 +161,27 @@ void drv_gpio_port_onoff(uint8_t gpio_pin, uint8_t pin_val)
             }
         }
     }
+#else
+    GPIO_TypeDef *p_gpio_port;
+
+    if(gpio_pin <= GPIO_PORT_A_7) {
+        p_gpio_port = GPIOA;
+    } else if(gpio_pin <= GPIO_PORT_B_7) {
+        p_gpio_port = GPIOB;
+    } else if(gpio_pin <= GPIO_PORT_C_7) {
+        p_gpio_port = GPIOC;
+    } else if(gpio_pin <= GPIO_PORT_D_7) {
+        p_gpio_port = GPIOD;
+    } else {
+        return;
+    }
+
+    if(pin_val == 0) {
+        // GPIO -> Low
+        p_gpio_port->BCR = (1u << (gpio_pin & 0x07));
+    } else {
+        // GPIO -> High
+        p_gpio_port->BSHR = (1u << (gpio_pin & 0x07));
+    }
+#endif
 }
