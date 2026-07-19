@@ -259,12 +259,10 @@ static void _cmd_74hc595(const uint8_t *p_args)
         printf( ANSI_TXT_COLOR_GREEN    \
                 "[ERROR] 74HC595 Reg Val: %d\r\n"    \
                 ANSI_TXT_COLOR_RESET, reg_val);
+        g_74hc595_app_mode = 0xFF;
         drv_74hc595_write_data_byte(reg_val);
     } else if(strcmp((const char *) p_cmd_op, "mode") == 0) {
         g_74hc595_app_mode = reg_val;
-        printf( ANSI_TXT_COLOR_GREEN    \
-                "[ERROR] 74HC595 App Mode: %d\r\n"    \
-                ANSI_TXT_COLOR_RESET, g_74hc595_app_mode);
     }
 }
 #endif // USE_74HC595

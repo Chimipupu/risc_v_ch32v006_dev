@@ -23,9 +23,9 @@
 // 自前の74HC595ドライバ (https://github.com/Chimipupu/drv_74hc595.git)
 #include "drv_74hc595.h"
 
-#define APP_74HC595_MODE_SHIFT       0
-#define APP_74HC595_MODE_55AA        1
-#define APP_74HC595_MODE_BYTE_CNT    2
+#define APP_74HC595_MODE_SHIFT       1
+#define APP_74HC595_MODE_55AA        2
+#define APP_74HC595_MODE_BYTE_CNT    3
 
 #define SER_PIN    GPIO_PORT_D_4 // PD4: 74HC595 SERピン
 #define SRCLK_PIN  GPIO_PORT_D_3 // PD3: 74HC595 SRCLKピン
@@ -425,8 +425,8 @@ static uint8_t _siri2para_proc(void *p_arg)
             break;
 
         case APP_74HC595_MODE_55AA:
-        drv_74hc595_write_data_byte(g_dbg_data[s_cnt]);
-        s_cnt = (s_cnt + 1) % 2;
+            drv_74hc595_write_data_byte(g_dbg_data[s_cnt]);
+            s_cnt = (s_cnt + 1) % 2;
             break;
 
         case APP_74HC595_MODE_BYTE_CNT:
@@ -435,7 +435,6 @@ static uint8_t _siri2para_proc(void *p_arg)
             break;
 
         default:
-            drv_74hc595_write_data_byte(0);
             break;
     }
 }
