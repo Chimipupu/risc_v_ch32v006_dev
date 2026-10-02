@@ -9,9 +9,12 @@
 
 #include "app_io_reg.h"
 
+#ifdef USE_APP_IO_REG
 // -----------------------------------------------------------
-// [Private]
-
+// [コンパイルスイッチ]
+// #define USE_APP_IO_REG_ATTR
+// -----------------------------------------------------------
+#ifdef USE_APP_IO_REG_ATTR
 typedef struct {
     uint8_t read_bit;           // レジスタ属性: Readビット
     uint8_t write_bit;          // レジスタ属性: Writeビット
@@ -164,6 +167,7 @@ static const app_io_reg_t g_app_io_reg_attr_tbl[APP_IO_REG_NUM] = {
     {0x00, 0x00}, // Addr: 126, (Rederved)
     {0x00, 0x00}, // Addr: 127, (Rederved)
 };
+#endif // USE_APP_IO_REG_ATTR
 
 // I/Oレジスタデータテーブル
 const io_reg_data_t g_io_reg_data_tbl[] = {
@@ -199,7 +203,11 @@ uint8_t app_io_reg_read(uint8_t addr)
     uint8_t reg;
 
     if(addr < APP_IO_REG_NUM) {
+#ifdef USE_APP_IO_REG_ATTR
         reg = s_app_io_reg[addr] & g_app_io_reg_attr_tbl[addr].read_bit;
+#else
+        reg = s_app_io_reg[addr];
+#endif
     } else {
         reg = 0x00;
     }
@@ -210,6 +218,11 @@ uint8_t app_io_reg_read(uint8_t addr)
 void app_io_reg_write(uint8_t addr, uint8_t val)
 {
     if(addr < APP_IO_REG_NUM) {
+#ifdef USE_APP_IO_REG_ATTR
         s_app_io_reg[addr] = val & g_app_io_reg_attr_tbl[addr].write_bit;
+#else
+        s_app_io_reg[addr] = val;
+#endif
     }
 }
+#endif // USE_APP_IO_REG

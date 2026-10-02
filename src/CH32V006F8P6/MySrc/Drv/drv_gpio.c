@@ -68,7 +68,7 @@ static const uint8_t GPIO_TBL_CNT =  (sizeof(drv_gpio_tbl) / sizeof(drv_gpio_tbl
 #endif // USE_GPIO_TBL
 
 #ifdef USE_BUTTON
-bool g_is_btn_on_flg = false;
+volatile bool g_is_btn_on_flg = false;
 #endif // USE_BUTTON
 // -----------------------------------------------------------
 #ifdef USE_BUTTON

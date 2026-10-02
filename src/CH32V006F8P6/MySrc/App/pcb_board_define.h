@@ -24,7 +24,7 @@
 // #define DEBUG_I2C_USE  // I2Cの使用有無
 
 // #define USE_BUTTON  // 基板のボタン使用有無
-#define USE_74HC595  // 74HC595の使用有無
+// #define USE_74HC595  // 74HC595の使用有無
 
 // #define EEPROM_USE     // EEPROMの使用有無
 #if !defined(DEBUG_I2C_USE) && defined(EEPROM_USE)

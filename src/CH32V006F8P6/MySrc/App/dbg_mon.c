@@ -23,7 +23,7 @@
 #ifdef USE_74HC595
 // 自前の74HC595ドライバ (https://github.com/Chimipupu/drv_74hc595.git)
 #include "drv_74hc595.h"
-extern uint8_t g_74hc595_app_mode;
+extern volatile uint8_t g_74hc595_app_mode;
 #endif // USE_74HC595
 
 // -----------------------------------------------------------
@@ -51,10 +51,15 @@ static void _cmd_rst(const uint8_t *p_args);
 static void _cmd_cls(const uint8_t *p_args);
 static void _cmd_system(const uint8_t *p_args);
 static void _cmd_mem_dump(const uint8_t *p_args);
+
+#ifdef USE_APP_IO_REG
 static void _cmd_reg(const uint8_t *p_args);
+#endif // USE_APP_IO_REG
+
 #ifdef EEPROM_USE
 static void _cmd_eeprom(const uint8_t *p_args);
 #endif // EEPROM_USE
+
 #ifdef USE_74HC595
 static void _cmd_74hc595(const uint8_t *p_args);
 #endif // USE_74HC595
@@ -70,10 +75,14 @@ static const dbg_cmd_info_t g_cmd_tbl[] = {
     { "memdump",   "mdp",        &_cmd_mem_dump,     "MemDump Cmd"     },
 
     // [ペリフェラル関連コマンド]
+#ifdef USE_APP_IO_REG
     { "ioreg",     "irg",        &_cmd_reg,          "I/O Reg R/W Cmd" },
+#endif // USE_APP_IO_REG
+
 #ifdef EEPROM_USE
     { "eeprom",    "e2p",        &_cmd_eeprom,       "EEPROM R/W Cmd" },
 #endif // EEPROM_USE
+
 #ifdef USE_74HC595
     { "74hc595",   "595",        &_cmd_74hc595,      "74HC595 CtrlCmd" },
 #endif // USE_74HC595
@@ -146,6 +155,7 @@ static void _cmd_mem_dump(const uint8_t *p_args)
     // TODO
 }
 
+#ifdef USE_APP_IO_REG
 /**
  * @brief アプリ I/O レジスタR/Wコマンド関数
  * @param p_args コマンド引数
@@ -154,6 +164,7 @@ static void _cmd_reg(const uint8_t *p_args)
 {
     // TODO
 }
+#endif // USE_APP_IO_REG
 
 #ifdef EEPROM_USE
 /**

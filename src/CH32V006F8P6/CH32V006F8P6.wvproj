@@ -49,7 +49,7 @@
 				"post_script_description": "",
 				"excludeResources": [],
 				"optimization": {
-					"level": "none",
+					"level": "size",
 					"message_length": true,
 					"char_is_signed": true,
 					"function_sections": true,

@@ -15,11 +15,14 @@
 #include <stdbool.h>
 
 // -----------------------------------------------------------
+// [コンパイルスイッチ]
+// #define USE_APP_IO_REG
+
+// -----------------------------------------------------------
 // [Define]
-
-#define APP_IO_REG_NUM              128  // I/Oレジスタ数
-
+#ifdef USE_APP_IO_REG
 // [レジスタアドレス]
+#define APP_IO_REG_NUM              128  // I/Oレジスタ数
 #define APP_IO_REG_ADDR_WHO_I_AM    0x70 // Who_I_AMレジスタ
     #define WHO_I_AM_DEBUG          0x00
     #define WHO_I_AM_IOCPS          0x10
@@ -45,5 +48,5 @@ extern const uint8_t IO_REG_STR_TBL_CNT;
 void app_io_reg_init(void);
 uint8_t app_io_reg_read(uint8_t addr);
 void app_io_reg_write(uint8_t addr, uint8_t val);
-
+#endif // USE_APP_IO_REG
 #endif // APP_IO_REG_H

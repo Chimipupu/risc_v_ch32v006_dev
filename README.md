@@ -8,7 +8,7 @@ WCH製25円 RISC-Vマイコン CH32V006の評価F/W個人開発リポジトリ
   - IDE/SDK/コンパイラ
     - [MounRiver Studio (MRS) V2.5.0](https://www.mounriver.com/download)🔗
   - 最適化
-    - `-O0`
+    - `-Os` (サイズ優先)
   - コーディング規約
     - https://github.com/Chimipupu/c_lang_coding_conventions_for_chimipupu.git
 - H/W
@@ -34,20 +34,46 @@ WCH製25円 RISC-Vマイコン CH32V006の評価F/W個人開発リポジトリ
       - USART ... x2ch
       - ADC ... 12bit 3Msps SAR x8ch
       - OPA ... x3ch
-- デバッグ
+- デバッガ
   - [WCH-LinkE Ver1.3](https://akizukidenshi.com/catalog/g/g118065)🔗
+
+## コンパイルスイッチ
+
+```c
+// -----------------------------------------------------------
+// [コンパイルスイッチ]
+#define DEBUG_UART_USE // UARTの使用有無
+// #define DEBUG_I2C_USE  // I2Cの使用有無
+
+// #define USE_BUTTON  // 基板のボタン使用有無
+// #define USE_74HC595  // 74HC595の使用有無
+
+// #define EEPROM_USE     // EEPROMの使用有無
+#if !defined(DEBUG_I2C_USE) && defined(EEPROM_USE)
+#error "[ERROR] Please define -> DEBUG_I2C_USE at pcb_board.h!"
+#endif
+
+#define I2C_RTC_DEVICE                I2C_ENV_SENSOR_NONE
+// #define I2C_RTC_DEVICE                I2C_RTC_DS3231
+// #define I2C_RTC_DEVICE                I2C_RTC_RX8900
+
+#define I2C_ENV_SENSOR_DEVICE         I2C_ENV_SENSOR_NONE
+// #define I2C_ENV_SENSOR_DEVICE         I2C_ENV_SENSOR_AHT20
+// #define I2C_ENV_SENSOR_DEVICE         I2C_ENV_SENSOR_BMP280
+// -----------------------------------------------------------
+```
 
 ## メモリ使用量
 
 - 最適化
-  - `-O0`
-- EEPROM
-  - **あり**
+  - `-Os` (サイズ優先)
+- 注記
+  - 上記、コンパイルスイッチでF/Wを`-Os`でビルド
 
 ```shell
 Memory region         Used Size  Region Size  %age Used
-           FLASH:       10560 B        62 KB     16.63%
-             RAM:         820 B         8 KB     10.01%
+           FLASH:        5436 B        62 KB      8.56%
+             RAM:         804 B         8 KB      9.81%
 ```
 
 ## ピンアサイン
@@ -88,25 +114,3 @@ Memory region         Used Size  Region Size  %age Used
 | MOSI | PC6 (MOSI) |
 | MISO | PC7 (MISO) |
 
-## 評価総評
-
-- 総評
-  - ★★★★☆ 90/100点
-
-- 良い点
-  - 単価25円で破格すぎるRISC-Vマイコン
-  - 5Vでも3.3Vでも動かせる貴重な32bitのマイコン
-  - CPUがRV32EmCで乗算（かけ算）をCPU命令のハードウェア
-  - ROMとRAMが単価を考えてもかなり多い
-  - I2CとSPIは1本、UARTは2本、16bitタイマーは3本
-  - DMAが7本も使える
-  - ADCが12bitで8本も使える
-  - デバッグが1本のシリアルで出来る
-  - マイコンのチップ毎にUIDが96bitも付与されてる
-  - 内蔵の24MHz HSIが誤差2%
-- 悪い点
-  - 内蔵フラッシュROMで2ウェイトも発生する（48MHz時）
-  - PLLが2逓倍固定で2倍にしかクロックの周波数を上げれない
-  - DeepSleepが10μAでESP32の約2倍
-  - WCHからSDKの更新がない
-  - 除算（割り算）がソフトウェア

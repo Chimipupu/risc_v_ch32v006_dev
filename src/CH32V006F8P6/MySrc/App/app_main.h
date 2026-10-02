@@ -19,13 +19,12 @@
 // [コンパイルスイッチ]
 // #define DEBUG_APP
 #define DBG_MON_USE
-// #define USE_APP_IO_REG
 #define USE_SW_TIMER
 
 #ifdef USE_74HC595
 // 自前の74HC595ドライバ (https://github.com/Chimipupu/drv_74hc595.git)
 #include "drv_74hc595.h"
-extern uint8_t g_74hc595_app_mode;
+extern volatile uint8_t g_74hc595_app_mode;
 #endif // USE_74HC595
 // ----------------------------------------------------------------------
 // [マクロ]

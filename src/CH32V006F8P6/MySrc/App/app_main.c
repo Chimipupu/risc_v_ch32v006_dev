@@ -39,7 +39,7 @@ static const drv_74hc595_config_t g_74hc595_cfg = {
     .p_delay_ms_func = drv_tick_delay_ms
 };
 
-uint8_t g_74hc595_app_mode = 0xFF;
+volatile uint8_t g_74hc595_app_mode = 0xFF;
 #endif
 
 // -----------------------------------------------------------
@@ -155,14 +155,27 @@ app_main_func_tbl_t g_app_func_tbl[] = {
     {_i2c_proc,        1000}, // I2C処理
 #endif // DEBUG_I2C_USE
 };
-#define APP_FUNC_TBL_CNT    sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0])
-static uint8_t s_idx = 0;
-static uint8_t s_app_sw_timer_buf[APP_FUNC_TBL_CNT] = {0};
+const uint8_t APP_FUNC_TBL_CNT = sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0]);
 
-static void _steady_proc(void);
+#if (APP_FUNC_TBL_CNT > 0)
+static volatile uint8_t s_idx;
+static volatile uint8_t s_app_sw_timer_buf[APP_FUNC_TBL_CNT];
 static void _period_proc(void);
+#endif
+
+static void _app_mem_init(void);
+static void _steady_proc(void);
+
 // -----------------------------------------------------------
 // [Static関数]
+
+static void _app_mem_init(void)
+{
+#if (APP_FUNC_TBL_CNT > 0)
+    s_idx = 0;
+    memset(&s_app_sw_timer_buf[0], 0x00, sizeof(s_app_sw_timer_buf));
+#endif
+}
 
 static void _steady_proc(void)
 {
@@ -175,6 +188,7 @@ static void _steady_proc(void)
 #endif
 }
 
+#if (APP_FUNC_TBL_CNT > 0)
 static void _period_proc(void)
 {
     uint8_t cbK_ret;
@@ -197,6 +211,7 @@ static void _period_proc(void)
 
     s_idx = (s_idx + 1) % APP_FUNC_TBL_CNT;
 }
+#endif
 
 #ifdef DEBUG_APP
 static void _dma_test(void)
@@ -546,6 +561,8 @@ uint32_t* app_util_chip_uid_read(void)
  */
 void app_main_init(void)
 {
+   _app_mem_init(); // アプリ関連メモリ初期化
+
 #ifdef USE_APP_IO_REG
     app_io_reg_init(); // アプリI/Oレジスタ初期化
 #endif
@@ -579,11 +596,13 @@ void app_main_init(void)
 #endif
 
 #ifdef USE_SW_TIMER
+#if (APP_FUNC_TBL_CNT > 0)
     // S/Wタイマースタート
     for(uint8_t i = 0; i < APP_FUNC_TBL_CNT; i++)
     {
         soft_timer_start(g_app_func_tbl[i].interval_ms, true, &s_app_sw_timer_buf[i]);
     }
+#endif
 #endif
 }
 
@@ -593,5 +612,8 @@ void app_main_init(void)
 void app_main(void)
 {
     _steady_proc(); // 定常処理
+
+#if (APP_FUNC_TBL_CNT > 0)
     _period_proc(); // 一定周期処理
+#endif
 }
