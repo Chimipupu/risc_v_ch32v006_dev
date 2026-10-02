@@ -44,13 +44,11 @@ volatile uint8_t g_74hc595_app_mode = 0xFF;
 
 // -----------------------------------------------------------
 // [DEBUG関連]
-#define DEBUG_PRINTF        printf
-
 #ifdef DEBUG_UART_USE
 #include "dbg_mon.h"
-#endif // DEBUG_UART_USE && DBG_MON_USE
+#endif
 
-#ifdef DEBUG_APP
+#ifdef DMA_TEST
 // テストデータ（ASCII）: "CH32V006 DEVELOP BY CHIMIPUPU"
 static const uint8_t g_test_ascii_tbl[32] = {
     0x43, 0x48, 0x33, 0x32, 0x56, 0x30, 0x30, 0x36,
@@ -59,10 +57,6 @@ static const uint8_t g_test_ascii_tbl[32] = {
     0x50, 0x55, 0x50, 0x55, 0x20, 0x20, 0x20, 0x20
 };
 static void _dma_test(void);
-#endif
-
-#if defined(DEBUG_UART_USE) && defined(DBG_MON_USE)
-static void _debug_proc(void);
 #endif
 
 // -----------------------------------------------------------
@@ -112,8 +106,7 @@ const uint8_t g_bmp280_id_reg_data[2] = {BMP280_REG_ADDR_ID, BMP280_ID_REG_EXP_V
 static void _i2c_sensor_read(void);
 #endif
 
-#if (I2C_RTC_DEVICE == I2C_RTC_RX8900)
-const uint8_t g_dbg_i2c_send_data_buf[2] = {RTC_RX8900_REG_CTRL, 0x01};
+#if (I2C_RTC_DEVICE != I2C_ENV_SENSOR_NONE)
 static void rtc_time_read(void);
 #endif
 #endif // DEBUG_I2C_USE
@@ -136,6 +129,9 @@ static uint8_t _app_io_reg_proc(void *p_arg);
 static uint8_t _i2c_proc(void *p_arg);
 #endif // DEBUG_I2C_USE
 
+static uint8_t _battery_check_proc(void *p_arg);
+static uint8_t _state_check_proc(void *p_arg);
+
 typedef struct {
     p_func_app_main pfunc; // 各アプリのコールバック関数ポインタ
     uint16_t interval_ms;  // 各アプリの実行周期(ms)
@@ -143,8 +139,15 @@ typedef struct {
 
 // アプリメインコールバック関数テーブル
 app_main_func_tbl_t g_app_func_tbl[] = {
+    {_battery_check_proc,  20}, // バッテリーチェック
+    {_state_check_proc,    100}, // ステートチェック
+
+#ifdef USE_APP_IO_REG
+    {_app_io_reg_proc,  200}, // I/Oレジスタアプリ
+#endif
+
 #ifdef USE_74HC595
-    {_siri2para_proc,  100}, // シリアル -> パラレル変換処理
+    {_siri2para_proc,  250}, // シリアル -> パラレル変換処理
 #endif
 
 #ifdef USE_BUTTON
@@ -157,11 +160,9 @@ app_main_func_tbl_t g_app_func_tbl[] = {
 };
 const uint8_t APP_FUNC_TBL_CNT = sizeof(g_app_func_tbl) / sizeof(g_app_func_tbl[0]);
 
-#if (APP_FUNC_TBL_CNT > 0)
-static volatile uint8_t s_idx;
-static volatile uint8_t s_app_sw_timer_buf[APP_FUNC_TBL_CNT];
+static uint8_t s_tbl_idx;
+static uint8_t s_app_sw_timer_buf[SW_TIMER_NUM];
 static void _period_proc(void);
-#endif
 
 static void _app_mem_init(void);
 static void _steady_proc(void);
@@ -171,10 +172,8 @@ static void _steady_proc(void);
 
 static void _app_mem_init(void)
 {
-#if (APP_FUNC_TBL_CNT > 0)
-    s_idx = 0;
+    s_tbl_idx = 0;
     memset(&s_app_sw_timer_buf[0], 0x00, sizeof(s_app_sw_timer_buf));
-#endif
 }
 
 static void _steady_proc(void)
@@ -183,37 +182,36 @@ static void _steady_proc(void)
     _app_io_reg_proc(); // I/Oレジスタアプリ
 #endif
 
-#if defined(DEBUG_UART_USE) && defined(DBG_MON_USE)
-    _debug_proc(); // デバッグ処理
+#if defined(DEBUG_UART_USE)
+    dbg_mon_main(); // デバッグ用UARTコマンド
 #endif
 }
 
-#if (APP_FUNC_TBL_CNT > 0)
 static void _period_proc(void)
 {
-    uint8_t cbK_ret;
+    volatile uint8_t cbK_ret;
+    volatile bool ret_sw_timer;
 
-    bool ret_sw_timer;
-
-    ret_sw_timer = get_soft_timer_cnt_match(s_app_sw_timer_buf[s_idx]);
+    ret_sw_timer = get_soft_timer_cnt_match(s_app_sw_timer_buf[s_tbl_idx]);
 
     if(ret_sw_timer == true) {
         // アプリ コールバック関数実行
-        cbK_ret = g_app_func_tbl[s_idx].pfunc(NULL);
+        cbK_ret = g_app_func_tbl[s_tbl_idx].pfunc(NULL);
 
         if(cbK_ret != APP_PROC_EXEC) {
             // アプリ実行失敗時の処理
             if(cbK_ret == APP_PROC_ERROR) {
-                // TODO
+                DEBUG_PRINTF("\33[31m[ERROR] App Func[%d] Error!\33[0m\r\n", s_tbl_idx);
             }
         }
     }
 
-    s_idx = (s_idx + 1) % APP_FUNC_TBL_CNT;
-}
+#if (APP_FUNC_TBL_CNT > 1)
+    s_tbl_idx = (s_tbl_idx + 1) % APP_FUNC_TBL_CNT;
 #endif
+}
 
-#ifdef DEBUG_APP
+#ifdef DMA_TEST
 static void _dma_test(void)
 {
     int cmp_ret;
@@ -225,8 +223,8 @@ static void _dma_test(void)
         .p_dst = (void *)&dbg_dma_test_buf[0],
     };
 
-    printf("[DMA Test] Start\r\n");
-    printf("[DMA Test] Src Buf\r\n");
+    DEBUG_PRINTF("[DMA Test] Start\r\n");
+    DEBUG_PRINTF("[DMA Test] Src Buf\r\n");
     app_util_mem_dump((const uint8_t *)&g_test_ascii_tbl[0], 32);
 
     drv_dma_init(DMA_CH_1, MODE_MEM2MEM, &dma_cfg);
@@ -234,14 +232,14 @@ static void _dma_test(void)
 
     while(drv_dma_tc_check(DMA_CH_1) == false);
 
-    printf("[DMA Test] Dst Buf\r\n");
+    DEBUG_PRINTF("[DMA Test] Dst Buf\r\n");
     app_util_mem_dump((const uint8_t *)&dbg_dma_test_buf[0], 32);
 
     cmp_ret = memcmp((const void *)&dbg_dma_test_buf, (const void *)&g_test_ascii_tbl, 32);
     if(cmp_ret == 0) {
-        DEBUG_PRINTF("[DMA Test]] DMA Compare Succes!\r\n");
+        DEBUG_PRINTF("\33[32m[DMA Test]] DMA Compare Success!\33[0m\r\n");
     } else {
-        DEBUG_PRINTF("[DMA Test]] Error! DMA Compare Fail!\r\n");
+        DEBUG_PRINTF("\33[31m[DMA Test]] Error! DMA Compare Fail!\33[0m\r\n");
     }
 }
 #endif
@@ -250,10 +248,10 @@ static void _dma_test(void)
 // NOTE: 浮動小数のfloatをprintf()できないので整数で処理して表示
 static void _i2c_sensor_read(void)
 {
-    uint8_t tmp_u8 = 0;
-    uint32_t tmp_u32 = 0;
-    drv_i2c_ret drv_send_ret = I2C_RET_END;
-    drv_i2c_ret drv_recv_ret = I2C_RET_END;
+    volatile uint8_t tmp_u8 = 0;
+    volatile uint32_t tmp_u32 = 0;
+    volatile drv_i2c_ret drv_send_ret = I2C_RET_END;
+    volatile drv_i2c_ret drv_recv_ret = I2C_RET_END;
 
 #if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_AHT20) // AHT20
     uint8_t aht20_read_buf[8] = {0};
@@ -289,17 +287,17 @@ static void _i2c_sensor_read(void)
             aht20_temp_data = ((float)tmp_u32 / 1048576.0f) * 200.0f - 50.0f;
 
             if((drv_send_ret != I2C_RET_BUSY) && (drv_recv_ret != I2C_RET_BUSY)) {
-                DEBUG_PRINTF("[DEBUG] AHT20: Temp = %d °C, Humdity = %d %%RH\r\n", (int32_t)aht20_temp_data, (uint32_t)aht20_humdity_data);
+                DEBUG_PRINTF("\33[32m[DEBUG] AHT20: Temp = %d °C, Humdity = %d %%RH\33[0m\r\n", (int32_t)aht20_temp_data, (uint32_t)aht20_humdity_data);
             }
         }
     }
 #endif
 
 #if (I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280) // BMP280
-    uint8_t tx_data = 0;
-    uint8_t bmp280_read_buf[8] = {0};
-    float bmp280_temp_data;
-    float bmp280_press_data;
+    volatile uint8_t tx_data = 0;
+    volatile uint8_t bmp280_read_buf[8] = {0};
+    volatile float bmp280_temp_data;
+    volatile float bmp280_press_data;
 
     tx_data = BMP280_REG_ADDR_STATUS;
     drv_send_ret = drv_i2c_write(I2C_ADDR_SENSOR_BMP280, (uint8_t *)&tx_data, 1, true);
@@ -326,7 +324,7 @@ static void _i2c_sensor_read(void)
                 tmp_u32 |= ((uint32_t)bmp280_read_buf[5]);               // 気圧のBit[7:0]
                 bmp280_press_data = (float)tmp_u32;
 
-                DEBUG_PRINTF("[DEBUG] BMP280: Temp = %d °C, Press = %d hPa\r\n", (int32_t)bmp280_temp_data, (int32_t)bmp280_press_data);
+                DEBUG_PRINTF("\33[32m[DEBUG] BMP280: Temp = %d °C, Press = %d hPa\33[0m\r\n", (int32_t)bmp280_temp_data, (int32_t)bmp280_press_data);
             }
         }
     }
@@ -334,15 +332,16 @@ static void _i2c_sensor_read(void)
 }
 #endif
 
-#if (I2C_RTC_DEVICE == I2C_RTC_RX8900)
+#if (I2C_RTC_DEVICE != I2C_ENV_SENSOR_NONE)
 static void rtc_time_read(void)
 {
-    uint8_t tx_data = 0;
-    drv_i2c_ret drv_send_ret = I2C_RET_END;
-    drv_i2c_ret drv_recv_ret = I2C_RET_END;
-    uint8_t rtc_read_buf[16] = {0};
+    volatile uint8_t tx_data = 0;
+    volatile drv_i2c_ret drv_send_ret = I2C_RET_END;
+    volatile drv_i2c_ret drv_recv_ret = I2C_RET_END;
+    volatile uint8_t rtc_read_buf[16] = {0};
 
     memset((uint8_t *)&rtc_read_buf[0], 0x00, 16);
+
 #if (I2C_RTC_DEVICE == I2C_RTC_DS3231)
     // [DS3231の全アドレス0x00~0x12を一括読み出し]
     drv_send_ret = drv_i2c_write(I2C_ADDR_RTC_DS3231, (uint8_t *)&tx_data, 1, true);
@@ -356,7 +355,7 @@ static void rtc_time_read(void)
 #endif
 
     if((drv_send_ret != I2C_RET_BUSY) && (drv_recv_ret != I2C_RET_BUSY)) {
-        DEBUG_PRINTF("[DEBUG] RTC: %02X:%02X:%02X\r\n", rtc_read_buf[2], rtc_read_buf[1], rtc_read_buf[0]);
+        DEBUG_PRINTF("\33[32m[DEBUG] RTC: %02X:%02X:%02X\33[0m\r\n", rtc_read_buf[2], rtc_read_buf[1], rtc_read_buf[0]);
     }
 }
 #endif
@@ -405,13 +404,6 @@ static uint8_t _app_io_reg_proc(void *p_arg)
 }
 #endif
 
-#if defined(DEBUG_UART_USE) && defined(DBG_MON_USE)
-static void _debug_proc(void)
-{
-    dbg_mon_main(); // デバッグモニタ メイン
-}
-#endif
-
 #ifdef USE_74HC595
 // シリアル -> パラレル変換処理
 static uint8_t _siri2para_proc(void *p_arg)
@@ -455,6 +447,17 @@ static uint8_t _siri2para_proc(void *p_arg)
 }
 #endif
 
+static uint8_t _battery_check_proc(void *p_arg)
+{
+    // TODO
+    return APP_PROC_END;
+}
+
+static uint8_t _state_check_proc(void *p_arg)
+{
+    // TODO
+    return APP_PROC_END;
+}
 // -----------------------------------------------------------
 // [アプリ]
 
@@ -472,13 +475,13 @@ void app_util_mem_dump(const uint8_t *p_buf, uint32_t size_byte)
 
     addr = (uint32_t)(uintptr_t)(const void *)p_buf;
 
-    printf("[Memory Dump] Addr: 0x%08X, Size: %u byte\r\n", addr, size_byte);
-    printf("Addr      | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F | ASCII\r\n");
+    DEBUG_PRINTF("[Memory Dump] Addr: 0x%08X, Size: %u byte\r\n", addr, size_byte);
+    DEBUG_PRINTF("Addr      | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F | ASCII\r\n");
 
     for (offset = 0; offset < size_byte; offset += 16)
     {
         addr += offset;
-        printf("0x%08X| ", addr);
+        DEBUG_PRINTF("0x%08X| ", addr);
 
         line_len = (size_byte - offset < 16) ? (size_byte - offset) : 16;
 
@@ -486,12 +489,12 @@ void app_util_mem_dump(const uint8_t *p_buf, uint32_t size_byte)
         for (i = 0; i < 16; i++)
         {
             if (i < line_len) {
-                printf("%02X ", p_buf[offset + i]);
+                DEBUG_PRINTF("%02X ", p_buf[offset + i]);
             } else {
-                printf("   ");
+                DEBUG_PRINTF("   ");
             }
         }
-        printf("|");
+        DEBUG_PRINTF("|");
 
         // ASCIIでダンプ
         for (i = 0; i < line_len; i++)
@@ -499,9 +502,9 @@ void app_util_mem_dump(const uint8_t *p_buf, uint32_t size_byte)
             c = p_buf[offset + i];
             // ASCIIは0x20(スペース) から 0x7E(~) までを表示
             c = ((c >= 0x20) && (c <= 0x7E)) ? c : '.';
-            printf("%c", c);
+            DEBUG_PRINTF("%c", c);
         }
-        printf("|\r\n");
+        DEBUG_PRINTF("|\r\n");
     }
 }
 
@@ -573,7 +576,7 @@ void app_main_init(void)
     app_util_chip_uid_read(); // UID読み出し
     DEBUG_PRINTF("Clock: %d MHz\r\n", SystemCoreClock / 1000000);
 
-#ifdef DEBUG_APP
+#ifdef DMA_TEST
     _dma_test(); // DMAテスト
 #endif
 
@@ -586,23 +589,23 @@ void app_main_init(void)
     drv_i2c_write(I2C_ADDR_SENSOR_BMP280, (uint8_t *)&g_bmp280_reset_data, 2, true);
 #endif //I2C_ENV_SENSOR_DEVICE == I2C_ENV_SENSOR_BMP280
 
-#if defined(DEBUG_UART_USE) && defined(DBG_MON_USE)
+#if defined(DEBUG_UART_USE)
     dbg_mon_init(); // デバッグモニタ 初期化
-#endif //DEBUG_UART_USE
+#endif
 
 #ifdef USE_74HC595
     // 自前の74HC595ドライバ (https://github.com/Chimipupu/drv_74hc595.git)
     drv_74hc595_init((drv_74hc595_config_t*) &g_74hc595_cfg);
 #endif
 
-#ifdef USE_SW_TIMER
-#if (APP_FUNC_TBL_CNT > 0)
     // S/Wタイマースタート
+#if (APP_FUNC_TBL_CNT > 1)
     for(uint8_t i = 0; i < APP_FUNC_TBL_CNT; i++)
     {
         soft_timer_start(g_app_func_tbl[i].interval_ms, true, &s_app_sw_timer_buf[i]);
     }
-#endif
+#else
+    soft_timer_start(g_app_func_tbl[0].interval_ms, true, &s_app_sw_timer_buf[0]);
 #endif
 }
 
@@ -612,8 +615,5 @@ void app_main_init(void)
 void app_main(void)
 {
     _steady_proc(); // 定常処理
-
-#if (APP_FUNC_TBL_CNT > 0)
     _period_proc(); // 一定周期処理
-#endif
 }

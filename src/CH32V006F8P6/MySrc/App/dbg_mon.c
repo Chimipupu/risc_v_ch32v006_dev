@@ -39,7 +39,6 @@ extern volatile uint8_t g_74hc595_app_mode;
 // コマンド構造体
 typedef struct {
     const char *p_cmd_str;                   // コマンド
-    const char *p_cmd_short_str;             // 短縮コマンド
     void (*p_func)(const uint8_t *p_args);   // コマンドコールバック関数ポインタ
     const char* p_description;               // コマンドの説明
 } dbg_cmd_info_t;
@@ -66,25 +65,25 @@ static void _cmd_74hc595(const uint8_t *p_args);
 
 // コマンドテーブル
 static const dbg_cmd_info_t g_cmd_tbl[] = {
-//  | コマンド    | 短縮コマンド | コールバック関数   | コマンド説明 |
+//  | コマンド    | コールバック関数   | コマンド説明 |
     // [システム関連コマンド]
-    { "help",      "?",          &_cmd_help,         "Show All Cmd"    },
-    { "reset",     "rst",        &_cmd_rst,          "Reset Cmd"       },
-    { "clear",     "cls",        &_cmd_cls,          "Display Clear"   },
-    { "sysinfo",   "sif",        &_cmd_system,       "Show SysInfo"    },
-    { "memdump",   "mdp",        &_cmd_mem_dump,     "MemDump Cmd"     },
+    { "?",          &_cmd_help,         "Show All Cmd"    },
+    { "rst",        &_cmd_rst,          "Reset Cmd"       },
+    { "cls",        &_cmd_cls,          "Display Clear"   },
+    { "sif",        &_cmd_system,       "Show SysInfo"    },
+    { "mdp",        &_cmd_mem_dump,     "MemDump Cmd"     },
 
     // [ペリフェラル関連コマンド]
 #ifdef USE_APP_IO_REG
-    { "ioreg",     "irg",        &_cmd_reg,          "I/O Reg R/W Cmd" },
+    { "irg",        &_cmd_reg,          "I/O Reg R/W Cmd" },
 #endif // USE_APP_IO_REG
 
 #ifdef EEPROM_USE
-    { "eeprom",    "e2p",        &_cmd_eeprom,       "EEPROM R/W Cmd" },
+    { "e2p",        &_cmd_eeprom,       "EEPROM R/W Cmd" },
 #endif // EEPROM_USE
 
 #ifdef USE_74HC595
-    { "74hc595",   "595",        &_cmd_74hc595,      "74HC595 CtrlCmd" },
+    { "595",        &_cmd_74hc595,      "74HC595 CtrlCmd" },
 #endif // USE_74HC595
 };
 #define CMD_TBL_CNT    sizeof(g_cmd_tbl) / sizeof(g_cmd_tbl[0])
@@ -101,16 +100,16 @@ static uint32_t s_rx_data_byte = 0;
 
 static void dbg_mon_init_msg(const uint8_t *p_args)
 {
-    printf("\nDebug Monior for %s Ver%d.%d.%d\n",  MCU_NAME,
+    DEBUG_PRINTF("\nDebug Monior for %s Ver%d.%d.%d\n",  MCU_NAME,
                                                 DBG_MON_VER_MAJOR,
                                                 DBG_MON_VER_MINOR,
                                                 DBG_MON_VER_REVISION);
-    printf("Copyright (c) 2026 Chimipupu All Rights Reserved.\n");
+    DEBUG_PRINTF("Copyright (c) 2026 Chimipupu All Rights Reserved.\n");
 }
 
 static void _cmd_rst(const uint8_t *p_args)
 {
-    printf("Now on Reset System! Will Be Restart.\r\n");
+    DEBUG_PRINTF("Now on Reset System! Will Be Restart.\r\n");
     NVIC_SystemReset(); // S/Wリセット
 }
 
@@ -118,34 +117,34 @@ static void _cmd_help(const uint8_t *p_args)
 {
     dbg_mon_init_msg(p_args);
 
-    printf("\nCmd Cnt: [%d]\n", CMD_TBL_CNT);
+    DEBUG_PRINTF("\nCmd Cnt: [%d]\n", CMD_TBL_CNT);
     for (uint8_t i = 0; i < CMD_TBL_CNT; i++)
     {
-        printf("  %-10s | %-5s |  %s\n", g_cmd_tbl[i].p_cmd_str, g_cmd_tbl[i].p_cmd_short_str, g_cmd_tbl[i].p_description);
+        DEBUG_PRINTF("  %-10s |  %s\n", g_cmd_tbl[i].p_cmd_str, g_cmd_tbl[i].p_description);
     }
 }
 
 static void _cmd_cls(const uint8_t *p_args)
 {
-    printf(ANSI_ESC_CLS);
+    DEBUG_PRINTF(ANSI_ESC_CLS);
 }
 
 static void _cmd_system(const uint8_t *p_args)
 {
     uint32_t *p_uid_buf;
 
-    printf("\n[System Info]\n");
+    DEBUG_PRINTF("\n[System Info]\n");
 
     // 基板
-    printf("\nPCB: %s\n", PCB_NAME);
+    DEBUG_PRINTF("\nPCB: %s\n", PCB_NAME);
 
     // マイコン
-    // printf("MCU: %s\n", MCU_NAME);
+    // DEBUG_PRINTF("MCU: %s\n", MCU_NAME);
     app_util_print_mcu_chip_type();
-    printf("CPU: RISC-V RV32EmC (QingKe V2C)\n");
-    printf("Clock: %d MHz\r\n", SystemCoreClock / 1000000);
-    printf("Flash: %d KB\n", MCU_FLASH_SIZE);
-    printf("SRAM: %d KB\n", MCU_RAM_SIZE);
+    DEBUG_PRINTF("CPU: RISC-V RV32EmC (QingKe V2C)\n");
+    DEBUG_PRINTF("Clock: %d MHz\r\n", SystemCoreClock / 1000000);
+    DEBUG_PRINTF("Flash: %d KB\n", MCU_FLASH_SIZE);
+    DEBUG_PRINTF("SRAM: %d KB\n", MCU_RAM_SIZE);
     p_uid_buf = app_util_chip_uid_read(); // 96bit UID
     app_util_mem_dump((const uint8_t *) p_uid_buf, 12);
 }
@@ -188,7 +187,7 @@ static void _cmd_eeprom(const uint8_t *p_args)
     }
     // エラー: 第1引数が'r'でも'w'でもない
     if((rw != 'r') && (rw != 'w')) {
-        printf( ANSI_TXT_COLOR_RED    \
+        DEBUG_PRINTF( ANSI_TXT_COLOR_RED    \
                 "[ERROR] EEPROM Cmd Unknown Args: '%c' (must be 'r' or 'w')\r\n"    \
                 ANSI_TXT_COLOR_RESET, rw);
         return;
@@ -208,7 +207,7 @@ static void _cmd_eeprom(const uint8_t *p_args)
     }
     // エラー: 第2引数のページ指定がEEPROMのページ数以上
     if(cmd_arg_e2p_page > EEPROM_24C64_PAGE_NUM) {
-        printf( ANSI_TXT_COLOR_RED    \
+        DEBUG_PRINTF( ANSI_TXT_COLOR_RED    \
                 "[ERROR] EEPROM Cmd, Page = %d, must be Page <= %d\r\n"    \
                 ANSI_TXT_COLOR_RESET, cmd_arg_e2p_page, EEPROM_24C64_PAGE_NUM);
         return;
@@ -218,7 +217,7 @@ static void _cmd_eeprom(const uint8_t *p_args)
     {
         // e2p r
         case 'r':
-            printf("[DEBUG] EEPROM Read Cmd, Page [%d] Read\r\n", cmd_arg_e2p_page);
+            DEBUG_PRINTF("[DEBUG] EEPROM Read Cmd, Page [%d] Read\r\n", cmd_arg_e2p_page);
             drv_eeprom_read_page(cmd_arg_e2p_page, (uint8_t *)&e2p_page_buf[0]);
             app_util_mem_dump((const uint8_t *)&e2p_page_buf[0], EEPROM_24C64_PAGE_BYTE_SIZE);
             break;
@@ -226,7 +225,7 @@ static void _cmd_eeprom(const uint8_t *p_args)
         // e2p w
         case 'w':
             // TODO: EEPROMの書き込みコマンド対応
-            printf( ANSI_TXT_COLOR_RED    \
+            DEBUG_PRINTF( ANSI_TXT_COLOR_RED    \
                     "[ERROR] EEPROM Write Cmd, Not Support\r\n"    \
                     ANSI_TXT_COLOR_RESET);
             break;
@@ -251,7 +250,7 @@ static void _cmd_74hc595(const uint8_t *p_args)
     }
     // エラー: 第1引数
     if((strcmp((const char *) p_cmd_op, "reg") != 0) && (strcmp((const char *) p_cmd_op, "mode") != 0)) {
-        printf( ANSI_TXT_COLOR_RED    \
+        DEBUG_PRINTF( ANSI_TXT_COLOR_RED    \
                 "[ERROR] 74HC595 Ctrl Cmd Unknown Args: %s (must be reg or mode)\r\n"    \
                 ANSI_TXT_COLOR_RESET, s_cmd_buf[1]);
         return;
@@ -267,7 +266,7 @@ static void _cmd_74hc595(const uint8_t *p_args)
     }
 
     if(strcmp((const char *) p_cmd_op, "reg") == 0) {
-        printf( ANSI_TXT_COLOR_GREEN    \
+        DEBUG_PRINTF( ANSI_TXT_COLOR_GREEN    \
                 "[ERROR] 74HC595 Reg Val: %d\r\n"    \
                 ANSI_TXT_COLOR_RESET, reg_val);
         g_74hc595_app_mode = 0xFF;
@@ -287,9 +286,8 @@ static void _cmd_exec(void)
     // テーブルから該当コマンドを検索
     for(i = 0; i < CMD_TBL_CNT; i++)
     {
-        if( (strcmp((const char *) s_cmd_buf[0], g_cmd_tbl[i].p_cmd_str) == 0) ||     // コマンドと一致か？
-            (strcmp((const char *) s_cmd_buf[0], g_cmd_tbl[i].p_cmd_short_str) == 0)  // 短縮コマンドと一致か？
-        ) {
+        // コマンドと一致か？
+        if(strcmp((const char *) s_cmd_buf[0], g_cmd_tbl[i].p_cmd_str) == 0) {
             is_hit = true;
             break;
         }
@@ -311,9 +309,9 @@ void dbg_mon_init(void)
     memset(&s_cmd_buf[0], 0x00, sizeof(s_cmd_buf));
     s_rx_buf_idx = 0;
 
-    // printf(ANSI_ESC_CLS);
+    // DEBUG_PRINTF(ANSI_ESC_CLS);
     _cmd_help(NULL);
-    printf("\n>");
+    DEBUG_PRINTF("\n>");
 }
 
 /**
@@ -333,7 +331,7 @@ void dbg_mon_main(void)
             // コマンド実行
             if(s_rx_data_byte > 0) {
                 _cmd_exec();
-                printf("\n>");
+                DEBUG_PRINTF("\n>");
             }
 
             // バッファ関連メモリお掃除

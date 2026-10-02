@@ -71,7 +71,7 @@ typedef enum {
     GPIO_PORT_D_7,
 } GPIO_PORT;
 
-extern bool g_is_btn_on_flg;
+extern volatile bool g_is_btn_on_flg;
 
 // -----------------------------------------------------------
 // [API]

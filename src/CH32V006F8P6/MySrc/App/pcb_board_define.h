@@ -48,6 +48,8 @@
 #define MCU_FLASH_SIZE         62
 #define MCU_RAM_SIZE           8
 
+#include <stdio.h>
+#define DEBUG_PRINTF           printf
 // -----------------------------------------------------------
 
 #endif // PCB_BOARD_H

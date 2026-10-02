@@ -17,9 +17,7 @@
 
 // ----------------------------------------------------------------------
 // [コンパイルスイッチ]
-// #define DEBUG_APP
-#define DBG_MON_USE
-#define USE_SW_TIMER
+// #define DMA_TEST
 
 #ifdef USE_74HC595
 // 自前の74HC595ドライバ (https://github.com/Chimipupu/drv_74hc595.git)
